@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-2.0-or-later
 """S7 picks the fix from the provider's role, and must never suggest select."""
 
 from kreach.config import Context

@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-2.0-or-later
 """Run context: where the kernel is, which arch, and the on-disk layout.
 
 Every stage reads the output of the one before and writes a file, so stages can

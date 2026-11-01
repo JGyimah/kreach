@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-2.0-or-later
 """Shared helpers: logging, JSON(L) IO, subprocess running."""
 
 import gzip

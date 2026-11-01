@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-2.0-or-later
 """The tristate encoding is where kreach's y/m distinction lives, so it gets
 the closest tests: a hand-built model standing in for K, and the three failure
 cases checked against configurations we can reason about by hand."""

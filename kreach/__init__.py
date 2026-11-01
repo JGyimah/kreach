@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-2.0-or-later
 """kreach -- Kconfig Reachability Checker.
 
 Finds Kconfig configurations that Kconfig accepts but that fail to link,

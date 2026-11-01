@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-2.0-or-later
 """Stage acceptance tests, as specified.
 
 S1.  For N random .config files produced by ``make randconfig``, every one

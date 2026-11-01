@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-2.0-or-later
 import sys, z3
 from kreach.config import Context
 from kreach.s1_kconfig import load_s1

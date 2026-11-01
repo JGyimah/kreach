@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-2.0-or-later
 """Comparison with randconfig.
 
 The spec's evaluation asks: run N randconfig builds against the same commit,

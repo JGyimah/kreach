@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-2.0-or-later
 """S4, S5 and S6: candidates, queries and verdicts.
 
 S4's guard refinement and S6's build-log classification are the two places

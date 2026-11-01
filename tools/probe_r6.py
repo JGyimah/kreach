@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-2.0-or-later
 """For each randconfig seed: is K violated, and are the R6 clamps alone violated?"""
 import sys, z3
 from kreach.config import Context

@@ -137,6 +137,14 @@ removes false positives, so every limitation costs recall, not precision. See
 [docs/results.md](docs/results.md) for a full run on v6.17 x86_64 with the
 numbers each stage produced.
 
+## Licence
+
+GPL-2.0-or-later, in [LICENSE](LICENSE). Not a free choice: kreach imports the
+kmax suite, which is GPLv2+, so the combined work inherits it — and the
+specification's plan ends with proposing a lightweight version for the
+kernel's own `scripts/`, which would need GPL-2.0 anyway. z3 and python-sat
+are MIT and impose nothing further.
+
 ## Layout
 
 ```

@@ -6,6 +6,8 @@ build-backend = "setuptools.build_meta"
 name = "kreach"
 version = "0.1.0"
 description = "Kconfig Reachability Checker: tristate-aware built-in/module reachability bugs in the Linux kernel"
+license = "GPL-2.0-or-later"
+license-files = ["LICENSE"]
 requires-python = ">=3.10"
 dependencies = [
     "kmax>=4.10",

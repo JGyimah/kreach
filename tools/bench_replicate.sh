@@ -1,4 +1,5 @@
 #!/bin/bash
+# SPDX-License-Identifier: GPL-2.0-or-later
 # Historical recall for one benchmark case.
 #
 # Check out the parent of a commit that fixed a reachability bug, run the

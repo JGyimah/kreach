@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-2.0-or-later
 """The S1 repairs change what K admits, so each one is pinned to the Kconfig
 semantics it is meant to encode."""
 

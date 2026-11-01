@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-2.0-or-later
 """S2 -- Kbuild presence conditions.
 
 Compute, for every object file, the condition under which it is built into

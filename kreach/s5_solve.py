@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-2.0-or-later
 """S5 -- Solver query.
 
 For each candidate pair, check the core property and build a witness.

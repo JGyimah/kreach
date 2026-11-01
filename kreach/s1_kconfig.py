@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-2.0-or-later
 """S1 -- Kconfig model.
 
 Translate the Kconfig tree for one architecture into the formula K.

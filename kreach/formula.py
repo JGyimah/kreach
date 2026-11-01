@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-2.0-or-later
 """Tristate formula algebra.
 
 kreach's whole contribution rests on telling `y` apart from `m`, so the

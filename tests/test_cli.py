@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-2.0-or-later
 """`kreach run` calls the stage commands with its own argument namespace, so
 that namespace has to carry every option they read.  argparse will not catch a
 missing one -- it surfaces as AttributeError half way through a long run."""

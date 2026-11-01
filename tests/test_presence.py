@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-2.0-or-later
 """S2 and S3: reading Kbuild.
 
 The presence conditions are where kreach's y/m split is made, and the

@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-2.0-or-later
 """S7 -- Report and fix suggestion.
 
 Turn confirmed findings into material for a patch.

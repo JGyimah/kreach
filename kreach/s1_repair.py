@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-2.0-or-later
 """S1 repairs: two places where kclause's K is stricter than Kconfig.
 
 The S1 acceptance test (``kreach test s1``) compares K against real

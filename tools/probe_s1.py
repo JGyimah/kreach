@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-2.0-or-later
 """Diagnostic: why does K forbid a literal that randconfig produced?"""
 import sys
 import z3

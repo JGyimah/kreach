@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-2.0-or-later
 """Collect every literal of a real .config that K rejects, by iterating cores."""
 import sys, z3
 from kreach.config import Context

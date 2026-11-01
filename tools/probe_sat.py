@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-2.0-or-later
 """Is K satisfiable?  If not, which group of constraints makes it unsat?"""
 import sys, z3
 from kreach.config import Context

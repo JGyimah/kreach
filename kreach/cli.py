@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-2.0-or-later
 """kreach command line.
 
 Each stage is its own subcommand so it can be rerun, cached and tested on its

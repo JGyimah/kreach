@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-2.0-or-later
 """S4 -- Reference conditions.
 
 Estimate RC(c, s): when the reference to s is actually emitted.

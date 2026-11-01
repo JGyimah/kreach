@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-2.0-or-later
 """Benchmark mining: extract the caller/provider pair a real Kconfig fix
 addressed, and score a findings file against it."""
 

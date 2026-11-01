@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-2.0-or-later
 """S6 -- Build confirmation.
 
 Build every witness with an unmodified ``make`` and keep only findings that

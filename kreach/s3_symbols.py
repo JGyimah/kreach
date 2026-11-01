@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-2.0-or-later
 """S3 -- Symbol references.
 
 Find which objects reference which symbols, and which objects provide them.
