@@ -18,7 +18,7 @@ work/
 # reproducers and the whole point of a finding.
 !results/witness/*.config
 
-# coverage
+# coverage, printed in CI rather than uploaded anywhere
 .coverage
 coverage.xml
 htmlcov/

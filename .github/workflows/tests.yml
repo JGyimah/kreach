@@ -40,20 +40,14 @@ jobs:
       - name: Lint
         run: python -m pyflakes kreach/ tests/ tools/
 
+      # Coverage is printed in the log rather than sent anywhere.  The total
+      # is around half, and the shape of it is the point: the algebra, the
+      # Kconfig-model repairs, the Kbuild readers and the report sit high,
+      # because that is where a bug is silent.  The thin modules shell out to
+      # make and nm, and covering those needs a kernel tree -- which is what
+      # `kreach test s1` and `kreach test s2` do against a checkout.
       - name: Test
-        run: python -m pytest tests/ -q --cov=kreach --cov-report=xml --cov-report=term
-
-      # One upload is enough; the suite is the same on every version.  A
-      # coverage upload must never decide whether the tests passed, hence
-      # fail_ci_if_error: false.
-      - name: Upload coverage
-        if: matrix.python-version == '3.12'
-        uses: codecov/codecov-action@v7
-        with:
-          files: ./coverage.xml
-          flags: unit
-          fail_ci_if_error: false
-          token: ${{ secrets.CODECOV_TOKEN }}
+        run: python -m pytest tests/ -q --cov=kreach --cov-report=term
 
       - name: Command line responds
         run: |

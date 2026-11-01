@@ -1,7 +1,6 @@
 # kreach — Kconfig Reachability Checker
 
 [![tests](https://github.com/JGyimah/kreach/actions/workflows/tests.yml/badge.svg)](https://github.com/JGyimah/kreach/actions/workflows/tests.yml)
-[![codecov](https://codecov.io/gh/JGyimah/kreach/branch/main/graph/badge.svg)](https://codecov.io/gh/JGyimah/kreach)
 [![License: GPL v2 or later](https://img.shields.io/badge/License-GPLv2%2B-blue.svg)](LICENSE)
 
 kreach finds Kconfig configurations that Kconfig accepts but that fail to link,
