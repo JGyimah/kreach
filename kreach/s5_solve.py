@@ -199,6 +199,30 @@ class Minimiser:
         }
 
 
+def filter_candidates(candidates: list[dict], callers=None,
+                      providers=None) -> list[dict]:
+    """Narrow the candidate list to particular options.
+
+    Re-confirming a known set of findings against another revision does not
+    need the whole sweep solved -- only the pairs already in hand.  The same
+    filters exist on S6, which spends the builds; having them here too is
+    what makes a targeted re-run minutes rather than an hour.
+    """
+    out = candidates
+    if callers:
+        wanted = set(callers)
+        out = [c for c in out if c.get("caller_option") in wanted]
+        log.info("caller filter: %d of %d candidates match %s",
+                 len(out), len(candidates), ", ".join(sorted(wanted)))
+    if providers:
+        wanted = set(providers)
+        before = len(out)
+        out = [c for c in out if c.get("provider_option") in wanted]
+        log.info("provider filter: %d of %d candidates match %s",
+                 len(out), before, ", ".join(sorted(wanted)))
+    return out
+
+
 def collapse_candidates(candidates: list[dict], table) -> list[dict]:
     """One query per distinct problem, not per object pair.
 

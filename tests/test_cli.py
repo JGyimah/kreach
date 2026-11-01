@@ -13,7 +13,7 @@ STAGE_ARGS = {
     "s2": ["force", "subdir"],
     "s3": ["config", "whole_tree", "skip_build", "force", "subdir"],
     "s4": ["max_candidates", "use_feedback"],
-    "s5": ["case", "limit", "no_witness"],
+    "s5": ["case", "limit", "no_witness", "caller", "provider"],
     "s6": ["limit", "timeout", "parallel", "build_jobs", "keep_build",
            "ccache", "rebuild", "provider", "caller",
            "no_reference_check"],

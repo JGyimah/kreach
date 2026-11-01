@@ -98,7 +98,10 @@ def cmd_s5(args):
     from kreach.s5_solve import run_s5
     ctx = _ctx(args)
     model, table = load_s1(ctx), load_s2(ctx)
-    cands = load_candidates(ctx)
+    from kreach.s5_solve import filter_candidates
+
+    cands = filter_candidates(load_candidates(ctx), callers=args.caller,
+                              providers=args.provider)
     cases = args.case or ["y/m"]
     log.info("S5: %d candidates, cases %s", len(cands), ",".join(cases))
     run_s5(ctx, model, table, cands, cases=cases, limit=args.limit,
@@ -308,6 +311,12 @@ def build_parser() -> argparse.ArgumentParser:
     sp.add_argument("--limit", type=int, default=None)
     sp.add_argument("--no-witness", action="store_true",
                     help="solve only, do not materialise .config files")
+    sp.add_argument("--caller", action="append",
+                    help="only solve candidates with this caller option "
+                         "(repeatable); for re-confirming a known set")
+    sp.add_argument("--provider", action="append",
+                    help="only solve candidates with this provider option "
+                         "(repeatable)")
     sp.set_defaults(func=cmd_s5)
 
     sp = sub.add_parser("s6", help="build confirmation")

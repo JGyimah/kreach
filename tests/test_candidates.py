@@ -436,3 +436,22 @@ def test_config_to_assignment_can_be_restricted_to_some_symbols():
         s = z3.Solver()
         s.add(*lits, q)
         assert s.check() == z3.sat
+
+
+def test_filter_candidates_narrows_by_caller_and_provider():
+    """Re-confirming a known set against another revision only needs those
+    pairs solved, not the whole sweep."""
+    from kreach.s5_solve import filter_candidates
+
+    cands = [
+        {"caller_option": "CONFIG_A", "provider_option": "CONFIG_P"},
+        {"caller_option": "CONFIG_B", "provider_option": "CONFIG_P"},
+        {"caller_option": "CONFIG_A", "provider_option": "CONFIG_Q"},
+    ]
+    assert len(filter_candidates(cands)) == 3
+    assert [c["caller_option"] for c in filter_candidates(cands, callers=["CONFIG_A"])] \
+        == ["CONFIG_A", "CONFIG_A"]
+    assert len(filter_candidates(cands, providers=["CONFIG_P"])) == 2
+    both = filter_candidates(cands, callers=["CONFIG_A"], providers=["CONFIG_Q"])
+    assert len(both) == 1 and both[0]["provider_option"] == "CONFIG_Q"
+    assert filter_candidates(cands, callers=["CONFIG_NOPE"]) == []

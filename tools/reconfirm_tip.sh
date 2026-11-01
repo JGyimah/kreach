@@ -23,7 +23,10 @@ k s2 -d sound -d lib -d drivers/base
 k s3 --config allmodconfig -d sound
 k s4
 
+# Solve and build only the pairs asked for.  Without the filter S5 would
+# work through every candidate in the tree, which for a re-confirmation of a
+# known set is an hour spent to answer a question nobody asked.
 cargs=(); for c in "${CALLERS[@]}"; do cargs+=(--caller "$c"); done
-k s5
+k s5 "${cargs[@]}"
 k s6 --ccache --build-jobs 3 "${cargs[@]}"
 k s7 --quiet
