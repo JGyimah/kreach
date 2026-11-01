@@ -470,6 +470,21 @@ what it lets the build say. Every one of these six was found by running the
 thing, not by reading it, and three of them also fed a false entry into S4's
 feedback loop, which suppresses the pair on every later run.
 
+### Witness size is not bounded, and should be
+
+The minimisation above stops as soon as the unsat-core loop finds an
+assignment the constraints allow; nothing asks whether that assignment is
+*small*. For ten of eleven findings at v7.3 it came to 505-842 enabled
+settings, which builds in minutes. For one it came to **3,822**, and that
+witness could not be built at all on a 4-core, 3.9 GB machine — `ld` was
+OOM-killed twice and the object tree then filled the disk twice. The same
+finding at v6.17 had a 480-setting witness and linked in 21 seconds.
+
+So an outlier witness is a real failure mode, and two cheap things would
+address it: report the size alongside the finding so it is visible before S6
+spends a build, and give the minimiser a second pass over an outlier rather
+than accepting the first satisfying assignment. Neither is done.
+
 ### What the link step needs
 
 The `vmlinux` link is the memory high-water mark of a witness build, and it is

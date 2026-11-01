@@ -363,12 +363,36 @@ compiling the caller tells you whether the *call* is still there. This is the
 case that justifies the compile-the-caller pre-check on its own, and it cost
 twenty seconds rather than a build.
 
-`CONFIG_SND_SOC_FSL_XCVR` is **unprovable here, not disproven.** Its witness is
-a large enough configuration that `ld` needs more memory than the container
-has, so the link is killed before it can answer. It confirmed at v6.17 with a
-smaller witness and nothing suggests it is fixed; it needs a build host with
-more RAM. That is a limit of the machine, and S6 records it as
-`build_environment_error` rather than as a verdict.
+`CONFIG_SND_SOC_FSL_XCVR` is **unprovable here, not disproven** — and the
+reason is more interesting than "the machine is too small", because nine other
+witnesses built on the same machine without trouble. Its witness is an
+outlier:
+
+| witness | settings enabled |
+|---|---|
+| `FSL_XCVR` | **3,822** |
+| `ROCKCHIP_SPDIF` | 842 |
+| `ROCKCHIP_I2S` | 841 |
+| `FSL_AUD2HTX` | 700 |
+| `INTEL_KEEMBAY` | 696 |
+| `FSL_LPC3XXX` | 505 |
+
+4.5x the next largest and 8x the median. The others are small kernels that
+build in minutes; that one is a substantial kernel, and its build exhausted
+first memory (`ld` OOM-killed) and then disk across four attempts. At v6.17
+the same finding had a 480-setting witness and linked in 21 seconds.
+
+So the gap is in S5's minimisation rather than in the hardware. The
+unsat-core loop releases whatever the constraints force and stops; for this
+pair at v7.3 that came to 3,822 settings, and nothing then tries to do better.
+Getting `BITREVERSE` to `m` while the caller is `y` now goes through
+`GENERIC_BITREVERSE`, and satisfying that appears to drag in a great deal.
+
+That suggests two things worth doing, neither of which is a hardware
+purchase: have S5 report when a witness is a size outlier so it is visible
+before a build is spent on it, and give the minimiser a second pass that tries
+to shrink an outlier further rather than accepting the first assignment the
+core loop lands on.
 
 One thing changed upstream that the tool picked up without help: `BITREVERSE`
 now selects `GENERIC_BITREVERSE if !HAVE_ARCH_BITREVERSE`, and `bitrev.o` is
