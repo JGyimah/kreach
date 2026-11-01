@@ -7,10 +7,13 @@ dist/
 .venv/
 venv/
 
-# kreach work directories: stage outputs, witnesses and build trees
+# kreach work directories: stage outputs and build trees.  A run writes
+# s1/ .. s7/ plus build trees under -w, none of which belongs in the repo.
 kreach-out/
 work/
-*.config
 
-# run outputs (findings and witness configs from a kreach run)
-out/
+# Kernel configurations in general are build artefacts ...
+*.config
+# ... except the witnesses published with the findings, which are the
+# reproducers and the whole point of a finding.
+!results/witness/*.config

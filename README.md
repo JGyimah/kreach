@@ -121,6 +121,14 @@ anywhere. Its default scope is the main code directories plus
 leaving it out makes S4 pick a same-named object elsewhere in the tree
 (`lib/hweight.o` instead of `arch/x86/lib/hweight.o`).
 
+## Findings from a real run
+
+[results/](results/) holds the output of a run on Linux v6.17, `ARCH=x86_64`,
+with `sound/` as the caller subsystem: **eleven findings**, each confirmed by a
+`vmlinux` link that failed on the predicted symbol, each with the minimised
+`.config` that reproduces it. [results/README.md](results/README.md) lists them
+with their `Fixes:` commits and how to reproduce one.
+
 ## Known limitations
 
 kreach can miss bugs but never reports an unconfirmed one: build confirmation
