@@ -1,0 +1,16 @@
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+build/
+dist/
+.venv/
+venv/
+
+# kreach work directories: stage outputs, witnesses and build trees
+kreach-out/
+work/
+*.config
+
+# run outputs (findings and witness configs from a kreach run)
+out/
