@@ -65,6 +65,12 @@ ENVIRONMENT_FAILURES = (
     "Killed signal terminated program",
     "collect2: fatal error: ld terminated with signal",
     "Resource temporarily unavailable",
+    # make reports a SIGKILLed child as 128+9.  The usual cause is the OOM
+    # killer taking ld during the vmlinux link, which wants a couple of
+    # gigabytes of its own -- seen here as
+    #   Out of memory: Killed process (ld) ... anon-rss:2485076kB
+    # Nothing about the finding, so it must not be recorded as a verdict.
+    "Error 137",
 )
 
 # Verdicts that settle a witness.  Anything else -- an interrupted build, a

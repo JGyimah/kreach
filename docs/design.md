@@ -442,6 +442,7 @@ feedback loop, which suppresses the pair on every later run.
 | two S6 runs clearing each other's trees | `rejected_other_error` | refused by a work-directory lock |
 | witness whose guard Kconfig turned off | `rejected_build_ok` after a full link | `skipped_witness_defanged` in a second |
 | caller that no longer emits the reference | `rejected_build_ok` after a full link | `skipped_reference_not_emitted` after one compile |
+| OOM killer took `ld` during the link | `rejected_other_error` | `build_environment_error`, retried |
 
 The distinction the code now keeps is between *terminal* verdicts, which
 settle a witness and may feed back to S4, and everything else, which leaves
@@ -449,9 +450,34 @@ the question open for the next run. `TERMINAL` in `kreach/s6_confirm.py` and
 `S6_REJECTIONS` in `kreach/s4_refcond.py` are the two lists, and candidate
 precision is reported over builds actually spent rather than over records.
 
+The last of those is the instructive one. `make` reports a child killed by a
+signal as `128 + signum`, so an OOM kill arrives as:
+
+```
+make[3]: *** [scripts/Makefile.vmlinux_o:79: vmlinux.o] Error 137
+```
+
+which is indistinguishable from an ordinary build failure unless you know to
+look for the number. `dmesg` had the real story —
+`Out of memory: Killed process (ld) ... anon-rss:2485076kB` — `ld` wanting
+2.5 GB against 2.7 GB available. Marginal enough that nine witnesses linked
+and the tenth did not, which is the worst shape a bug of this class can take:
+non-deterministic, looks like an answer, and silently costs a finding.
+
 The general shape is worth keeping in mind for anything built on this: a
 pipeline whose precision rests on "the build said so" has to be careful about
-what it lets the build say.
+what it lets the build say. Every one of these six was found by running the
+thing, not by reading it, and three of them also fed a false entry into S4's
+feedback loop, which suppresses the pair on every later run.
+
+### What the link step needs
+
+The `vmlinux` link is the memory high-water mark of a witness build, and it is
+single-threaded, so parallelism does not help it. On 3.9 GB of RAM `ld` fits
+for most witnesses and not for all; a larger configuration needs more than the
+machine has, and no amount of `-j` tuning changes that. If a witness keeps
+coming back `build_environment_error`, the machine is the limit rather than the
+finding, and it needs either more memory or a build host that has it.
 
 ### One S6 per work directory
 

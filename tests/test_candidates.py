@@ -455,3 +455,20 @@ def test_filter_candidates_narrows_by_caller_and_provider():
     both = filter_candidates(cands, callers=["CONFIG_A"], providers=["CONFIG_Q"])
     assert len(both) == 1 and both[0]["provider_option"] == "CONFIG_Q"
     assert filter_candidates(cands, callers=["CONFIG_NOPE"]) == []
+
+
+def test_oom_killed_link_is_an_environment_failure_not_a_rejection():
+    """make reports a SIGKILLed child as Error 137.  The usual cause is the
+    OOM killer taking ld during the vmlinux link, which says nothing about
+    the finding -- recording it as a rejection would drop a real bug."""
+    from kreach.s6_confirm import ENVIRONMENT_FAILURES
+
+    real = ("  CC      net/9p/error.o\n"
+            "make[3]: *** [scripts/Makefile.vmlinux_o:79: vmlinux.o] Error 137\n"
+            "make[3]: *** Deleting file 'vmlinux.o'\n")
+    assert [s for s in ENVIRONMENT_FAILURES if s in real]
+
+    # A genuine link failure on the predicted symbol must still be a verdict.
+    genuine = ("ld: fsl_xcvr.c:(.text+0x1): undefined reference to `byte_rev_table'\n"
+               "make: *** [Makefile:1234: vmlinux] Error 1\n")
+    assert not [s for s in ENVIRONMENT_FAILURES if s in genuine]

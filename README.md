@@ -54,12 +54,14 @@ kreach -a x86_64 run -d sound          # all of the above
 kreach status                          # what has been computed so far
 ```
 
-S6 is where the time goes, so it has a few knobs: `--ccache` (witness configs
-differ by a handful of options, so the cache does most of the work),
-`--provider CONFIG_X` to settle one provider's findings first, `--limit`, and
-`--parallel`. Results accumulate across runs, so a bounded run now and the
-rest later lose nothing. Only one S6 may run per work directory; use a
-separate `-w` to build in parallel.
+S5 and S6 both take `--caller CONFIG_X` and `--provider CONFIG_X`, repeatable,
+which is what makes re-confirming a known set against another revision quick:
+the sweep solves the pairs you name rather than every pair in the tree. S6
+additionally has `--ccache` (witness configs differ by a handful of options,
+so the cache does most of the work), `--limit` and `--parallel`. Results
+accumulate across runs, so a bounded run now and the rest later lose nothing.
+Only one S6 may run per work directory; use a separate `-w` to build in
+parallel.
 
 `-d` restricts a stage to a subtree.  It is worth using for S3, whose wide
 build is the expensive part, and worth *not* using for S2, which is static.

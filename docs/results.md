@@ -332,6 +332,51 @@ caveat  BITREVERSE has no prompt, so it is only ever enabled by a select;
         This one needs a maintainer decision, not the standard fix.
 ```
 
+## Re-confirmed at v7.3
+
+Findings are only worth sending against a tree a maintainer would apply to, so
+the set was re-run two releases on, at **v7.3** — the newest release kmax 4.10
+can parse. A separate work directory, S2 scoped to `sound/`, `lib/` and
+`drivers/base/` where the providers live, and S5/S6 filtered to the eleven
+known caller options: 68 queries in 2.4 minutes instead of 4,971.
+
+| | |
+|---|---|
+| still confirmed by a link error | **9** |
+| no longer reproducible | 1 |
+| unprovable on this machine | 1 |
+
+**9 of 9 builds spent were confirmations.** The two departures from the v6.17
+set are both worth stating precisely:
+
+`CONFIG_SND_SOC_IDT821034` **no longer reproduces.** Its Kconfig stanza still
+lacks the `select`, so a static reading says the bug is live — but the caller
+no longer emits the reference:
+
+```
+sound/soc/codecs/idt821034.o does not reference byte_rev_table in this
+configuration, so the link cannot fail on it
+```
+
+Reading the declaration tells you whether anyone fixed the *rule*. Only
+compiling the caller tells you whether the *call* is still there. This is the
+case that justifies the compile-the-caller pre-check on its own, and it cost
+twenty seconds rather than a build.
+
+`CONFIG_SND_SOC_FSL_XCVR` is **unprovable here, not disproven.** Its witness is
+a large enough configuration that `ld` needs more memory than the container
+has, so the link is killed before it can answer. It confirmed at v6.17 with a
+smaller witness and nothing suggests it is fixed; it needs a build host with
+more RAM. That is a limit of the machine, and S6 records it as
+`build_environment_error` rather than as a verdict.
+
+One thing changed upstream that the tool picked up without help: `BITREVERSE`
+now selects `GENERIC_BITREVERSE if !HAVE_ARCH_BITREVERSE`, and `bitrev.o` is
+gated on the latter, so v7.3 findings name `GENERIC_BITREVERSE` as the
+provider. The fix to send is still `select BITREVERSE`, which does the right
+thing on architectures that have a native implementation and need no
+`bitrev.o` at all.
+
 ## What went wrong that the tests caught
 
 Four bugs found by the acceptance tests and unit tests rather than by reading:
@@ -352,6 +397,12 @@ Four bugs found by the acceptance tests and unit tests rather than by reading:
   declares. With no type from kextract, nothing tied `X==y` to `X`, and
   "built but not built in" became satisfiable for an object that is never
   built. Such symbols are now pinned to n; see `docs/design.md`.
+- **An OOM-killed linker was recorded as a rejection.** `make` reports a child
+  killed by a signal as `128 + signum`, so the OOM killer taking `ld` arrives
+  as `Error 137` — indistinguishable from a build failure unless you know the
+  number. It linked for nine witnesses and died on the tenth, which is the
+  worst shape this class takes: non-deterministic, looks like an answer, and
+  silently drops a finding. Now `build_environment_error` and retried.
 - **Two S6 runs on one work directory corrupted each other's builds.** They
   clear each build directory before using it, so one removed the tree the
   other was compiling into; the result was
