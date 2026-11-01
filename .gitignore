@@ -17,3 +17,8 @@ work/
 # ... except the witnesses published with the findings, which are the
 # reproducers and the whole point of a finding.
 !results/witness/*.config
+
+# coverage
+.coverage
+coverage.xml
+htmlcov/
