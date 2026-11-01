@@ -581,6 +581,30 @@ each rather than patching the installed package:
 - `Arch.get_selects()` returns `{selected: {selecter: [clauses]}}`, not the list
   of single-entry dicts its docstring describes.
 
+## How current a kernel can be analysed
+
+kmax bundles its own Kconfig parser, one module per era of the language, and
+picks the newest that matches the kernel's version. kmax 4.10's newest is
+`v7.1`. That parses every release up to and including **v7.3**, but not
+current master: the Kconfig language has since gained a `def_string`
+statement (with `def_int` and `def_hex`, in "kconfig: Add def_string, def_int
+and def_hex"), and the parser stops on it:
+
+```
+scripts/Kconfig.toolchain:219: unknown statement "def_string"
+arch/x86/Kconfig:2364: unknown statement "def_string"
+```
+
+kextract then exits 0 having written nothing, so the failure arrives as
+`kextract file couldn't be generated` rather than as the syntax error that
+caused it — worth knowing, because the message sends you looking in the wrong
+place.
+
+So the practical ceiling is the newest tagged release, which is close enough
+for patch work and will move as kmax is updated. Teaching the bundled parser
+the three new statements is a small change, but it belongs upstream in kmax
+rather than here.
+
 ## Known limitations
 
 Every limitation costs recall, not precision: S6 confirms each finding with a
