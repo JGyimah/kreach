@@ -1,0 +1,51 @@
+# SPDX-License-Identifier: GPL-2.0-or-later
+name: tests
+
+# The unit suite only: it covers the tristate algebra, the Kconfig-model
+# repairs, the Kbuild shapes S2 has to read, the build-log classification and
+# the report, all against fixtures.  The stages themselves need a kernel tree
+# and real builds -- S3 alone wants an allmodconfig object tree -- so those
+# are exercised by `kreach test s1` and `kreach test s2` against a checkout,
+# not here.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.10", "3.11", "3.12"]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: pip
+
+      - name: Install
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install kmax z3-solver python-sat pytest pyflakes
+          python -m pip install -e .
+
+      - name: Lint
+        run: python -m pyflakes kreach/ tests/ tools/
+
+      - name: Test
+        run: python -m pytest tests/ -q
+
+      - name: Command line responds
+        run: |
+          kreach --version
+          for c in s1 s2 s3 s4 s5 s6 s7 run status test randcompare compare bench score; do
+            kreach "$c" --help > /dev/null
+          done
