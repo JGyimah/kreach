@@ -1,5 +1,7 @@
 # kreach — Kconfig Reachability Checker
 
+[![License: GPL v2 or later](https://img.shields.io/badge/License-GPLv2%2B-blue.svg)](LICENSE)
+
 kreach finds Kconfig configurations that Kconfig accepts but that fail to link,
 because built-in code calls a function provided by code that is a module or
 disabled. Each finding comes with a minimal configuration that reproduces the
