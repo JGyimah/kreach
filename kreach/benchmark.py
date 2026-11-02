@@ -144,6 +144,71 @@ def kconfig_stanza(ctx: Context, rev: str, paths: list[str],
     return None, []
 
 
+def declaring_paths(ctx: Context, rev: str, name: str,
+                    cache: dict | None = None) -> list[str]:
+    """Kconfig files that declare an option, at one revision."""
+    key = (rev, name)
+    if cache is not None and key in cache:
+        return cache[key]
+    out = _git(ctx, ["grep", "-lE", r"^(menu)?config %s$" % name, rev,
+                     "--", "*Kconfig*"], check=False)
+    paths = [l.split(":", 1)[1] for l in out.splitlines() if ":" in l]
+    if cache is not None:
+        cache[key] = paths
+    return paths
+
+
+def symbol_type(ctx: Context, rev: str, option: str,
+                cache: dict | None = None) -> str | None:
+    """An option's declared type at one revision, found tree-wide."""
+    name = option[len("CONFIG_"):] if option.startswith("CONFIG_") else option
+    paths = declaring_paths(ctx, rev, name, cache)
+    if not paths:
+        return None
+    typ, _ = kconfig_stanza(ctx, rev, paths, option)
+    return typ
+
+
+def provider_can_be_a_module(ctx: Context, rev: str, provider_option: str,
+                             cache: dict | None = None) -> bool:
+    """Whether the provider can hold the ``m`` the y/m case needs.
+
+    Only a tristate has an ``m``.  A provider declared ``bool`` -- a menu
+    gate such as NET_VENDOR_FREESCALE, say -- cannot be a module at all, so
+    no configuration satisfies ``level(provider) == m`` and the pair is not a
+    y/m instance however the fix was written.  An option that is not declared
+    anywhere is left alone rather than guessed at.
+    """
+    typ = symbol_type(ctx, rev, provider_option, cache)
+    return typ != "bool"
+
+
+def caller_buildable_on(ctx: Context, rev: str, srcarch: str,
+                        caller_option: str, depends: list[str],
+                        cache: dict | None = None) -> bool:
+    """Whether this architecture can build the caller at all.
+
+    A driver gated on another architecture's symbol, with no COMPILE_TEST
+    escape, is unselectable here: S3 never compiles it, so no reference of
+    its is ever seen and the case cannot be found whatever the checker does.
+    A symbol counts as another architecture's when every Kconfig file
+    declaring it sits under ``arch/`` and none under ``arch/<srcarch>/``.
+    """
+    if any("COMPILE_TEST" in expr for expr in depends):
+        return True
+    for expr in depends:
+        for term in and_terms(expr):
+            if not re.fullmatch(r"[A-Z0-9_]+", term):
+                continue            # not a bare requirement
+            paths = declaring_paths(ctx, rev, term, cache)
+            if not paths:
+                continue
+            if all(p.startswith("arch/") for p in paths) and \
+               not any(p.startswith("arch/%s/" % srcarch) for p in paths):
+                return False
+    return True
+
+
 def dependency_caps_level(caller_type: str | None, depends: list[str],
                           provider_option: str) -> bool:
     """Whether the caller's own ``depends on`` already forbids the y/m case.
@@ -171,7 +236,7 @@ def dependency_caps_level(caller_type: str | None, depends: list[str],
     return False
 
 
-def extract_pair(ctx: Context, rec: dict) -> dict:
+def extract_pair(ctx: Context, rec: dict, cache: dict | None = None) -> dict:
     """What caller/provider pair did this fix address?"""
     diff = _git(ctx, ["show", "--format=%B", rec["commit"]], check=False)
     body, _, _ = diff.partition("\ndiff --git")
@@ -212,32 +277,56 @@ def extract_pair(ctx: Context, rec: dict) -> dict:
         "fix_patterns": sorted(set(patterns)),
     })
 
-    # Does the caller's own dependency already rule the y/m case out?  If it
-    # does for every provider the diff names, the pair extracted here cannot
-    # be the thing that broke, and counting it as a miss would measure the
-    # mining rather than the checker.
+    # Three ways the extracted pair cannot be a y/m instance at the parent.
+    # Counting any of them as a miss would measure the mining, or the
+    # architecture, rather than the checker.
     caller_type, depends = (None, [])
     if caller_option and rec.get("parent"):
         caller_type, depends = kconfig_stanza(ctx, rec["parent"],
                                               rec.get("files") or [],
                                               caller_option)
-    capped = [p for p in providers
-              if dependency_caps_level(caller_type, depends, p)]
     rec["caller_type"] = caller_type
     rec["caller_depends"] = depends
+
+    capped = [p for p in providers
+              if dependency_caps_level(caller_type, depends, p)]
     rec["capped_providers"] = capped
+
+    parent = rec.get("parent")
+    modular = providers
+    if parent and providers:
+        modular = [p for p in providers
+                   if provider_can_be_a_module(ctx, parent, p, cache)]
+        rec["non_modular_providers"] = [p for p in providers if p not in modular]
+
+    buildable = True
+    if parent and caller_option:
+        buildable = caller_buildable_on(ctx, parent, ctx.srcarch, caller_option,
+                                        depends, cache)
+    rec["caller_buildable"] = buildable
+
     if providers and len(capped) == len(providers):
         rec["excluded"] = (
             "%s is a tristate and already depends on %s at the parent, so it "
             "cannot be y while that is m" % (
                 caller_option, ", ".join(capped)))
+    elif providers and not modular:
+        rec["excluded"] = (
+            "no provider the fix names can be a module (%s is bool), so the "
+            "bug is the y/n case, which v1 does not check" % ", ".join(providers))
+    elif not buildable:
+        rec["excluded"] = (
+            "%s is gated on another architecture with no COMPILE_TEST, so "
+            "ARCH=%s cannot build it (depends on %s)" % (
+                caller_option, ctx.arch, "; ".join(depends) or "?"))
     return rec
 
 
 def build_benchmark(ctx: Context, limit: int = 50, since: str = "v6.0") -> dict:
     t0 = time.time()
     commits = mine_commits(ctx, since=since, limit=limit)
-    cases = [extract_pair(ctx, rec) for rec in commits]
+    cache: dict = {}
+    cases = [extract_pair(ctx, rec, cache) for rec in commits]
     extractable = [c for c in cases
                    if c["caller_option"] and c["provider_options"]]
     excluded = [c for c in extractable if c.get("excluded")]

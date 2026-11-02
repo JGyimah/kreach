@@ -1,0 +1,16 @@
+{
+ "checked": 1,
+ "excluded": [],
+ "hits": [
+  {
+   "commit": "e62bb5abdcc0dc57ff09c4db961784582e61cd9b",
+   "pair": [
+    "CONFIG_VIDEO_AMD_ISP4_CAPTURE",
+    "CONFIG_DRM_AMDGPU"
+   ],
+   "subject": "media: platform: amd: add DRM_AMDGPU dependency"
+  }
+ ],
+ "misses": [],
+ "recall": 1.0
+}

@@ -8,7 +8,9 @@
 # S1-S3 are per kernel commit and every case has a different parent, so there
 # is nothing to share between them: the cost is one full model and one wide
 # build each.  The work directory is deleted once the case is scored, so disk
-# stays flat; the score and any confirmed finding are copied out first.
+# stays flat; the score, any confirmed finding, and the queries and verdicts
+# behind them are copied out first -- a miss is only diagnosable if the
+# evidence outlives the work directory.
 #
 # Resumable: a case whose score file already exists is skipped, so rebuilding
 # the worklist and rerunning picks up where it stopped.
@@ -57,6 +59,13 @@ while read -r commit caller scope; do
 
   k s6 --ccache --build-jobs 3 --caller "$caller" >/dev/null 2>&1
   k s7 --quiet --publish "$PUB/case-$commit" >/dev/null 2>&1
+
+  # Keep what a miss needs: which queries were asked and how each was
+  # settled.  Both files are small once S5 is filtered to one caller.
+  mkdir -p "$PUB/diag-$commit"
+  cp "$work/s5/queries.jsonl" "$PUB/diag-$commit/" 2>/dev/null
+  cp "$work/s6/results.jsonl" "$PUB/diag-$commit/" 2>/dev/null
+  cp "$work/s4/guarded.jsonl" "$PUB/diag-$commit/" 2>/dev/null
   if k score --benchmark "$WORKROOT/benchmark.json" --commit "$commit" \
              -o "$work/score-$commit.json" >/dev/null 2>&1; then
     cp "$work/score-$commit.json" "$PUB/"

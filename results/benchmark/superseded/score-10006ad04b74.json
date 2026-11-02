@@ -1,0 +1,13 @@
+{
+ "checked": 1,
+ "excluded": [],
+ "hits": [],
+ "misses": [
+  {
+   "commit": "10006ad04b74a81ba15f63e94f6310773b45b043",
+   "reason": "not reported",
+   "subject": "net: dsa: netc: fix unmet Kconfig dependencies for NET_DSA_NETC_SWITCH"
+  }
+ ],
+ "recall": 0.0
+}

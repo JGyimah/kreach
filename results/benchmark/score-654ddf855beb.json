@@ -1,0 +1,16 @@
+{
+ "checked": 1,
+ "excluded": [],
+ "hits": [
+  {
+   "commit": "654ddf855bebd8d45a6e707f5dc2344921f5e0cf",
+   "pair": [
+    "CONFIG_BITLAND_MIFS_WMI",
+    "CONFIG_LEDS_CLASS"
+   ],
+   "subject": "platform/x86: bitland-mifs-wmi: add CONFIG_LEDS_CLASS dependency"
+  }
+ ],
+ "misses": [],
+ "recall": 1.0
+}

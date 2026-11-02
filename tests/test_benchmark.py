@@ -245,3 +245,87 @@ def test_score_does_not_count_an_excluded_case_as_a_miss(tmp_path):
     assert res["checked"] == 0
     assert res["misses"] == []
     assert res["excluded"][0]["commit"] == full
+
+
+# --- mining: the other two ways a pair cannot be a y/m instance -----------
+
+class _FakeGit:
+    """Stands in for _git over a tiny tree of Kconfig files."""
+
+    def __init__(self, files):
+        self.files = files            # {path: text}
+
+    def __call__(self, ctx, args, check=True):
+        if args[0] == "grep":
+            name = args[2].split()[-1].rstrip("$")
+            out = []
+            for path, text in self.files.items():
+                for l in text.splitlines():
+                    if l.strip() in ("config %s" % name, "menuconfig %s" % name):
+                        out.append("%s:%s" % (args[3], path))
+                        break
+            return "\n".join(out)
+        if args[0] == "show":
+            return self.files.get(args[1].split(":", 1)[1], "")
+        return ""
+
+
+TREE = {
+    "drivers/net/ethernet/freescale/Kconfig":
+        "config NET_VENDOR_FREESCALE\n\tbool \"Freescale devices\"\n\tdefault y\n",
+    "drivers/net/macsec/Kconfig":
+        "config MACSEC\n\ttristate \"IEEE 802.1AE MACsec support\"\n",
+    "arch/powerpc/platforms/pseries/Kconfig":
+        "config PPC_PSERIES\n\tbool \"IBM pSeries\"\n",
+    "arch/arm64/Kconfig.platforms":
+        "config ARCH_MESON\n\tbool \"Amlogic\"\n",
+    "init/Kconfig":
+        "config COMPILE_TEST\n\tbool \"Compile also drivers which will not load\"\n",
+    "drivers/base/Kconfig":
+        "config SCSI\n\ttristate \"SCSI support\"\n",
+}
+
+
+def _patched(monkeypatch):
+    from kreach import benchmark as B
+    monkeypatch.setattr(B, "_git", _FakeGit(TREE))
+    return B
+
+
+def test_a_bool_provider_cannot_hold_the_m_the_case_needs(monkeypatch):
+    """NET_VENDOR_FREESCALE is a menu gate: a bool has no m, so no
+    configuration satisfies level(provider) == m."""
+    B = _patched(monkeypatch)
+    assert not B.provider_can_be_a_module(None, "rev", "CONFIG_NET_VENDOR_FREESCALE", {})
+    assert B.provider_can_be_a_module(None, "rev", "CONFIG_MACSEC", {})
+
+
+def test_an_undeclared_provider_is_left_alone(monkeypatch):
+    """Not finding a stanza is not evidence; do not guess."""
+    B = _patched(monkeypatch)
+    assert B.provider_can_be_a_module(None, "rev", "CONFIG_NOWHERE", {})
+
+
+def test_a_caller_gated_on_another_architecture_is_unbuildable(monkeypatch):
+    """PPC_PSERIES is declared only under arch/powerpc, so an x86_64 run can
+    never compile the caller and the reference is never seen."""
+    B = _patched(monkeypatch)
+    assert not B.caller_buildable_on(None, "rev", "x86", "CONFIG_SCSI_IBMVFC",
+                                     ["PPC_PSERIES && SCSI"], {})
+    assert not B.caller_buildable_on(None, "rev", "x86", "CONFIG_AMLOGIC_THERMAL",
+                                     ["OF && ARCH_MESON"], {})
+
+
+def test_compile_test_makes_it_buildable_anywhere(monkeypatch):
+    """NET_DSA_NETC_SWITCH's shape: gated on ARM64 but with the escape."""
+    B = _patched(monkeypatch)
+    assert B.caller_buildable_on(None, "rev", "x86", "CONFIG_NET_DSA_NETC_SWITCH",
+                                 ["ARM64 || COMPILE_TEST", "NET_DSA && PCI"], {})
+
+
+def test_a_dependency_on_this_architecture_is_fine(monkeypatch):
+    B = _patched(monkeypatch)
+    assert B.caller_buildable_on(None, "rev", "arm64", "CONFIG_AMLOGIC_THERMAL",
+                                 ["OF && ARCH_MESON"], {})
+    # A plain tristate dependency says nothing about architecture.
+    assert B.caller_buildable_on(None, "rev", "x86", "CONFIG_X", ["SCSI"], {})

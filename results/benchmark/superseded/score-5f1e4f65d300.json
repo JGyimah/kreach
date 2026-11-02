@@ -1,0 +1,13 @@
+{
+ "checked": 1,
+ "excluded": [],
+ "hits": [],
+ "misses": [
+  {
+   "commit": "5f1e4f65d3002a814c690434f1dd37facc1df6ca",
+   "reason": "not reported",
+   "subject": "thermal/drivers/amlogic: Add missing dependency on MESON_SM"
+  }
+ ],
+ "recall": 0.0
+}

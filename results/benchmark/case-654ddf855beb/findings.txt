@@ -1,0 +1,39 @@
+kreach findings -- v7.1-rc1-53-g53a8f95cbb40, arch x86_64
+========================================================================
+
+## CONFIG_BITLAND_MIFS_WMI  (1 finding)
+
+  id          16f8367673f0
+  arch        x86_64
+  case        y/m   (caller built-in, provider a module: vmlinux link error)
+  caller      drivers/platform/x86/bitland-mifs-wmi.o  [CONFIG_BITLAND_MIFS_WMI]
+  provider    drivers/leds/led-class.o  [CONFIG_LEDS_CLASS]  module led-class.ko
+  symbols     devm_led_classdev_register_ext
+  witness     witness/68b3a42babaa.config   (1209 settings enabled)
+  levels      CONFIG_BITLAND_MIFS_WMI=y, CONFIG_LEDS_CLASS=m
+  build_log   build/68b3a42babaa.log
+      /home/ubuntu/src/linux/drivers/platform/x86/bitland-mifs-wmi.c:719:(.text+0x279d6a): undefined reference to `devm_led_classdev_register_ext'
+  Fixes: dc1ec4fa86b2 ("platform/x86: bitland-mifs-wmi: Add new Bitland MIFS WMI driver")
+              (git log -Sdevm_led_classdev_register_ext on drivers/platform/x86/bitland-mifs-wmi.c)
+  send to     Hans de Goede <hansg@kernel.org>
+              "Ilpo Järvinen" <ilpo.jarvinen@linux.intel.com>
+              platform-driver-x86@vger.kernel.org
+              linux-kernel@vger.kernel.org
+  fix         depends on LEDS_CLASS
+              in config BITLAND_MIFS_WMI
+              BITLAND_MIFS_WMI has no stub for LEDS_CLASS=n (no static inline stub found), so every caller path needs LEDS_CLASS present.
+
+  --- commit message reproduction section ---
+  |
+  | With the attached configuration (x86_64, v7.1-rc1-53-g53a8f95cbb40):
+  |
+  |   /home/ubuntu/src/linux/drivers/platform/x86/bitland-mifs-wmi.c:719:(.text+0x279d6a): undefined reference to `devm_led_classdev_register_ext'
+  |
+  | CONFIG_BITLAND_MIFS_WMI is built into vmlinux while CONFIG_LEDS_CLASS is a module, so devm_led_classdev_register_ext is
+  | not available at link time.
+  |
+  | Fix: depends on LEDS_CLASS in config BITLAND_MIFS_WMI.
+  | Found with a static reachability check and confirmed by a build.
+  |
+  | Fixes: dc1ec4fa86b2 ("platform/x86: bitland-mifs-wmi: Add new Bitland MIFS WMI driver")
+  ---

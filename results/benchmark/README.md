@@ -48,6 +48,27 @@ is not emitted.
 
 ## Excluding a case
 
+A case is excluded when the pair the miner extracted cannot be a y/m instance
+at the parent commit. Three shapes, each verified by hand on the case that
+first produced it, and each a statement about the mining or the architecture
+rather than about the checker:
+
+| rule | why it cannot be y/m | first seen |
+|---|---|---|
+| the caller is a tristate that already `depends on` the provider | Kconfig caps a symbol at the level of what it depends on, so `y` with the provider at `m` is unreachable | `1db63f6af179` `SND_SOC_RT5575_SPI` |
+| no provider the fix names can be a module | only a tristate has an `m`; a `bool` provider means the bug is the **y/n** case, which v1 does not check | `10006ad04b74`, whose provider `NET_VENDOR_FREESCALE` is a menu gate |
+| the caller is gated on another architecture with no `COMPILE_TEST` | the caller is unselectable here, so S3 never compiles it and no reference of its is ever seen | `1274045b0eda` `SCSI_IBMVFC`, `depends on PPC_PSERIES` |
+
+Over 120 mined commits, 59 cases have an extractable caller/provider pair and
+**22 are excluded: 16 for a bool provider, 4 for another architecture, 2 for a
+capped caller.** That leaves **37 usable**, and it reframes the benchmark: most
+of what it had been offering was the y/n case, which kreach v1 states as out
+of scope. Verdicts recorded before these rules existed are in
+[superseded/](superseded/).
+
+### The rule that started it
+
+
 `1db63f6af179` was the fourth case run, and all four of its queries came back
 unsat. K was right. At the parent the stanza reads:
 

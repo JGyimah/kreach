@@ -1,0 +1,45 @@
+kreach findings -- v7.1-rc1-204-g5d8004bd2795, arch x86_64
+========================================================================
+
+## CONFIG_VIDEO_AMD_ISP4_CAPTURE  (1 finding)
+
+  id          73e364707965
+  arch        x86_64
+  case        y/m   (caller built-in, provider a module: vmlinux link error)
+  caller      drivers/media/platform/amd/isp4/isp4_interface.o  [CONFIG_VIDEO_AMD_ISP4_CAPTURE]
+  provider    drivers/gpu/drm/amd/amdgpu/amdgpu_isp.o  [CONFIG_DRM_AMDGPU]  module amdgpu.ko
+  symbols     isp_kernel_buffer_alloc, isp_kernel_buffer_free, isp_user_buffer_alloc, isp_user_buffer_free
+  witness     witness/64b5793c8e46.config   (2187 settings enabled)
+  levels      CONFIG_DRM_AMDGPU=m, CONFIG_VIDEO_AMD_ISP4_CAPTURE=y
+  build_log   build/64b5793c8e46.log
+      /home/ubuntu/src/linux/drivers/media/platform/amd/isp4/isp4_interface.c:159:(.text+0xc2): undefined reference to `isp_kernel_buffer_free'
+      /home/ubuntu/src/linux/drivers/media/platform/amd/isp4/isp4_interface.c:135:(.text+0x15f): undefined reference to `isp_kernel_buffer_alloc'
+      /home/ubuntu/src/linux/drivers/media/platform/amd/isp4/isp4_video.c:673:(.text+0xa42): undefined reference to `isp_user_buffer_free'
+      /home/ubuntu/src/linux/drivers/media/platform/amd/isp4/isp4_video.c:651:(.text+0xae5): undefined reference to `isp_user_buffer_alloc'
+  Fixes: 4c5feef6a62c ("media: platform: amd: Add isp4 fw and hw interface")
+              (git log -Sisp_kernel_buffer_alloc on drivers/media/platform/amd/isp4/isp4_interface.c)
+  send to     Bin Du <bin.du@amd.com>
+              Nirujogi Pratap <pratap.nirujogi@amd.com>
+              Mauro Carvalho Chehab <mchehab@kernel.org>
+              linux-media@vger.kernel.org
+              linux-kernel@vger.kernel.org
+  fix         depends on DRM_AMDGPU
+              in config VIDEO_AMD_ISP4_CAPTURE
+              VIDEO_AMD_ISP4_CAPTURE has no stub for DRM_AMDGPU=n (no static inline stub found), so every caller path needs DRM_AMDGPU present.
+
+  --- commit message reproduction section ---
+  |
+  | With the attached configuration (x86_64, v7.1-rc1-204-g5d8004bd2795):
+  |
+  |   /home/ubuntu/src/linux/drivers/media/platform/amd/isp4/isp4_interface.c:159:(.text+0xc2): undefined reference to `isp_kernel_buffer_free'
+  |   /home/ubuntu/src/linux/drivers/media/platform/amd/isp4/isp4_interface.c:135:(.text+0x15f): undefined reference to `isp_kernel_buffer_alloc'
+  |   /home/ubuntu/src/linux/drivers/media/platform/amd/isp4/isp4_video.c:673:(.text+0xa42): undefined reference to `isp_user_buffer_free'
+  |
+  | CONFIG_VIDEO_AMD_ISP4_CAPTURE is built into vmlinux while CONFIG_DRM_AMDGPU is a module, so isp_kernel_buffer_alloc, isp_kernel_buffer_free, isp_user_buffer_alloc and 1 more are
+  | not available at link time.
+  |
+  | Fix: depends on DRM_AMDGPU in config VIDEO_AMD_ISP4_CAPTURE.
+  | Found with a static reachability check and confirmed by a build.
+  |
+  | Fixes: 4c5feef6a62c ("media: platform: amd: Add isp4 fw and hw interface")
+  ---
