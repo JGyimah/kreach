@@ -139,6 +139,16 @@ the minimised `.config` that reproduces it.
 [results/](results/) holds the earlier v6.17 run of the same set — eleven
 findings, one of which no longer reproduces at v7.3.
 
+## Related work
+
+kismet (kmax) checks `select` against `depends on`; `kconfig-sym-check`, in
+the tree since v7.2, finds Kconfig symbols nothing defines; kconfirm (RFC)
+finds dead Kconfig code. All three read Kconfig alone. Nadi et al. (ICSE
+2014) do cross into code, extracting linker constraints with TypeChef, but to
+rebuild a model that exists rather than to find what it fails to forbid, and
+with Boolean features rather than tristates. [docs/design.md](docs/design.md)
+has the comparison with figures.
+
 ## Known limitations
 
 kreach can miss bugs but never reports an unconfirmed one: build confirmation

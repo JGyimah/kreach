@@ -619,6 +619,58 @@ nothing about configuration, which is what S2's presence conditions are for.
 Where a build does exist, ELF and `Module.symvers` data takes precedence and the
 exact object→module mapping comes from the build's `.mod` files.
 
+## Related work
+
+Several tools check Kconfig, or Kconfig against code. None checks the property
+in "The encoding" above, and the reasons differ enough to be worth stating.
+
+**Nadi et al.** is the closest, and the comparison a reviewer will ask for
+first. *Mining Configuration Constraints: Static Analyses and Empirical
+Results* (Nadi, Berger, Kästner, Czarnecki, ICSE 2014) extracts configuration
+constraints from C code using TypeChef, among them linker def/use constraints
+built from per-file symbol tables under presence conditions -- the same raw
+material S3 and S4 work from. It studied the x86 architecture of Linux
+v2.6.33.3 (7,691 C files, 6,559 features) and three smaller systems. Two
+figures frame the difference: the two extraction heuristics are **93% and 77%
+accurate**, meaning most constraints the analysis emits already hold in the
+variability model, and the analysis **recovers 19% of the existing model's
+constraints** -- revised to 28% in the journal version, *Where Do
+Configuration Constraints Stem From?* (TSE 2015).
+
+Those are the measurements of a different goal. The question there is how much
+of a model that already exists can be rebuilt from code, scored by how much
+comes back. The question here is which configurations the model fails to
+forbid, scored by links that fail. The paper also treats features as Boolean,
+so the y/m split this document is mostly about does not arise in it.
+
+**kismet** (kmax suite) finds unmet dependencies caused by `select`: a symbol
+forced on while its own `depends on` is unsatisfied. It runs in Intel's 0-day
+CI, which is where the `kismet: WARNING: unmet direct dependencies detected`
+reports on the kernel list come from. It reads Kconfig only, never code or the
+linker, so a caller referencing a symbol that no configuration provides is
+outside what it can see at all.
+
+**kconfig-sym-check** is in the tree: `scripts/kconfig/kconfig-sym-check.pl`,
+by Andrew Jones, authored 2026-05-27 and first released in **v7.2**. `make
+kconfig-sym-check` reports symbols referenced in Kconfig expressions that no
+`config` or `menuconfig` entry ever defines. That is a symbol Kconfig does not
+know, not a symbol no configuration provides.
+
+**kconfirm** is at RFC (v3, in Rust, not in v7.3). It reports dead code,
+constant conditions, invalid ranges and duplicate `depends on`, and its RFC
+posting cites 489 alarms on v7.1-rc2 under the default checks. Kconfig-internal
+as well, and worth watching: its findings are landing ahead of the tool, as in
+`8cdae75cebe0` ("arch/Kconfig: fix dead conditions by removing dead options",
+v7.3), whose message credits kconfirm by name.
+
+**randconfig and the 0-day bot** do find bugs of this class, but only when a
+random configuration happens to hit one. That is measured rather than asserted
+in [results.md](results.md): 0 of 11 findings were hit by 25 randconfigs.
+
+What none of them does is cross the code/Kconfig boundary with tristate levels
+attached, which is the gap kreach is aimed at, and the reason every finding
+here carries a build.
+
 ## Reuse: what was taken from kmax and what was not
 
 The spec says "reuse first" for three stages, so each was evaluated before any
