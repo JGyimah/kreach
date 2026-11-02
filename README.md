@@ -160,7 +160,7 @@ are MIT and impose nothing further.
 kreach/
   formula.py       tristate algebra: level variables, the relabelling, the three cases
   s1_kconfig.py    S1
-  s1_repair.py     the five S1 repairs, with the reason for each
+  s1_repair.py     the six S1 repairs, with the reason for each
   s2_presence.py   S2
   s3_symbols.py    S3
   s4_refcond.py    S4
