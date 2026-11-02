@@ -44,7 +44,7 @@ That path is tested on a small model
 (`tests/test_formula.py::test_dimacs_round_trip_keeps_satisfiability`, which
 checks the header counts and that the clause count matches) but **has not been
 run on a whole architecture** — CNF conversion of 111,355 constraints is memory
-hungry and the container has 3 GB. Treat it as the escape hatch it is, not as a
+hungry and the container has 3.9 GB. Treat it as the escape hatch it is, not as a
 path the pipeline exercises.
 
 ## S1 repairs
@@ -213,6 +213,11 @@ reason.
 | models of K surviving `make olddefconfig` unchanged | 0/4 | 0/8 | 0/10 |
 | drift per model (of 18,333 symbols) | 73–1,394 | 73–1,394 | 63–182 (median 123) |
 | S5 witnesses Kconfig kept | — | 0/10 | **55/148** over the full sweep |
+
+The spec asks for 1,000 samples in each direction and these are 8 and 10, so
+they say which way the repairs moved the number, not what the number is. Each
+sample costs a `make randconfig` plus a solver call on a 111,355-constraint
+formula; `kreach test s1 --samples 1000` is the run that would settle it.
 
 The sample sizes differ by row because the directions were re-measured at
 different points: direction 1 and the R6-clamp check over 8 randconfigs after

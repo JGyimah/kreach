@@ -1,7 +1,7 @@
 # Measured run: Linux v6.17, x86_64
 
 Everything below was produced by the tool in this repository, on one multipass
-container: Ubuntu 24.04, 4 cores, 3 GB RAM, 24 GB disk, gcc 13.3, kmax 4.10,
+container: Ubuntu 24.04, 4 cores, 3.9 GB RAM, 24 GB disk, gcc 13.3, kmax 4.10,
 z3 4.15. The kernel is `v6.17` from `stable/linux.git`.
 
 This is the spec's **Milestone 1** scope and a bit past it: S1–S3 for one
