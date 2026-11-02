@@ -361,11 +361,59 @@ def same_commit(a: str | None, b: str | None) -> bool:
     return n >= 7 and a[:n] == b[:n]
 
 
-def score(benchmark: dict, findings_file: str, commit: str | None = None) -> dict:
-    """Did the tool report the pair a benchmark fix addressed?"""
+def by_symbol_and_provider(case: dict, findings: list[dict]) -> list[dict]:
+    """Findings naming a symbol of this case, from a provider it names."""
+    syms = set(case.get("symbols") or [])
+    provs = set(case.get("provider_options") or [])
+    if not syms or not provs:
+        return []
+    return [f for f in findings
+            if f["provider"]["option"] in provs
+            and syms & set(f.get("symbols") or [])]
+
+
+def symbol_sources(ctx: Context, rev: str, symbols: list[str],
+                   cache: dict | None = None) -> set[str]:
+    """Source files that mention any of these symbols, at one revision."""
+    out: set[str] = set()
+    for sym in symbols:
+        key = (rev, sym)
+        if cache is not None and key in cache:
+            out |= cache[key]
+            continue
+        got = set()
+        for line in _git(ctx, ["grep", "-l", sym, rev], check=False).splitlines():
+            if ":" in line:
+                got.add(line.split(":", 1)[1])
+        if cache is not None:
+            cache[key] = got
+        out |= got
+    return out
+
+
+def score(benchmark: dict, findings_file: str, commit: str | None = None,
+          ctx: Context | None = None) -> dict:
+    """Did the tool report the bug a benchmark fix addressed?
+
+    The obvious test is whether the reported (caller option, provider option)
+    pair is the mined one, and it is the one to prefer.  But the two sides do
+    not always name the caller the same way.  A fix edits the stanza a human
+    thinks of as the driver -- often a bool, such as MLX5_MACSEC -- while
+    kreach names the option whose *level* puts the object in vmlinux, the
+    tristate on the ``obj-`` line.  Both are correct about different things,
+    and an exact-pair test scores the same bug as a miss.
+
+    So a second form of hit is allowed: the same symbol, from one of the
+    providers the fix names, reported against a caller that is one of the
+    files referencing that symbol at the parent.  The symbol is what makes
+    this tight -- it pins the finding to the bug rather than to the class --
+    and `ctx` is what makes the last clause checkable.  Without `ctx` only
+    exact pairs count, which is the conservative reading.
+    """
     findings = list(read_jsonl(findings_file))
     reported = {(f["caller"]["option"], f["provider"]["option"]) for f in findings}
     reported_callers = {f["caller"]["option"] for f in findings}
+    sources: dict = {}
 
     if commit and not any(same_commit(c.get("commit"), commit)
                           for c in benchmark["cases"]):
@@ -386,8 +434,31 @@ def score(benchmark: dict, findings_file: str, commit: str | None = None) -> dic
         want = {(case["caller_option"], p) for p in case["provider_options"]}
         if want & reported:
             hits.append({"commit": case["commit"], "subject": case["subject"],
-                         "pair": sorted(want & reported)[0]})
-        elif case["caller_option"] in reported_callers:
+                         "pair": sorted(want & reported)[0], "matched": "pair"})
+            continue
+
+        near = by_symbol_and_provider(case, findings)
+        if near and ctx and case.get("parent"):
+            refs = symbol_sources(ctx, case["parent"], case.get("symbols") or [],
+                                  sources)
+            near = [f for f in near if (f["caller"].get("source") or "") in refs]
+        elif near and not ctx:
+            near = []           # unverifiable without a tree; do not credit it
+        if near:
+            f = near[0]
+            hits.append({
+                "commit": case["commit"], "subject": case["subject"],
+                "pair": [f["caller"]["option"], f["provider"]["option"]],
+                "matched": "symbol and provider",
+                "note": "kreach names the caller %s where the fix edits %s; "
+                        "same symbol %s from %s, and the caller is %s" % (
+                            f["caller"]["option"], case["caller_option"],
+                            (f.get("symbols") or ["?"])[0],
+                            f["provider"]["option"], f["caller"].get("source")),
+            })
+            continue
+
+        if case["caller_option"] in reported_callers:
             misses.append({"commit": case["commit"], "subject": case["subject"],
                            "reason": "caller reported, different provider"})
         else:

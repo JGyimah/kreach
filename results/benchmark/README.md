@@ -106,6 +106,24 @@ case that shows why: four of its five providers are capped, but
 Over 120 mined commits the rule excludes two of the 59 extractable cases,
 leaving 57 usable.
 
+## What counts as a hit
+
+The obvious test is whether kreach reports the `(caller option, provider
+option)` pair the fix addressed, and that is the one to prefer. But the two
+sides do not always name the caller the same way. A fix edits the stanza a
+human thinks of as the driver — often a `bool`, such as `MLX5_MACSEC` — while
+kreach names the option whose *level* decides whether the object reaches
+`vmlinux`, the tristate on the `obj-` line. Both are correct about different
+things, and an exact-pair test scores the same bug as a miss.
+
+So a second form of hit is allowed, recorded as `matched: "symbol and
+provider"`: the same **symbol**, from one of the providers the fix names,
+reported against a caller that is one of the files referencing that symbol at
+the parent commit. The symbol is what keeps it tight — it pins the finding to
+the bug rather than to the class — and the last clause is what stops a
+different driver's bug on the same symbol being credited. Scoring without a
+kernel tree to check that clause against falls back to exact pairs only.
+
 ## Method
 
 S5 and S6 were filtered to each case's caller option, so this answers "does

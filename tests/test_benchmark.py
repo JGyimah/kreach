@@ -329,3 +329,102 @@ def test_a_dependency_on_this_architecture_is_fine(monkeypatch):
                                  ["OF && ARCH_MESON"], {})
     # A plain tristate dependency says nothing about architecture.
     assert B.caller_buildable_on(None, "rev", "x86", "CONFIG_X", ["SCSI"], {})
+
+
+# --- scoring: when the two sides name the caller differently -------------
+
+def _finding(caller_opt, provider_opt, symbol, source):
+    return {"caller": {"option": caller_opt, "source": source},
+            "provider": {"option": provider_opt}, "symbols": [symbol]}
+
+
+def _write(tmp_path, findings):
+    import json
+    p = tmp_path / "findings.jsonl"
+    p.write_text("".join(json.dumps(f) + "\n" for f in findings))
+    return str(p)
+
+
+MLX5 = {
+    "commit": "87ab8276ed2400000000000000000000000000aa",
+    "subject": "eth: mlx5: fix macsec dependency", "date": "2026-01-01",
+    "parent": "47b6bcef6e67", "files": ["drivers/net/ethernet/.../Kconfig"],
+    "caller_option": "CONFIG_MLX5_MACSEC",
+    "provider_options": ["CONFIG_MACSEC", "CONFIG_MLX5_CORE"],
+    "symbols": ["macsec_netdev_is_offloaded"], "fix_patterns": [], "matched": True,
+}
+
+
+class _Grep:
+    """_git stub: the symbol is referenced by the infiniband caller."""
+
+    def __init__(self, paths):
+        self.paths = paths
+
+    def __call__(self, ctx, args, check=True):
+        if args[0] == "grep":
+            return "\n".join("%s:%s" % (args[-1], p) for p in self.paths)
+        return ""
+
+
+def test_exact_pair_is_still_the_preferred_hit(tmp_path):
+    from kreach.benchmark import score
+
+    f = _finding("CONFIG_MLX5_MACSEC", "CONFIG_MACSEC",
+                 "macsec_netdev_is_offloaded", "drivers/x.c")
+    res = score({"cases": [MLX5]}, _write(tmp_path, [f]), commit=MLX5["commit"])
+    assert res["recall"] == 1.0
+    assert res["hits"][0]["matched"] == "pair"
+
+
+def test_a_differently_named_caller_counts_when_the_symbol_matches(tmp_path, monkeypatch):
+    """The real case: the fix edits the bool MLX5_MACSEC, kreach names the
+    tristate MLX5_INFINIBAND whose level puts the object in vmlinux."""
+    from kreach import benchmark as B
+
+    src = "drivers/infiniband/hw/mlx5/macsec.c"
+    monkeypatch.setattr(B, "_git", _Grep([src, "drivers/net/macsec.c"]))
+    f = _finding("CONFIG_MLX5_INFINIBAND", "CONFIG_MACSEC",
+                 "macsec_netdev_is_offloaded", src)
+    res = B.score({"cases": [MLX5]}, _write(tmp_path, [f]),
+                  commit=MLX5["commit"], ctx=object())
+    assert res["recall"] == 1.0
+    assert res["hits"][0]["matched"] == "symbol and provider"
+    assert "MLX5_INFINIBAND" in res["hits"][0]["note"]
+
+
+def test_the_caller_must_be_a_file_that_references_the_symbol(tmp_path, monkeypatch):
+    """Otherwise a different driver's bug on the same symbol would be
+    credited as finding this one."""
+    from kreach import benchmark as B
+
+    monkeypatch.setattr(B, "_git", _Grep(["drivers/infiniband/hw/mlx5/macsec.c"]))
+    f = _finding("CONFIG_AQTION", "CONFIG_MACSEC", "macsec_netdev_is_offloaded",
+                 "drivers/net/ethernet/aquantia/atlantic/aq_macsec.c")
+    res = B.score({"cases": [MLX5]}, _write(tmp_path, [f]),
+                  commit=MLX5["commit"], ctx=object())
+    assert res["recall"] == 0.0
+    assert res["misses"][0]["reason"] == "not reported"
+
+
+def test_a_different_symbol_is_not_credited(tmp_path, monkeypatch):
+    from kreach import benchmark as B
+
+    src = "drivers/infiniband/hw/mlx5/macsec.c"
+    monkeypatch.setattr(B, "_git", _Grep([src]))
+    f = _finding("CONFIG_MLX5_INFINIBAND", "CONFIG_MACSEC", "something_else", src)
+    res = B.score({"cases": [MLX5]}, _write(tmp_path, [f]),
+                  commit=MLX5["commit"], ctx=object())
+    assert res["recall"] == 0.0
+
+
+def test_without_a_tree_only_exact_pairs_count(tmp_path):
+    """The source check is what keeps it tight; with no ctx there is nothing
+    to check it against, so do not guess."""
+    from kreach.benchmark import score
+
+    f = _finding("CONFIG_MLX5_INFINIBAND", "CONFIG_MACSEC",
+                 "macsec_netdev_is_offloaded",
+                 "drivers/infiniband/hw/mlx5/macsec.c")
+    res = score({"cases": [MLX5]}, _write(tmp_path, [f]), commit=MLX5["commit"])
+    assert res["recall"] == 0.0

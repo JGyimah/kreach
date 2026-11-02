@@ -243,7 +243,7 @@ def cmd_score(args):
     findings = args.findings or ctx.findings_file
     if not os.path.exists(findings):
         raise FileNotFoundError("no findings at %s -- run 'kreach s7' first" % findings)
-    res = benchmark.score(bench, findings, commit=args.commit)
+    res = benchmark.score(bench, findings, commit=args.commit, ctx=ctx)
     print(json.dumps(res, indent=2))
     if args.output:
         write_json(args.output, res)
