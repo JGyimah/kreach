@@ -13,6 +13,16 @@ providers are promptless, so `depends on` would leave the driver
 unselectable.  For byte_rev_table the select is BITREVERSE rather than
 GENERIC_BITREVERSE -- BITREVERSE is what a driver selects, and it decides
 whether the generic implementation is needed at all.
+
+``--regression`` then applies every fix at once and asks the other question a
+maintainer has: does the series break a configuration it was not aimed at?
+A `select` is the construct that creates unmet-dependency bugs, so the cheap
+and decisive part is Kconfig itself -- allnoconfig, defconfig, allmodconfig
+and allyesconfig are each seconds and surface exactly those warnings.  It
+then links vmlinux under allmodconfig, which builds the built-in part of the
+tree; the modules are the bulk and are not what a y/m fix can break.  A
+whole-tree `make all` under allmodconfig does not fit on a 24 GB disk and is
+reported as skipped rather than attempted.
 """
 
 import argparse
@@ -74,6 +84,80 @@ def add_selects(ksrc: str, path: str, option: str, selects: list[str]) -> list[s
     return todo
 
 
+def kconfig_warnings(log: str) -> list[str]:
+    """Kconfig's own complaints, which is where a bad `select` shows up."""
+    keep = ("warning:", "unmet direct dependencies", "recursive dependency",
+            "symbol value", "is not a valid")
+    return sorted({l.strip() for l in log.splitlines()
+                   if any(k in l.lower() for k in keep)})
+
+
+def regression(ksrc: str, findings: list[dict], build: str, jobs: int,
+               min_free_mb: int = 5000) -> dict:
+    """Apply every fix at once, then see what Kconfig and the linker say."""
+    edited: list[str] = []
+    out: dict = {"configs": {}, "selects_applied": {}}
+    try:
+        for f in findings:
+            opt = f["caller"]["option"]
+            syms = f["all_symbols"] or f["symbols"]
+            selects = sorted({SELECT_FOR[s] for s in syms if s in SELECT_FOR})
+            if opt == "CONFIG_SND_SOC_FSL_AUD2HTX":
+                selects = sorted(set(selects) | {"SND_SOC_GENERIC_DMAENGINE_PCM"})
+            path = find_kconfig(ksrc, opt)
+            if not path or not selects:
+                continue
+            added = add_selects(ksrc, path, opt, selects)
+            if added:
+                edited.append(path)
+                out["selects_applied"][opt] = added
+        edited = sorted(set(edited))
+        out["files_touched"] = edited
+        print("\n== regression: %d stanzas patched in %d files"
+              % (len(out["selects_applied"]), len(edited)), flush=True)
+
+        for target in ("allnoconfig", "defconfig", "allmodconfig", "allyesconfig"):
+            p = subprocess.run(["make", "O=" + build, target], cwd=ksrc,
+                               capture_output=True, text=True, check=False)
+            log = (p.stdout or "") + (p.stderr or "")
+            warn = kconfig_warnings(log)
+            out["configs"][target] = {"rc": p.returncode, "warnings": warn}
+            print("   %-13s rc=%d %s" % (target, p.returncode,
+                                         "WARNINGS: %s" % warn[:3] if warn else "clean"),
+                  flush=True)
+
+        free = shutil.disk_usage("/").free // (1024 * 1024)
+        if free < min_free_mb:
+            out["allmodconfig_vmlinux"] = {
+                "result": "skipped", "reason": "%dMB free, below %dMB" % (free, min_free_mb)}
+            print("   vmlinux       skipped: %dMB free" % free, flush=True)
+            return out
+
+        subprocess.run(["make", "-s", "O=" + build, "allmodconfig"], cwd=ksrc,
+                       capture_output=True, text=True, check=False)
+        t0 = time.time()
+        p = subprocess.run(["make", "O=" + build, "-j%d" % jobs, "vmlinux"],
+                           cwd=ksrc, capture_output=True, text=True, check=False)
+        log = (p.stdout or "") + (p.stderr or "")
+        undef = sorted(set(re.findall(
+            r"undefined reference to [`\']([A-Za-z_][A-Za-z0-9_]*)\'", log)))
+        out["allmodconfig_vmlinux"] = {
+            "rc": p.returncode, "seconds": round(time.time() - t0, 1),
+            "undefined": undef,
+            "result": "links" if p.returncode == 0 else "fails",
+            "tail": [] if p.returncode == 0 else
+                    [l for l in log.splitlines() if l.strip()][-15:],
+        }
+        print("   vmlinux       %s in %.0fs%s" % (
+            out["allmodconfig_vmlinux"]["result"],
+            out["allmodconfig_vmlinux"]["seconds"],
+            "  undefined: " + ", ".join(undef) if undef else ""), flush=True)
+        return out
+    finally:
+        for path in edited:
+            subprocess.run(["git", "checkout", "--", path], cwd=ksrc, check=False)
+
+
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("ksrc")
@@ -81,6 +165,9 @@ def main() -> int:
     ap.add_argument("build")
     ap.add_argument("-o", "--output")
     ap.add_argument("--jobs", type=int, default=3)
+    ap.add_argument("--regression", action="store_true",
+                    help="also apply every fix at once and check the stock "
+                         "configurations plus an allmodconfig vmlinux link")
     args = ap.parse_args()
 
     findings = [json.loads(l) for l in
@@ -140,6 +227,8 @@ def main() -> int:
     links = sum(1 for r in report if r.get("result") == "links")
     summary = {"findings": len(report), "links": links, "cases": report}
     print("\n== %d of %d witnesses link once the fix is applied" % (links, len(report)))
+    if args.regression:
+        summary["regression"] = regression(args.ksrc, findings, args.build, args.jobs)
     if args.output:
         with open(args.output, "w") as fh:
             json.dump(summary, fh, indent=1, sort_keys=True)
