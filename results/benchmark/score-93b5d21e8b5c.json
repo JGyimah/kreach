@@ -1,0 +1,13 @@
+{
+ "checked": 1,
+ "excluded": [],
+ "hits": [],
+ "misses": [
+  {
+   "commit": "93b5d21e8b5cbdc3e439b94feee9b013e8170905",
+   "reason": "not reported",
+   "subject": "ipmi: ssif_bmc: Fix KUnit test link failure when KUNIT=m"
+  }
+ ],
+ "recall": 0.0
+}

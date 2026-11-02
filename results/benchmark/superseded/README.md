@@ -17,8 +17,25 @@ A fifth was set aside for a different reason.
 |---|---|
 | `87ab8276ed24` `MLX5_MACSEC` | the sweep asked S5 only about the caller option the fix edited, and kreach attributes this caller to `MLX5_CORE` -- the tristate on the `obj-` line, whose level decides whether the object reaches `vmlinux` -- not to the bool `MLX5_MACSEC` that merely gates it. The filter matched no candidates, so the solver was never asked. The recorded miss was the harness, not a verdict. |
 
-That is what the sweep's provider fallback exists for, and this case is being
-re-run with it.
+That is what the sweep's provider fallback exists for. Re-run with it, the
+case missed again, for a second and deeper reason recorded as
+`score-87ab8276ed24-scope.json`: at the parent, no Ethernet mlx5 source
+references `macsec_netdev_is_offloaded` at all. The only caller in the tree is
+`drivers/infiniband/hw/mlx5/macsec.c` --
+
+```
+drivers/infiniband/hw/mlx5/Makefile:
+  obj-$(CONFIG_MLX5_INFINIBAND) += mlx5_ib.o
+  mlx5_ib-$(CONFIG_MLX5_MACSEC) += macsec.o
+```
+
+-- so the one bool gates code in two subsystems, and the undefined reference
+came from the InfiniBand side. The sweep had scoped S3 by the directory of
+the Kconfig file the fix edited, so it built the Ethernet driver and never
+compiled the object that makes the reference. S4 could not form the
+candidate. Scopes now follow the symbols instead
+([tools/bench_worklist.py](../../../tools/bench_worklist.py)), and the case is
+queued again.
 
 These files are kept rather than deleted because the verdict files are the
 record of what was run, and because four of the five are the evidence for a

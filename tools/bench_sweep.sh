@@ -5,7 +5,10 @@
 #   tools/bench_sweep.sh <ksrc> <workroot> <arch> <worklist> <publish-dir>
 #
 # Each line of the worklist is
-# "<commit> <caller option> <s3 subtree> <provider options, comma separated>".
+# "<commit> <caller option> <s3 scopes,...> <provider options,...>", as
+# tools/bench_worklist.py writes it.  The scopes follow the symbols the fix
+# names rather than the Kconfig file it edited, because those are not always
+# in the same subsystem; see that script for why.
 #
 # S5 is filtered to the caller the fix edited, which is cheap and right when
 # kreach attributes the caller the same way the miner did.  It does not
@@ -37,7 +40,7 @@ trap 'cd "$KSRC" && git checkout -q --detach v7.3 2>/dev/null; echo "RESTORED: $
 
 total=$(grep -c . "$LIST")
 n=0
-while read -r commit caller scope providers; do
+while read -r commit caller scopes providers; do
   [ -z "${commit:-}" ] && continue
   n=$((n + 1))
   [ -f "$PUB/score-$commit.json" ] && { echo "[$n/$total] $commit already scored"; continue; }
@@ -51,14 +54,15 @@ while read -r commit caller scope providers; do
   parent=$(git -C "$KSRC" rev-parse "${commit}^" 2>/dev/null) || { echo "[$n/$total] $commit NO PARENT"; continue; }
   short=$(git -C "$KSRC" rev-parse --short "$parent")
   work="$WORKROOT/sweep-$short-$ARCH"
-  echo "[$n/$total] === $commit  caller $caller  scope $scope  parent $short  (${free}MB free)"
+  echo "[$n/$total] === $commit  caller $caller  scope $scopes  parent $short  (${free}MB free)"
   git -C "$KSRC" checkout -q --detach "$parent" || { echo "[$n/$total] CHECKOUT FAILED"; continue; }
 
   k() { ~/venv/bin/kreach -k "$KSRC" -w "$work" -a "$ARCH" "$@"; }
   fail=""
   k s1 >/dev/null 2>&1                                  || fail=s1
   [ -z "$fail" ] && { k s2 >/dev/null 2>&1              || fail=s2; }
-  [ -z "$fail" ] && { k s3 --config allmodconfig -d "$scope" >/dev/null 2>&1 || fail=s3; }
+  dargs=(); for d in ${scopes//,/ }; do dargs+=(-d "$d"); done
+  [ -z "$fail" ] && { k s3 --config allmodconfig "${dargs[@]}" >/dev/null 2>&1 || fail=s3; }
   [ -z "$fail" ] && { k s4 >/dev/null 2>&1              || fail=s4; }
   [ -z "$fail" ] && { k s5 --caller "$caller" >/dev/null 2>&1 || fail=s5; }
   if [ -n "$fail" ]; then
