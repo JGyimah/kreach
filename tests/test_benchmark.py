@@ -165,3 +165,83 @@ def test_score_separates_wrong_provider_from_not_reported(tmp_path):
     res = score({"cases": [_case(full)]},
                 _findings_file(tmp_path, caller="CONFIG_ELSEWHERE"), commit=full)
     assert res["misses"][0]["reason"] == "not reported"
+
+
+# --- mining: pairs that cannot be a y/m instance --------------------------
+
+def test_and_terms_splits_at_the_top_level_only():
+    from kreach.benchmark import and_terms
+
+    assert and_terms("SPI_MASTER && I2C") == ["SPI_MASTER", "I2C"]
+    assert and_terms("A && (B || C)") == ["A", "(B || C)"]
+    assert and_terms("X") == ["X"]
+    assert and_terms("(A && B) || C") == ["(A && B) || C"]
+
+
+def test_a_tristate_depending_on_the_provider_cannot_be_the_ym_case():
+    """The rt5575 shape: 'depends on SPI_MASTER' caps the caller at m, so
+    caller=y with SPI_MASTER=m is not reachable and the extracted pair is not
+    the thing that broke."""
+    from kreach.benchmark import dependency_caps_level
+
+    deps = ["SPI_MASTER && I2C", "SND_SOC_RT5575"]
+    assert dependency_caps_level("tristate", deps, "CONFIG_SPI_MASTER")
+    assert dependency_caps_level("tristate", deps, "CONFIG_SND_SOC_RT5575")
+    assert not dependency_caps_level("tristate", deps, "CONFIG_OF")
+
+
+def test_a_bool_caller_is_the_hazard_not_the_protection():
+    """A bool has no m level, so 'depends on P' leaves it y with P at m.
+    That pair must be kept -- it is exactly what kreach looks for."""
+    from kreach.benchmark import dependency_caps_level
+
+    assert not dependency_caps_level("bool", ["SPI_MASTER"], "CONFIG_SPI_MASTER")
+    assert not dependency_caps_level(None, ["SPI_MASTER"], "CONFIG_SPI_MASTER")
+
+
+def test_an_exact_level_test_is_not_a_cap():
+    """'depends on P=y' is the fix for this class, not an instance of it."""
+    from kreach.benchmark import dependency_caps_level
+
+    assert not dependency_caps_level("tristate", ["SPI_MASTER=y"], "CONFIG_SPI_MASTER")
+    assert not dependency_caps_level("tristate", ["A || SPI_MASTER"], "CONFIG_SPI_MASTER")
+
+
+def test_kconfig_stanza_reads_type_and_depends(tmp_path, monkeypatch):
+    from kreach import benchmark as B
+
+    text = """config SND_SOC_RT5575
+\ttristate "Realtek ALC5575 Codec - I2C"
+\tdepends on I2C
+
+config SND_SOC_RT5575_SPI
+\ttristate "Realtek ALC5575 Codec - SPI"
+\tdepends on SPI_MASTER && I2C
+\tdepends on SND_SOC_RT5575
+
+config SOMETHING_ELSE
+\tbool
+"""
+    monkeypatch.setattr(B, "_git", lambda ctx, args, check=True: text)
+    typ, deps = B.kconfig_stanza(None, "parent", ["sound/soc/codecs/Kconfig"],
+                                 "CONFIG_SND_SOC_RT5575_SPI")
+    assert typ == "tristate"
+    assert deps == ["SPI_MASTER && I2C", "SND_SOC_RT5575"]
+
+    # The stanza must stop at the next one, not run into it.
+    typ, deps = B.kconfig_stanza(None, "parent", ["sound/soc/codecs/Kconfig"],
+                                 "CONFIG_SND_SOC_RT5575")
+    assert (typ, deps) == ("tristate", ["I2C"])
+
+
+def test_score_does_not_count_an_excluded_case_as_a_miss(tmp_path):
+    from kreach.benchmark import score
+
+    full = "999fb9d51f939ee23cbb9313ae558d29d6987804"
+    case = _case(full)
+    case["excluded"] = "caller depends on provider"
+    res = score({"cases": [case]}, _findings_file(tmp_path, caller="CONFIG_OTHER"),
+                commit=full)
+    assert res["checked"] == 0
+    assert res["misses"] == []
+    assert res["excluded"][0]["commit"] == full

@@ -111,8 +111,8 @@ kreach randcompare --samples 25        # how many randconfigs would hit each fin
 
 `tools/bench_replicate.sh` runs one benchmark case properly: check out the
 parent of a fix, run the pipeline there, and score that commit. Four cases
-have been run end to end, 2 of them hits --
-[results/benchmark/](results/benchmark/).
+have been run end to end -- 2 hits, 1 miss, 1 excluded as not a y/m instance
+-- in [results/benchmark/](results/benchmark/).
 
 ## Pipeline
 

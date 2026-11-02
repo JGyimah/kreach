@@ -35,6 +35,11 @@ RE_OPTION = re.compile(r"\b([A-Z][A-Z0-9_]{2,})\b")
 
 KCONFIG_FILE_RE = re.compile(r"(^|/)(Kconfig|Kconfig\.[A-Za-z0-9_.\-]+)$")
 
+# Reading one stanza out of a Kconfig file as it stood at some revision.
+RE_STANZA = re.compile(r"^\s*(?:menu)?config\s+([A-Z0-9_]+)\s*$")
+RE_STANZA_TYPE = re.compile(r"^\s+(bool|tristate|string|int|hex)\b")
+RE_STANZA_DEPENDS = re.compile(r"^\s+depends on\s+(.+?)\s*$")
+
 
 def _git(ctx: Context, args: list[str], check=True) -> str:
     return run(["git"] + args, cwd=ctx.ksrc, check=check).stdout
@@ -83,6 +88,89 @@ def mine_commits(ctx: Context, since: str = "v6.0", limit: int = 50) -> list[dic
     return kconfig_only[:limit]
 
 
+def and_terms(expr: str) -> list[str]:
+    """The top-level ``&&`` terms of a depends-on expression."""
+    terms, depth, cur = [], 0, ""
+    i = 0
+    while i < len(expr):
+        c = expr[i]
+        if c == "(":
+            depth += 1
+        elif c == ")":
+            depth -= 1
+        elif depth == 0 and expr[i:i + 2] == "&&":
+            terms.append(cur)
+            cur = ""
+            i += 2
+            continue
+        cur += c
+        i += 1
+    terms.append(cur)
+    return [t.strip() for t in terms if t.strip()]
+
+
+def kconfig_stanza(ctx: Context, rev: str, paths: list[str],
+                   option: str) -> tuple[str | None, list[str]]:
+    """The type and ``depends on`` lines of one option, at one revision.
+
+    Read from the Kconfig files the fix touched, since that is where the
+    option it is about is declared.
+    """
+    name = option[len("CONFIG_"):] if option.startswith("CONFIG_") else option
+    for path in paths:
+        if not KCONFIG_FILE_RE.search(path):
+            continue
+        text = _git(ctx, ["show", "%s:%s" % (rev, path)], check=False)
+        if not text:
+            continue
+        lines = text.splitlines()
+        for i, line in enumerate(lines):
+            m = RE_STANZA.match(line)
+            if not m or m.group(1) != name:
+                continue
+            typ: str | None = None
+            deps: list[str] = []
+            for body in lines[i + 1:]:
+                # A stanza ends at the next unindented, non-blank line.
+                if body.strip() and not body[0].isspace():
+                    break
+                t = RE_STANZA_TYPE.match(body)
+                if t and typ is None:
+                    typ = t.group(1)
+                d = RE_STANZA_DEPENDS.match(body)
+                if d:
+                    deps.append(d.group(1))
+            return typ, deps
+    return None, []
+
+
+def dependency_caps_level(caller_type: str | None, depends: list[str],
+                          provider_option: str) -> bool:
+    """Whether the caller's own ``depends on`` already forbids the y/m case.
+
+    A tristate with ``depends on P`` cannot be ``y`` while P is ``m``:
+    Kconfig caps a symbol at the level of what it depends on, which is what
+    R6 encodes.  A pair of that shape is not a y/m instance, so scoring it
+    measures the miner rather than the checker.
+
+    A bool caller is the opposite.  It has no ``m`` level, so ``depends on P``
+    happily leaves it ``y`` with P at ``m`` -- that is the hazard, not a
+    protection, and such a pair must be kept.
+
+    Only a bare conjunct counts.  ``depends on P=y`` is an exact-level test
+    rather than a cap, and a term inside ``||`` is not required at all.
+    """
+    if caller_type != "tristate":
+        return False
+    name = (provider_option[len("CONFIG_"):]
+            if provider_option.startswith("CONFIG_") else provider_option)
+    for expr in depends:
+        for term in and_terms(expr):
+            if term == name:
+                return True
+    return False
+
+
 def extract_pair(ctx: Context, rec: dict) -> dict:
     """What caller/provider pair did this fix address?"""
     diff = _git(ctx, ["show", "--format=%B", rec["commit"]], check=False)
@@ -116,12 +204,33 @@ def extract_pair(ctx: Context, rec: dict) -> dict:
             patterns.append("IS_REACHABLE")
 
     rec = dict(rec)
+    providers = sorted(set(providers))
     rec.update({
         "symbols": symbols,
         "caller_option": caller_option,
-        "provider_options": sorted(set(providers)),
+        "provider_options": providers,
         "fix_patterns": sorted(set(patterns)),
     })
+
+    # Does the caller's own dependency already rule the y/m case out?  If it
+    # does for every provider the diff names, the pair extracted here cannot
+    # be the thing that broke, and counting it as a miss would measure the
+    # mining rather than the checker.
+    caller_type, depends = (None, [])
+    if caller_option and rec.get("parent"):
+        caller_type, depends = kconfig_stanza(ctx, rec["parent"],
+                                              rec.get("files") or [],
+                                              caller_option)
+    capped = [p for p in providers
+              if dependency_caps_level(caller_type, depends, p)]
+    rec["caller_type"] = caller_type
+    rec["caller_depends"] = depends
+    rec["capped_providers"] = capped
+    if providers and len(capped) == len(providers):
+        rec["excluded"] = (
+            "%s is a tristate and already depends on %s at the parent, so it "
+            "cannot be y while that is m" % (
+                caller_option, ", ".join(capped)))
     return rec
 
 
@@ -129,17 +238,24 @@ def build_benchmark(ctx: Context, limit: int = 50, since: str = "v6.0") -> dict:
     t0 = time.time()
     commits = mine_commits(ctx, since=since, limit=limit)
     cases = [extract_pair(ctx, rec) for rec in commits]
-    usable = [c for c in cases
-              if c["caller_option"] and c["provider_options"]]
+    extractable = [c for c in cases
+                   if c["caller_option"] and c["provider_options"]]
+    excluded = [c for c in extractable if c.get("excluded")]
+    usable = [c for c in extractable if not c.get("excluded")]
     result = {
         "since": since,
         "candidates": len(commits),
         "cases": cases,
         "usable": len(usable),
+        "excluded": len(excluded),
         "seconds": round(time.time() - t0, 1),
     }
     log.info("benchmark: %d commits, %d with an extractable caller/provider "
-             "pair (%s)", len(cases), len(usable), human_time(time.time() - t0))
+             "pair, %d of those excluded as not a y/m instance -> %d usable "
+             "(%s)", len(cases), len(extractable), len(excluded), len(usable),
+             human_time(time.time() - t0))
+    for c in excluded:
+        log.debug("excluded %s: %s", c["commit"][:12], c["excluded"])
     return result
 
 
@@ -168,11 +284,15 @@ def score(benchmark: dict, findings_file: str, commit: str | None = None) -> dic
                     "either it was mined from a different range or the "
                     "revision is wrong", commit, len(benchmark["cases"]))
 
-    hits, misses = [], []
+    hits, misses, excluded = [], [], []
     for case in benchmark["cases"]:
         if not case.get("caller_option") or not case.get("provider_options"):
             continue
         if commit and not same_commit(case["commit"], commit):
+            continue
+        if case.get("excluded"):
+            excluded.append({"commit": case["commit"], "subject": case["subject"],
+                             "reason": case["excluded"]})
             continue
         want = {(case["caller_option"], p) for p in case["provider_options"]}
         if want & reported:
@@ -188,6 +308,9 @@ def score(benchmark: dict, findings_file: str, commit: str | None = None) -> dic
     return {
         "hits": hits,
         "misses": misses,
+        # Kept separate rather than counted as misses: these are cases whose
+        # extracted pair cannot be a y/m instance at the parent.
+        "excluded": excluded,
         "recall": round(len(hits) / total, 3) if total else None,
         "checked": total,
     }

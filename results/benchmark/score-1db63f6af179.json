@@ -1,12 +1,13 @@
 {
- "checked": 1,
- "hits": [],
- "misses": [
+ "checked": 0,
+ "excluded": [
   {
    "commit": "1db63f6af17945aed7497ce34a5648add0c1b6d9",
-   "reason": "not reported",
+   "reason": "CONFIG_SND_SOC_RT5575_SPI is a tristate and already depends on CONFIG_SND_SOC_RT5575, CONFIG_SPI_MASTER at the parent, so it cannot be y while that is m",
    "subject": "ASoC: rt5575: fix SPI dependency"
   }
  ],
- "recall": 0.0
+ "hits": [],
+ "misses": [],
+ "recall": null
 }

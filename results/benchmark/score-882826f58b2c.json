@@ -1,5 +1,6 @@
 {
  "checked": 1,
+ "excluded": [],
  "hits": [
   {
    "commit": "882826f58b2c48cafc7084a799207e76f2c74fe0",

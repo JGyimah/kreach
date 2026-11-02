@@ -4,18 +4,18 @@ Cases from the mined benchmark, run the way the protocol asks: check out the
 **parent** of a commit that fixed a reachability bug, run the pipeline there,
 and see whether kreach reports the pair the fix addressed.
 
-**2 hits of 4 cases.** These are the four whose caller option lives in
-`sound/`, which is the subsystem S3 builds; they are not a sample of the
-benchmark, so this is not the benchmark's recall figure. See *What the misses
-mean* below — one of the two misses looks like a mis-extracted case rather
-than a miss.
+**2 hits of 3 scored cases, 1 excluded.** Four were run — the four whose
+caller option lives in `sound/`, the subsystem S3 builds. One of them turned
+out not to be a y/m instance at all and the miner now excludes it rather than
+scoring it as a miss; see *Excluding a case* below. These four are not a
+sample of the benchmark, so 0.67 is not the benchmark's recall figure.
 
 | case | fix | run at | result |
 |---|---|---|---|
 | [`999fb9d51f93`](case-999fb9d51f93/) | ASoC: qcom: sm8250 — `depends on X \|\| !X` | `86731a2a651e`, v6.16-rc3 | **hit** |
 | [`882826f58b2c`](case-882826f58b2c/) | ALSA: usb-audio: qcom — USB_XHCI dependency | `e2d8ae899760`, v6.15-rc6+ | **hit** |
 | `742048f2e128` | ASoC: fsl_sai — IMX_SCMI_MISC_DRV dependency | `cad9720dd7e4`, v6.19-rc7 | miss |
-| `1db63f6af179` | ASoC: rt5575 — SPI dependency | `a1d14d8364ea`, v6.19-rc7 | miss |
+| `1db63f6af179` | ASoC: rt5575 — SPI dependency | `a1d14d8364ea`, v6.19-rc7 | excluded |
 
 ## The hits
 
@@ -31,9 +31,7 @@ symbol the fix's own message names. kreach also reports
 kreach found the pair through `CONFIG_USB_XHCI_HCD`, failing the link in 514 s
 on ten `xhci_sideband_*` symbols at once.
 
-## What the misses mean
-
-They have different causes, and only one of them is kreach falling short.
+## The miss
 
 **`742048f2e128` — the reference does not exist on this architecture.** S5
 produced a satisfiable witness, and S6's pre-check then found that
@@ -48,9 +46,10 @@ an x86_64 run cannot see it. This is the architecture limitation in
 pre-check behaving correctly: it refused to spend a build on a reference that
 is not emitted.
 
-**`1db63f6af179` — the pair the miner extracted cannot fail.** All four
-queries came back unsat, including `CONFIG_SND_SOC_RT5575_SPI` →
-`CONFIG_SPI_MASTER`. At the parent that stanza reads:
+## Excluding a case
+
+`1db63f6af179` was the fourth case run, and all four of its queries came back
+unsat. K was right. At the parent the stanza reads:
 
 ```
 config SND_SOC_RT5575_SPI
@@ -60,15 +59,31 @@ config SND_SOC_RT5575_SPI
 ```
 
 A tristate with `depends on SPI_MASTER` cannot be `y` while `SPI_MASTER` is
-`m` — Kconfig caps it, R6 encodes that, and the solver is right to say no
-configuration satisfies the query. So the y/m instance the miner inferred from
-the commit is not reachable at the parent. The fix changed the symbol to
-`bool` and added `depends on SPI_MASTER=y || SND_SOC_RT5575=m`, which suggests
-the hazard it was addressing is the bool-depends-on-tristate one that only
-exists *after* that change, or that the commit was precautionary. Either way
-the miner's caller/provider pair is not the thing that could break, which is a
-limitation of the benchmark rather than of the checker — and a reason to read
-any recall figure from this benchmark as a lower bound.
+`m` — Kconfig caps a symbol at the level of what it depends on, R6 encodes
+that, and the solver is right to say no configuration satisfies the query. So
+the y/m instance the miner inferred is not reachable at the parent. The fix
+changed the symbol to `bool` and added `depends on SPI_MASTER=y ||
+SND_SOC_RT5575=m`, which points at the bool-depends-on-tristate hazard that
+only exists *after* that change.
+
+`kreach bench` now recognises this shape and excludes such a case instead of
+scoring it as a miss: if every provider the fix names is already capped by the
+caller's own `depends on` at the parent, the extracted pair cannot be a y/m
+instance, and counting it would measure the mining rather than the checker.
+The rule is narrow on purpose, and two distinctions carry it:
+
+- **Only a tristate caller is capped.** A `bool` has no `m` level, so
+  `depends on P` leaves it `y` with P at `m` — that is the hazard kreach looks
+  for, not a protection, and such a pair is kept.
+- **Only a bare conjunct counts.** `depends on P=y` is an exact-level test,
+  which is the *fix* for this class rather than an instance of it, and a term
+  inside `||` is not required at all.
+
+It only fires when *every* named provider is capped. `882826f58b2c` is the
+case that shows why: four of its five providers are capped, but
+`CONFIG_USB_XHCI_HCD` is not — and that is the pair kreach went on to confirm.
+Over 120 mined commits the rule excludes two of the 59 extractable cases,
+leaving 57 usable.
 
 ## Method
 
