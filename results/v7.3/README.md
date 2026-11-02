@@ -83,6 +83,18 @@ unmodified `make` reproduces the failure. The `settings` column is how many
 options each one enables — worth a glance before you start, since the largest
 needs appreciably more memory and disk than the smallest.
 
+Each finding's `build_log` line names a work-directory path. The published
+copies are here:
+
+| findings.txt says | published as |
+|---|---|
+| `s5/witness/<id>.config` | [`witness/<id>.config`](witness/) |
+| `s6/build/<id>/build.log` | [`build/<id>.log`](build/) |
+
+A log starts with the `make olddefconfig` that produced the configuration and
+ends with the failing link, so the `undefined reference` quoted in the report
+can be read in context rather than taken on trust.
+
 ## Files
 
 | | |
@@ -92,3 +104,4 @@ needs appreciably more memory and disk than the smallest.
 | `summary.json` | counts by case and fix pattern, plus per-stage timings |
 | `table.md` | the table above, regenerable |
 | `witness/` | the minimised `.config` for each finding |
+| `build/` | the `vmlinux` link log for each finding, one file per witness |

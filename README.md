@@ -134,7 +134,8 @@ leaving it out makes S4 pick a same-named object elsewhere in the tree
 confirmed by a `vmlinux` link that failed on the predicted symbol, each with
 the minimised `.config` that reproduces it.
 [results/v7.3/README.md](results/v7.3/README.md) lists them with their
-`Fixes:` commits and how to reproduce one.
+`Fixes:` commits and how to reproduce one. The `vmlinux` link log for each is
+published alongside, so the failure can be read rather than taken on trust.
 
 [results/](results/) holds the earlier v6.17 run of the same set — eleven
 findings, one of which no longer reproduces at v7.3.

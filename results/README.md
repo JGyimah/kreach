@@ -62,6 +62,18 @@ in general — `select` on a symbol with its own dependencies is how
 unmet-dependency bugs get created — but it does not hold for a dependency-free
 helper.
 
+Each finding's `build_log` line names a work-directory path. The published
+copies are here:
+
+| findings.txt says | published as |
+|---|---|
+| `s5/witness/<id>.config` | [`witness/<id>.config`](witness/) |
+| `s6/build/<id>/build.log` | [`build/<id>.log`](build/) |
+
+A log starts with the `make olddefconfig` that produced the configuration and
+ends with the failing link, so the `undefined reference` quoted in the report
+can be read in context rather than taken on trust.
+
 ## Files
 
 | | |
@@ -70,3 +82,4 @@ helper.
 | `findings.jsonl` | one record per finding, for scripts |
 | `summary.json` | counts by case and fix pattern, plus per-stage timings |
 | `witness/` | the minimised `.config` for each finding |
+| `build/` | the `vmlinux` link log for each finding, one file per witness |

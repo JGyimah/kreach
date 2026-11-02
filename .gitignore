@@ -2,8 +2,10 @@ __pycache__/
 *.py[cod]
 *.egg-info/
 .pytest_cache/
-build/
-dist/
+# Anchored: setuptools' build/ at the root only, so results/*/build/ -- the
+# published vmlinux link logs -- is not swallowed with it.
+/build/
+/dist/
 .venv/
 venv/
 
