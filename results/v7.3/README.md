@@ -47,8 +47,10 @@ config BITREVERSE
         select GENERIC_BITREVERSE if !HAVE_ARCH_BITREVERSE
 ```
 
-That does the right thing on arm64 and riscv, where a native implementation
-means no `bitrev.o` is needed at all.
+That does the right thing on the architectures with a native implementation,
+where no `bitrev.o` is needed at all: arm64 and mips select
+`HAVE_ARCH_BITREVERSE` whenever `BITREVERSE` is on, and riscv, loongarch and
+arm select it under a further CPU or ISA condition.
 
 ## Reproducing one
 
