@@ -342,12 +342,12 @@ known caller options: 68 queries in 2.4 minutes instead of 4,971.
 
 | | |
 |---|---|
-| still confirmed by a link error | **9** |
+| still confirmed by a link error | **10** |
 | no longer reproducible | 1 |
-| unprovable on this machine | 1 |
 
-**9 of 9 builds spent were confirmations.** The two departures from the v6.17
-set are both worth stating precisely:
+**10 of 10 builds spent were confirmations.** The published set is
+[results/v7.3/](../results/v7.3/). One finding drops out of the v6.17 eleven,
+and it is worth stating precisely:
 
 `CONFIG_SND_SOC_IDT821034` **no longer reproduces.** Its Kconfig stanza still
 lacks the `select`, so a static reading says the bug is live — but the caller

@@ -5,15 +5,13 @@ subsystem. Eleven findings, every one confirmed by a real `vmlinux` link that
 failed on the predicted symbol. [docs/results.md](../docs/results.md) has the
 stage-by-stage numbers and what the run cost.
 
-**Re-confirmed at v7.3**, two releases on: **9 of these 11 still reproduce**,
-9 of 9 builds spent. `SND_SOC_IDT821034` no longer does — its Kconfig stanza
-is still missing the `select`, but the caller no longer emits the reference, so
-the link cannot fail on it. `SND_SOC_FSL_XCVR` is unproven rather than
-disproven: its v7.3 witness enables 3,822 settings against 505-842 for the
-other ten, and that build exhausted both memory and disk on the test machine.
-The same finding linked in 21 seconds at v6.17 from a 480-setting witness, so
-this is a limit of how small a witness the solver produced, not evidence about
-the bug. Quote a v7.3 reproducer, not one of these, if you are sending a
+**Superseded by [v7.3/](v7.3/)**, where the same set was re-run two releases
+on: **10 of these 11 still reproduce**, 10 of 10 builds spent. Send those, not
+these — a maintainer applies to something near the tip.
+
+`SND_SOC_IDT821034` is the one that drops out. Its Kconfig stanza is still
+missing the `select`, but the caller no longer emits the reference, so the link
+cannot fail on it. Quote a v7.3 reproducer, not one of these, if you are sending a
 patch; see [docs/results.md](../docs/results.md).
 
 All eleven are the `y/m` case the spec calls the main target: the caller is

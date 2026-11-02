@@ -128,11 +128,15 @@ leaving it out makes S4 pick a same-named object elsewhere in the tree
 
 ## Findings from a real run
 
-[results/](results/) holds the output of a run on Linux v6.17, `ARCH=x86_64`,
-with `sound/` as the caller subsystem: **eleven findings**, each confirmed by a
-`vmlinux` link that failed on the predicted symbol, each with the minimised
-`.config` that reproduces it. [results/README.md](results/README.md) lists them
-with their `Fixes:` commits and how to reproduce one.
+[results/v7.3/](results/v7.3/) holds the output of a run on Linux v7.3,
+`ARCH=x86_64`, with `sound/` as the caller subsystem: **ten findings**, each
+confirmed by a `vmlinux` link that failed on the predicted symbol, each with
+the minimised `.config` that reproduces it.
+[results/v7.3/README.md](results/v7.3/README.md) lists them with their
+`Fixes:` commits and how to reproduce one.
+
+[results/](results/) holds the earlier v6.17 run of the same set — eleven
+findings, one of which no longer reproduces at v7.3.
 
 ## Known limitations
 

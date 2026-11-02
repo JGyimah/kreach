@@ -1,0 +1,426 @@
+kreach findings -- v7.3, arch x86_64
+========================================================================
+
+## CONFIG_SND_SOC_FSL_AUD2HTX  (1 finding)
+
+  id          dd5e74249347
+  arch        x86_64
+  case        y/m   (caller built-in, provider a module: vmlinux link error)
+  caller      sound/soc/fsl/fsl_aud2htx.o  [CONFIG_SND_SOC_FSL_AUD2HTX]
+  provider    drivers/base/regmap/regmap-mmio.o  [CONFIG_REGMAP_MMIO]  module regmap-mmio.ko
+  symbols     __devm_regmap_init_mmio_clk
+  witness     s5/witness/6d3bbbf14c84.config   (700 settings enabled)
+  levels      CONFIG_REGMAP_MMIO=m, CONFIG_SND_SOC_FSL_AUD2HTX=y
+  build_log   s6/build/6d3bbbf14c84/build.log
+      fsl_aud2htx.c:(.text+0x30c): undefined reference to `__devm_regmap_init_mmio_clk'
+  Fixes: 8a24c834c053 ("ASoC: fsl_aud2htx: Add aud2htx module driver")
+              (commit that added sound/soc/fsl/fsl_aud2htx.c; the symbol does not appear in the source, so check this one)
+  send to     Shengjiu Wang <shengjiu.wang@gmail.com>
+              Xiubo Li <Xiubo.Lee@gmail.com>
+              Fabio Estevam <festevam@gmail.com>
+              Nicolin Chen <nicoleotsuka@gmail.com>
+              Liam Girdwood <lgirdwood@gmail.com>
+              Mark Brown <broonie@kernel.org>
+  fix         depends on REGMAP_MMIO
+              in config SND_SOC_FSL_AUD2HTX
+              SND_SOC_FSL_AUD2HTX has no stub for REGMAP_MMIO=n (no static inline stub found), so every caller path needs REGMAP_MMIO present.
+  caveat      REGMAP_MMIO has no prompt, so it is only ever enabled by a select; 'depends on REGMAP_MMIO' would leave SND_SOC_FSL_AUD2HTX unselectable.  This one needs a maintainer decision, not the standard fix.
+
+  --- commit message reproduction section ---
+  |
+  | With the attached configuration (x86_64, v7.3):
+  |
+  |   fsl_aud2htx.c:(.text+0x30c): undefined reference to `__devm_regmap_init_mmio_clk'
+  |
+  | CONFIG_SND_SOC_FSL_AUD2HTX is built into vmlinux while CONFIG_REGMAP_MMIO is a module, so __devm_regmap_init_mmio_clk is
+  | not available at link time.
+  |
+  | Fix: depends on REGMAP_MMIO in config SND_SOC_FSL_AUD2HTX.
+  | Note: REGMAP_MMIO has no prompt, so it is only ever enabled by a select; 'depends on REGMAP_MMIO' would leave SND_SOC_FSL_AUD2HTX unselectable.  This one needs a maintainer decision, not the standard fix.
+  | Found with a static reachability check and confirmed by a build.
+  |
+  | Fixes: 8a24c834c053 ("ASoC: fsl_aud2htx: Add aud2htx module driver")
+  ---
+
+## CONFIG_SND_SOC_FSL_LPC3XXX  (1 finding)
+
+  id          8aea9e5cee6d
+  arch        x86_64
+  case        y/m   (caller built-in, provider a module: vmlinux link error)
+  caller      sound/soc/fsl/lpc3xxx-i2s.o  [CONFIG_SND_SOC_FSL_LPC3XXX]
+  provider    drivers/base/regmap/regmap-mmio.o  [CONFIG_REGMAP_MMIO]  module regmap-mmio.ko
+  symbols     __devm_regmap_init_mmio_clk
+  witness     s5/witness/277a3340a839.config   (505 settings enabled)
+  levels      CONFIG_REGMAP_MMIO=m, CONFIG_SND_SOC_FSL_LPC3XXX=y
+  build_log   s6/build/277a3340a839/build.log
+      /home/ubuntu/src/linux/sound/soc/fsl/lpc3xxx-i2s.c:320:(.text+0x13b8f6): undefined reference to `__devm_regmap_init_mmio_clk'
+  Fixes: 0959de657a10 ("ASoC: fsl: Add i2s and pcm drivers for LPC32xx CPUs")
+              (commit that added sound/soc/fsl/lpc3xxx-i2s.c; the symbol does not appear in the source, so check this one)
+  send to     "J.M.B. Downing" <jonathan.downing@nautel.com>
+              Piotr Wojtaszczyk <piotr.wojtaszczyk@timesys.com>
+              Vladimir Zapolskiy <vz@mleia.com>
+              Liam Girdwood <lgirdwood@gmail.com>
+              Mark Brown <broonie@kernel.org>
+              Jaroslav Kysela <perex@perex.cz>
+  fix         depends on REGMAP_MMIO
+              in config SND_SOC_FSL_LPC3XXX
+              SND_SOC_FSL_LPC3XXX has no stub for REGMAP_MMIO=n (no static inline stub found), so every caller path needs REGMAP_MMIO present.
+  caveat      REGMAP_MMIO has no prompt, so it is only ever enabled by a select; 'depends on REGMAP_MMIO' would leave SND_SOC_FSL_LPC3XXX unselectable.  This one needs a maintainer decision, not the standard fix.
+
+  --- commit message reproduction section ---
+  |
+  | With the attached configuration (x86_64, v7.3):
+  |
+  |   /home/ubuntu/src/linux/sound/soc/fsl/lpc3xxx-i2s.c:320:(.text+0x13b8f6): undefined reference to `__devm_regmap_init_mmio_clk'
+  |
+  | CONFIG_SND_SOC_FSL_LPC3XXX is built into vmlinux while CONFIG_REGMAP_MMIO is a module, so __devm_regmap_init_mmio_clk is
+  | not available at link time.
+  |
+  | Fix: depends on REGMAP_MMIO in config SND_SOC_FSL_LPC3XXX.
+  | Note: REGMAP_MMIO has no prompt, so it is only ever enabled by a select; 'depends on REGMAP_MMIO' would leave SND_SOC_FSL_LPC3XXX unselectable.  This one needs a maintainer decision, not the standard fix.
+  | Found with a static reachability check and confirmed by a build.
+  |
+  | Fixes: 0959de657a10 ("ASoC: fsl: Add i2s and pcm drivers for LPC32xx CPUs")
+  ---
+
+## CONFIG_SND_SOC_FSL_XCVR  (1 finding)
+
+  id          ef8984e6b9b2
+  arch        x86_64
+  case        y/m   (caller built-in, provider a module: vmlinux link error)
+  caller      sound/soc/fsl/fsl_xcvr.o  [CONFIG_SND_SOC_FSL_XCVR]
+  provider    lib/bitrev.o  [CONFIG_GENERIC_BITREVERSE]  module bitrev.ko
+  symbols     byte_rev_table
+  witness     s5/witness/644371d1b007.config   (1078 settings enabled)
+  levels      CONFIG_GENERIC_BITREVERSE=m, CONFIG_SND_SOC_FSL_XCVR=y
+  build_log   s6/build/644371d1b007/build.log
+      fsl_xcvr.c:(.text+0x1634): undefined reference to `byte_rev_table'
+      ld: fsl_xcvr.c:(.text+0x163b): undefined reference to `byte_rev_table'
+      ld: fsl_xcvr.c:(.text+0x1653): undefined reference to `byte_rev_table'
+      ld: fsl_xcvr.c:(.text+0x1661): undefined reference to `byte_rev_table'
+      ld: fsl_xcvr.c:(.text+0x1871): undefined reference to `byte_rev_table'
+      ld: sound/soc/fsl/fsl_xcvr.o:fsl_xcvr.c:(.text+0x1878): more undefined references to `byte_rev_table' follow
+  Fixes: 28564486866f ("ASoC: fsl_xcvr: Add XCVR ASoC CPU DAI driver")
+              (commit that added sound/soc/fsl/fsl_xcvr.c; the symbol does not appear in the source, so check this one)
+  send to     Shengjiu Wang <shengjiu.wang@gmail.com>
+              Xiubo Li <Xiubo.Lee@gmail.com>
+              Fabio Estevam <festevam@gmail.com>
+              Nicolin Chen <nicoleotsuka@gmail.com>
+              Liam Girdwood <lgirdwood@gmail.com>
+              Mark Brown <broonie@kernel.org>
+  fix         depends on GENERIC_BITREVERSE
+              in config SND_SOC_FSL_XCVR
+              SND_SOC_FSL_XCVR has no stub for GENERIC_BITREVERSE=n (no static inline stub found), so every caller path needs GENERIC_BITREVERSE present.
+  caveat      GENERIC_BITREVERSE has no prompt, so it is only ever enabled by a select; 'depends on GENERIC_BITREVERSE' would leave SND_SOC_FSL_XCVR unselectable.  This one needs a maintainer decision, not the standard fix.
+
+  --- commit message reproduction section ---
+  |
+  | With the attached configuration (x86_64, v7.3):
+  |
+  |   fsl_xcvr.c:(.text+0x1634): undefined reference to `byte_rev_table'
+  |   ld: fsl_xcvr.c:(.text+0x163b): undefined reference to `byte_rev_table'
+  |   ld: fsl_xcvr.c:(.text+0x1653): undefined reference to `byte_rev_table'
+  |
+  | CONFIG_SND_SOC_FSL_XCVR is built into vmlinux while CONFIG_GENERIC_BITREVERSE is a module, so byte_rev_table is
+  | not available at link time.
+  |
+  | Fix: depends on GENERIC_BITREVERSE in config SND_SOC_FSL_XCVR.
+  | Note: GENERIC_BITREVERSE has no prompt, so it is only ever enabled by a select; 'depends on GENERIC_BITREVERSE' would leave SND_SOC_FSL_XCVR unselectable.  This one needs a maintainer decision, not the standard fix.
+  | Found with a static reachability check and confirmed by a build.
+  |
+  | Fixes: 28564486866f ("ASoC: fsl_xcvr: Add XCVR ASoC CPU DAI driver")
+  ---
+
+## CONFIG_SND_SOC_INTEL_KEEMBAY  (1 finding)
+
+  id          ed862d6b75df
+  arch        x86_64
+  case        y/m   (caller built-in, provider a module: vmlinux link error)
+  caller      sound/soc/intel/keembay/kmb_platform.o  [CONFIG_SND_SOC_INTEL_KEEMBAY]
+  provider    lib/bitrev.o  [CONFIG_GENERIC_BITREVERSE]  module bitrev.ko
+  symbols     byte_rev_table
+  witness     s5/witness/ba025badfe60.config   (696 settings enabled)
+  levels      CONFIG_GENERIC_BITREVERSE=m, CONFIG_SND_SOC_INTEL_KEEMBAY=y
+  build_log   s6/build/ba025badfe60/build.log
+      kmb_platform.c:(.text+0x1473): undefined reference to `byte_rev_table'
+      ld: kmb_platform.c:(.text+0x149e): undefined reference to `byte_rev_table'
+      ld: kmb_platform.c:(.text+0x14a5): undefined reference to `byte_rev_table'
+      ld: kmb_platform.c:(.text+0x14d0): undefined reference to `byte_rev_table'
+      ld: kmb_platform.c:(.text+0x14df): undefined reference to `byte_rev_table'
+      ld: sound/soc/intel/keembay/kmb_platform.o:kmb_platform.c:(.text+0x150e): more undefined references to `byte_rev_table' follow
+  Fixes: c5477e966728 ("ASoC: Intel: Add KeemBay platform driver")
+              (commit that added sound/soc/intel/keembay/kmb_platform.c; the symbol does not appear in the source, so check this one)
+  send to     Cezary Rojewski <cezary.rojewski@intel.com>
+              Liam Girdwood <liam.r.girdwood@linux.intel.com>
+              Peter Ujfalusi <peter.ujfalusi@linux.intel.com>
+              Bard Liao <yung-chuan.liao@linux.intel.com>
+              Kai Vehmanen <kai.vehmanen@linux.intel.com>
+              Pierre-Louis Bossart <pierre-louis.bossart@linux.dev>
+  fix         depends on GENERIC_BITREVERSE
+              in config SND_SOC_INTEL_KEEMBAY
+              SND_SOC_INTEL_KEEMBAY has no stub for GENERIC_BITREVERSE=n (no static inline stub found), so every caller path needs GENERIC_BITREVERSE present.
+  caveat      GENERIC_BITREVERSE has no prompt, so it is only ever enabled by a select; 'depends on GENERIC_BITREVERSE' would leave SND_SOC_INTEL_KEEMBAY unselectable.  This one needs a maintainer decision, not the standard fix.
+
+  --- commit message reproduction section ---
+  |
+  | With the attached configuration (x86_64, v7.3):
+  |
+  |   kmb_platform.c:(.text+0x1473): undefined reference to `byte_rev_table'
+  |   ld: kmb_platform.c:(.text+0x149e): undefined reference to `byte_rev_table'
+  |   ld: kmb_platform.c:(.text+0x14a5): undefined reference to `byte_rev_table'
+  |
+  | CONFIG_SND_SOC_INTEL_KEEMBAY is built into vmlinux while CONFIG_GENERIC_BITREVERSE is a module, so byte_rev_table is
+  | not available at link time.
+  |
+  | Fix: depends on GENERIC_BITREVERSE in config SND_SOC_INTEL_KEEMBAY.
+  | Note: GENERIC_BITREVERSE has no prompt, so it is only ever enabled by a select; 'depends on GENERIC_BITREVERSE' would leave SND_SOC_INTEL_KEEMBAY unselectable.  This one needs a maintainer decision, not the standard fix.
+  | Found with a static reachability check and confirmed by a build.
+  |
+  | Fixes: c5477e966728 ("ASoC: Intel: Add KeemBay platform driver")
+  ---
+
+## CONFIG_SND_SOC_ROCKCHIP_I2S  (1 finding)
+
+  id          a45981c5c0d5
+  arch        x86_64
+  case        y/m   (caller built-in, provider a module: vmlinux link error)
+  caller      sound/soc/rockchip/rockchip_i2s.o  [CONFIG_SND_SOC_ROCKCHIP_I2S]
+  provider    drivers/base/regmap/regmap-mmio.o  [CONFIG_REGMAP_MMIO]  module regmap-mmio.ko
+  symbols     __devm_regmap_init_mmio_clk
+  witness     s5/witness/3c5ec3ae665b.config   (841 settings enabled)
+  levels      CONFIG_REGMAP_MMIO=m, CONFIG_SND_SOC_ROCKCHIP_I2S=y
+  build_log   s6/build/3c5ec3ae665b/build.log
+      rockchip_i2s.c:(.text+0x418): undefined reference to `__devm_regmap_init_mmio_clk'
+  Fixes: 4495c89fcf26 ("ASoC: add driver for Rockchip RK3xxx I2S controller")
+              (commit that added sound/soc/rockchip/rockchip_i2s.c; the symbol does not appear in the source, so check this one)
+  send to     Liam Girdwood <lgirdwood@gmail.com>
+              Mark Brown <broonie@kernel.org>
+              Jaroslav Kysela <perex@perex.cz>
+              Takashi Iwai <tiwai@suse.com>
+              Heiko Stuebner <heiko@sntech.de>
+              linux-sound@vger.kernel.org
+  fix         depends on REGMAP_MMIO
+              in config SND_SOC_ROCKCHIP_I2S
+              SND_SOC_ROCKCHIP_I2S has no stub for REGMAP_MMIO=n (no static inline stub found), so every caller path needs REGMAP_MMIO present.
+  caveat      REGMAP_MMIO has no prompt, so it is only ever enabled by a select; 'depends on REGMAP_MMIO' would leave SND_SOC_ROCKCHIP_I2S unselectable.  This one needs a maintainer decision, not the standard fix.
+
+  --- commit message reproduction section ---
+  |
+  | With the attached configuration (x86_64, v7.3):
+  |
+  |   rockchip_i2s.c:(.text+0x418): undefined reference to `__devm_regmap_init_mmio_clk'
+  |
+  | CONFIG_SND_SOC_ROCKCHIP_I2S is built into vmlinux while CONFIG_REGMAP_MMIO is a module, so __devm_regmap_init_mmio_clk is
+  | not available at link time.
+  |
+  | Fix: depends on REGMAP_MMIO in config SND_SOC_ROCKCHIP_I2S.
+  | Note: REGMAP_MMIO has no prompt, so it is only ever enabled by a select; 'depends on REGMAP_MMIO' would leave SND_SOC_ROCKCHIP_I2S unselectable.  This one needs a maintainer decision, not the standard fix.
+  | Found with a static reachability check and confirmed by a build.
+  |
+  | Fixes: 4495c89fcf26 ("ASoC: add driver for Rockchip RK3xxx I2S controller")
+  ---
+
+## CONFIG_SND_SOC_ROCKCHIP_I2S_TDM  (1 finding)
+
+  id          4fca484f72e5
+  arch        x86_64
+  case        y/m   (caller built-in, provider a module: vmlinux link error)
+  caller      sound/soc/rockchip/rockchip_i2s_tdm.o  [CONFIG_SND_SOC_ROCKCHIP_I2S_TDM]
+  provider    drivers/base/regmap/regmap-mmio.o  [CONFIG_REGMAP_MMIO]  module regmap-mmio.ko
+  symbols     __devm_regmap_init_mmio_clk
+  witness     s5/witness/2b48cf8a3dbd.config   (506 settings enabled)
+  levels      CONFIG_REGMAP_MMIO=m, CONFIG_SND_SOC_ROCKCHIP_I2S_TDM=y
+  build_log   s6/build/2b48cf8a3dbd/build.log
+      /home/ubuntu/src/linux/sound/soc/rockchip/rockchip_i2s_tdm.c:1304:(.text+0x14b1b6): undefined reference to `__devm_regmap_init_mmio_clk'
+  Fixes: 081068fd6414 ("ASoC: rockchip: add support for i2s-tdm controller")
+              (commit that added sound/soc/rockchip/rockchip_i2s_tdm.c; the symbol does not appear in the source, so check this one)
+  send to     Nicolas Frattaroli <frattaroli.nicolas@gmail.com>
+              Liam Girdwood <lgirdwood@gmail.com>
+              Mark Brown <broonie@kernel.org>
+              Jaroslav Kysela <perex@perex.cz>
+              Takashi Iwai <tiwai@suse.com>
+              Heiko Stuebner <heiko@sntech.de>
+  fix         depends on REGMAP_MMIO
+              in config SND_SOC_ROCKCHIP_I2S_TDM
+              SND_SOC_ROCKCHIP_I2S_TDM has no stub for REGMAP_MMIO=n (no static inline stub found), so every caller path needs REGMAP_MMIO present.
+  caveat      REGMAP_MMIO has no prompt, so it is only ever enabled by a select; 'depends on REGMAP_MMIO' would leave SND_SOC_ROCKCHIP_I2S_TDM unselectable.  This one needs a maintainer decision, not the standard fix.
+
+  --- commit message reproduction section ---
+  |
+  | With the attached configuration (x86_64, v7.3):
+  |
+  |   /home/ubuntu/src/linux/sound/soc/rockchip/rockchip_i2s_tdm.c:1304:(.text+0x14b1b6): undefined reference to `__devm_regmap_init_mmio_clk'
+  |
+  | CONFIG_SND_SOC_ROCKCHIP_I2S_TDM is built into vmlinux while CONFIG_REGMAP_MMIO is a module, so __devm_regmap_init_mmio_clk is
+  | not available at link time.
+  |
+  | Fix: depends on REGMAP_MMIO in config SND_SOC_ROCKCHIP_I2S_TDM.
+  | Note: REGMAP_MMIO has no prompt, so it is only ever enabled by a select; 'depends on REGMAP_MMIO' would leave SND_SOC_ROCKCHIP_I2S_TDM unselectable.  This one needs a maintainer decision, not the standard fix.
+  | Found with a static reachability check and confirmed by a build.
+  |
+  | Fixes: 081068fd6414 ("ASoC: rockchip: add support for i2s-tdm controller")
+  ---
+
+## CONFIG_SND_SOC_ROCKCHIP_PDM  (1 finding)
+
+  id          c0f6bd94878b
+  arch        x86_64
+  case        y/m   (caller built-in, provider a module: vmlinux link error)
+  caller      sound/soc/rockchip/rockchip_pdm.o  [CONFIG_SND_SOC_ROCKCHIP_PDM]
+  provider    drivers/base/regmap/regmap-mmio.o  [CONFIG_REGMAP_MMIO]  module regmap-mmio.ko
+  symbols     __devm_regmap_init_mmio_clk
+  witness     s5/witness/ad2f3dd9f157.config   (828 settings enabled)
+  levels      CONFIG_REGMAP_MMIO=m, CONFIG_SND_SOC_ROCKCHIP_PDM=y
+  build_log   s6/build/ad2f3dd9f157/build.log
+      rockchip_pdm.c:(.text+0xef4): undefined reference to `__devm_regmap_init_mmio_clk'
+  Fixes: fc05a5b22253 ("ASoC: rockchip: add support for pdm controller")
+              (commit that added sound/soc/rockchip/rockchip_pdm.c; the symbol does not appear in the source, so check this one)
+  send to     Liam Girdwood <lgirdwood@gmail.com>
+              Mark Brown <broonie@kernel.org>
+              Jaroslav Kysela <perex@perex.cz>
+              Takashi Iwai <tiwai@suse.com>
+              Heiko Stuebner <heiko@sntech.de>
+              linux-sound@vger.kernel.org
+  fix         depends on REGMAP_MMIO
+              in config SND_SOC_ROCKCHIP_PDM
+              SND_SOC_ROCKCHIP_PDM has no stub for REGMAP_MMIO=n (no static inline stub found), so every caller path needs REGMAP_MMIO present.
+  caveat      REGMAP_MMIO has no prompt, so it is only ever enabled by a select; 'depends on REGMAP_MMIO' would leave SND_SOC_ROCKCHIP_PDM unselectable.  This one needs a maintainer decision, not the standard fix.
+
+  --- commit message reproduction section ---
+  |
+  | With the attached configuration (x86_64, v7.3):
+  |
+  |   rockchip_pdm.c:(.text+0xef4): undefined reference to `__devm_regmap_init_mmio_clk'
+  |
+  | CONFIG_SND_SOC_ROCKCHIP_PDM is built into vmlinux while CONFIG_REGMAP_MMIO is a module, so __devm_regmap_init_mmio_clk is
+  | not available at link time.
+  |
+  | Fix: depends on REGMAP_MMIO in config SND_SOC_ROCKCHIP_PDM.
+  | Note: REGMAP_MMIO has no prompt, so it is only ever enabled by a select; 'depends on REGMAP_MMIO' would leave SND_SOC_ROCKCHIP_PDM unselectable.  This one needs a maintainer decision, not the standard fix.
+  | Found with a static reachability check and confirmed by a build.
+  |
+  | Fixes: fc05a5b22253 ("ASoC: rockchip: add support for pdm controller")
+  ---
+
+## CONFIG_SND_SOC_ROCKCHIP_SAI  (1 finding)
+
+  id          c9339f325476
+  arch        x86_64
+  case        y/m   (caller built-in, provider a module: vmlinux link error)
+  caller      sound/soc/rockchip/rockchip_sai.o  [CONFIG_SND_SOC_ROCKCHIP_SAI]
+  provider    drivers/base/regmap/regmap-mmio.o  [CONFIG_REGMAP_MMIO]  module regmap-mmio.ko
+  symbols     __devm_regmap_init_mmio_clk
+  witness     s5/witness/69d816711f7b.config   (511 settings enabled)
+  levels      CONFIG_REGMAP_MMIO=m, CONFIG_SND_SOC_ROCKCHIP_SAI=y
+  build_log   s6/build/69d816711f7b/build.log
+      /home/ubuntu/src/linux/sound/soc/rockchip/rockchip_sai.c:1424:(.text+0x153060): undefined reference to `__devm_regmap_init_mmio_clk'
+  Fixes: cc78d1eaabad ("ASoC: rockchip: add Serial Audio Interface (SAI) driver")
+              (commit that added sound/soc/rockchip/rockchip_sai.c; the symbol does not appear in the source, so check this one)
+  send to     Nicolas Frattaroli <nicolas.frattaroli@collabora.com>
+              Liam Girdwood <lgirdwood@gmail.com>
+              Mark Brown <broonie@kernel.org>
+              Jaroslav Kysela <perex@perex.cz>
+              Takashi Iwai <tiwai@suse.com>
+              Heiko Stuebner <heiko@sntech.de>
+  fix         depends on REGMAP_MMIO
+              in config SND_SOC_ROCKCHIP_SAI
+              SND_SOC_ROCKCHIP_SAI has no stub for REGMAP_MMIO=n (no static inline stub found), so every caller path needs REGMAP_MMIO present.
+  caveat      REGMAP_MMIO has no prompt, so it is only ever enabled by a select; 'depends on REGMAP_MMIO' would leave SND_SOC_ROCKCHIP_SAI unselectable.  This one needs a maintainer decision, not the standard fix.
+
+  --- commit message reproduction section ---
+  |
+  | With the attached configuration (x86_64, v7.3):
+  |
+  |   /home/ubuntu/src/linux/sound/soc/rockchip/rockchip_sai.c:1424:(.text+0x153060): undefined reference to `__devm_regmap_init_mmio_clk'
+  |
+  | CONFIG_SND_SOC_ROCKCHIP_SAI is built into vmlinux while CONFIG_REGMAP_MMIO is a module, so __devm_regmap_init_mmio_clk is
+  | not available at link time.
+  |
+  | Fix: depends on REGMAP_MMIO in config SND_SOC_ROCKCHIP_SAI.
+  | Note: REGMAP_MMIO has no prompt, so it is only ever enabled by a select; 'depends on REGMAP_MMIO' would leave SND_SOC_ROCKCHIP_SAI unselectable.  This one needs a maintainer decision, not the standard fix.
+  | Found with a static reachability check and confirmed by a build.
+  |
+  | Fixes: cc78d1eaabad ("ASoC: rockchip: add Serial Audio Interface (SAI) driver")
+  ---
+
+## CONFIG_SND_SOC_ROCKCHIP_SPDIF  (1 finding)
+
+  id          299f7e337d3b
+  arch        x86_64
+  case        y/m   (caller built-in, provider a module: vmlinux link error)
+  caller      sound/soc/rockchip/rockchip_spdif.o  [CONFIG_SND_SOC_ROCKCHIP_SPDIF]
+  provider    drivers/base/regmap/regmap-mmio.o  [CONFIG_REGMAP_MMIO]  module regmap-mmio.ko
+  symbols     __devm_regmap_init_mmio_clk
+  witness     s5/witness/ab3a8b918f35.config   (842 settings enabled)
+  levels      CONFIG_REGMAP_MMIO=m, CONFIG_SND_SOC_ROCKCHIP_SPDIF=y
+  build_log   s6/build/ab3a8b918f35/build.log
+      rockchip_spdif.c:(.text+0xf67): undefined reference to `__devm_regmap_init_mmio_clk'
+  Fixes: f874b80e1571 ("ASoC: rockchip: Add rockchip SPDIF transceiver driver")
+              (commit that added sound/soc/rockchip/rockchip_spdif.c; the symbol does not appear in the source, so check this one)
+  send to     Liam Girdwood <lgirdwood@gmail.com>
+              Mark Brown <broonie@kernel.org>
+              Jaroslav Kysela <perex@perex.cz>
+              Takashi Iwai <tiwai@suse.com>
+              Heiko Stuebner <heiko@sntech.de>
+              linux-sound@vger.kernel.org
+  fix         depends on REGMAP_MMIO
+              in config SND_SOC_ROCKCHIP_SPDIF
+              SND_SOC_ROCKCHIP_SPDIF has no stub for REGMAP_MMIO=n (no static inline stub found), so every caller path needs REGMAP_MMIO present.
+  caveat      REGMAP_MMIO has no prompt, so it is only ever enabled by a select; 'depends on REGMAP_MMIO' would leave SND_SOC_ROCKCHIP_SPDIF unselectable.  This one needs a maintainer decision, not the standard fix.
+
+  --- commit message reproduction section ---
+  |
+  | With the attached configuration (x86_64, v7.3):
+  |
+  |   rockchip_spdif.c:(.text+0xf67): undefined reference to `__devm_regmap_init_mmio_clk'
+  |
+  | CONFIG_SND_SOC_ROCKCHIP_SPDIF is built into vmlinux while CONFIG_REGMAP_MMIO is a module, so __devm_regmap_init_mmio_clk is
+  | not available at link time.
+  |
+  | Fix: depends on REGMAP_MMIO in config SND_SOC_ROCKCHIP_SPDIF.
+  | Note: REGMAP_MMIO has no prompt, so it is only ever enabled by a select; 'depends on REGMAP_MMIO' would leave SND_SOC_ROCKCHIP_SPDIF unselectable.  This one needs a maintainer decision, not the standard fix.
+  | Found with a static reachability check and confirmed by a build.
+  |
+  | Fixes: f874b80e1571 ("ASoC: rockchip: Add rockchip SPDIF transceiver driver")
+  ---
+
+## CONFIG_SND_SUN50I_DMIC  (1 finding)
+
+  id          a6eb8844cb14
+  arch        x86_64
+  case        y/m   (caller built-in, provider a module: vmlinux link error)
+  caller      sound/soc/sunxi/sun50i-dmic.o  [CONFIG_SND_SUN50I_DMIC]
+  provider    drivers/base/regmap/regmap-mmio.o  [CONFIG_REGMAP_MMIO]  module regmap-mmio.ko
+  symbols     __devm_regmap_init_mmio_clk
+  witness     s5/witness/706acba2ec1c.config   (512 settings enabled)
+  levels      CONFIG_REGMAP_MMIO=m, CONFIG_SND_SUN50I_DMIC=y
+  build_log   s6/build/706acba2ec1c/build.log
+      sun50i-dmic.c:(.text+0x142bce): undefined reference to `__devm_regmap_init_mmio_clk'
+  Fixes: 9fc2c8ed923d ("ASoC: sunxi: Add Allwinner H6 Digital MIC driver")
+              (commit that added sound/soc/sunxi/sun50i-dmic.c; the symbol does not appear in the source, so check this one)
+  send to     Ban Tao <fengzheng923@gmail.com>
+              Liam Girdwood <lgirdwood@gmail.com>
+              Mark Brown <broonie@kernel.org>
+              Jaroslav Kysela <perex@perex.cz>
+              Takashi Iwai <tiwai@suse.com>
+              Chen-Yu Tsai <wens@kernel.org>
+  fix         depends on REGMAP_MMIO
+              in config SND_SUN50I_DMIC
+              SND_SUN50I_DMIC has no stub for REGMAP_MMIO=n (no static inline stub found), so every caller path needs REGMAP_MMIO present.
+  caveat      REGMAP_MMIO has no prompt, so it is only ever enabled by a select; 'depends on REGMAP_MMIO' would leave SND_SUN50I_DMIC unselectable.  This one needs a maintainer decision, not the standard fix.
+
+  --- commit message reproduction section ---
+  |
+  | With the attached configuration (x86_64, v7.3):
+  |
+  |   sun50i-dmic.c:(.text+0x142bce): undefined reference to `__devm_regmap_init_mmio_clk'
+  |
+  | CONFIG_SND_SUN50I_DMIC is built into vmlinux while CONFIG_REGMAP_MMIO is a module, so __devm_regmap_init_mmio_clk is
+  | not available at link time.
+  |
+  | Fix: depends on REGMAP_MMIO in config SND_SUN50I_DMIC.
+  | Note: REGMAP_MMIO has no prompt, so it is only ever enabled by a select; 'depends on REGMAP_MMIO' would leave SND_SUN50I_DMIC unselectable.  This one needs a maintainer decision, not the standard fix.
+  | Found with a static reachability check and confirmed by a build.
+  |
+  | Fixes: 9fc2c8ed923d ("ASoC: sunxi: Add Allwinner H6 Digital MIC driver")
+  ---
