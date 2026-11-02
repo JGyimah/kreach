@@ -36,6 +36,32 @@ path out of a virtualenv works.
 Building witnesses needs a kernel build toolchain: `build-essential flex bison
 libssl-dev libelf-dev bc`.
 
+## Compatibility
+
+kreach is not versioned against the kernel. Nothing in it is keyed to a
+kernel version: what it encodes is Kconfig and Kbuild semantics, and the
+analysable ceiling moves when kmax ships a newer bundled parser, not when
+kreach does. What belongs to a kernel release is the *result set*, which is
+why [results/](results/) and [results/v7.3/](results/v7.3/) are separate and
+each records its own `kernel_commit`.
+
+kreach 0.1.0 has been exercised against:
+
+| | |
+|---|---|
+| Linux | **v6.17** (`e5f0a698b34e`) and **v7.3** (`c03c1a14507d`), `ARCH=x86_64` |
+| ceiling | **v7.3** -- the newest release kmax 4.10 can parse; master uses `def_string`, which its parser rejects |
+| kmax | 4.10 |
+| z3 | 5.3.3 (via `z3-solver`) |
+| Python | 3.10, 3.11, 3.12 (the CI matrix) |
+| toolchain | gcc 13.3.0, GNU ld 2.42, 4 cores, 3.9 GB |
+
+Other architectures are a matter of a cross toolchain rather than of code;
+`arm64` is untried. Every run records its own kernel commit, compiler and
+linker in `meta.json`, so a result set says what produced it without relying
+on this table. [docs/design.md](docs/design.md) has the detail on the parser
+ceiling and what it would take to lift it.
+
 ## Use
 
 ```bash

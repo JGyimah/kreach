@@ -767,6 +767,17 @@ for patch work and will move as kmax is updated. Teaching the bundled parser
 the three new statements is a small change, but it belongs upstream in kmax
 rather than here.
 
+It follows that kreach is not versioned against the kernel, and should not be.
+The ceiling is kmax's, the semantics kreach encodes are Kconfig's and Kbuild's,
+and neither moves on the release cadence. What a kernel release produces is a
+new *result set* -- its own findings, witnesses and logs, with its own
+`kernel_commit` -- which is why the published sets are per revision and the
+package version is not. The one case that would change this is the spec's
+closing proposal, a lightweight checker in the kernel's own `scripts/`:
+anything in-tree is versioned with the kernel by construction, which is an
+argument for keeping that candidate small and semantics-only. The README's
+Compatibility table records what this version has actually been run against.
+
 ## Known limitations
 
 Every limitation costs recall, not precision: S6 confirms each finding with a
