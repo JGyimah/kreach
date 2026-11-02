@@ -52,6 +52,24 @@ where no `bitrev.o` is needed at all: arm64 and mips select
 `HAVE_ARCH_BITREVERSE` whenever `BITREVERSE` is on, and riscv, loongarch and
 arm select it under a further CPU or ISA condition.
 
+## Two things to know before sending one
+
+**`SND_SOC_FSL_AUD2HTX`'s witness fails on a second symbol as well.** Its link
+log also carries `undefined reference to 'devm_snd_dmaengine_pcm_register'`,
+which kreach does not report and cannot: that symbol lives inside
+`#ifdef CONFIG_SND_SOC_GENERIC_DMAENGINE_PCM` in `sound/soc/soc-devres.c`,
+while the object holding it, `soc-devres.o`, is unconditionally part of
+`snd-soc-core`. Object-level presence conditions say the provider is built
+in; the symbol inside it is not. The reported finding stands and the witness
+reproduces, but this one configuration needs both fixes to link, so do not
+quote it as a one-line fix. The other nine fail on the predicted symbol
+alone.
+
+**Three of the quoted link errors carry an absolute path** --
+`/home/ubuntu/src/linux/sound/...` for `FSL_LPC3XXX`, `ROCKCHIP_I2S_TDM` and
+`ROCKCHIP_SAI`. That is what `ld` printed, not something kreach added, but
+trim it to a tree-relative path before it goes in a commit message.
+
 ## Reproducing one
 
 ```bash

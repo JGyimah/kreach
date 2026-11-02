@@ -704,6 +704,7 @@ real build, so a reported finding is one that failed to link.
 | toolchain-dependent symbols fixed to the build host | bugs needing another compiler are missed | R4 pins them to this host; run per toolchain |
 | architecture-specific Kconfig | each ARCH is a separate run | x86_64 exercised; `-a arm64` needs a cross toolchain |
 | weak symbols and linker-script symbols | treated as always provided | excluded from candidates by S4, listed separately in `s3/symbols.json.gz` |
+| symbols guarded by `#ifdef` *inside* a present object (S2) | the provider reads as built in while the symbol is compiled out, so that pair is never a candidate | found in `SND_SOC_FSL_AUD2HTX`'s witness: `devm_snd_dmaengine_pcm_register` is inside `#ifdef CONFIG_SND_SOC_GENERIC_DMAENGINE_PCM` in `soc-devres.c`, which is unconditionally part of `snd-soc-core`. Needs preprocessor-level provider conditions, not just Kbuild ones |
 
 Out of scope by design: missing `EXPORT_SYMBOL`, namespace imports and GPL-only
 export mismatches, which modpost already reports.
