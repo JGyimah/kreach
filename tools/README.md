@@ -12,6 +12,7 @@ Diagnostics and drivers that are not part of the library.
 | `probe_clamp.py` | the dependency expression and R6 clamp for a symbol |
 | `probe_r6.py` | per randconfig seed: is K violated, and do the R6 clamps alone reject it |
 | `bench_replicate.sh` | historical recall for one benchmark case: run the pipeline at a fix's parent commit and score it |
+| `bench_sweep.sh` | the historical-recall benchmark over a worklist, one case at a time: per-case work directory, deleted once scored, so disk stays flat; resumable, since a case with a score file is skipped |
 | `reconfirm_tip.sh` | re-confirm a known set of findings against whatever the tree is checked out at, in its own work directory, with S2 scoped to the subtrees the providers live in |
 
 The probes were written while diagnosing the S1 repairs and are kept because
