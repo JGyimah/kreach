@@ -79,6 +79,7 @@ Evaluation helpers:
 kreach bench --since v6.0              # mine the historical-recall benchmark
 kreach score                           # score findings against it
 kreach compare old/findings.jsonl      # still present / fixed / new
+kreach randcompare --samples 25        # how many randconfigs would hit each finding
 ```
 
 `tools/bench_replicate.sh` runs one benchmark case properly: check out the

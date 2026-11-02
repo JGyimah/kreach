@@ -186,8 +186,8 @@ on this codebase.
 
 ## Confirmed findings
 
-Build-confirmed findings on v6.17 x86_64, all `y/m` — the case the spec names
-as the main target — in two classes:
+All eleven build-confirmed findings on v6.17 x86_64, all `y/m` — the case the
+spec names as the main target — in two classes:
 
 | caller | provider | symbol | link | `Fixes:` |
 |---|---|---|---|---|
@@ -196,6 +196,12 @@ as the main target — in two classes:
 | `CONFIG_SND_SOC_INTEL_KEEMBAY` | `BITREVERSE` | `byte_rev_table` | 24 s | `c5477e966728` ("ASoC: Intel: Add KeemBay platform driver") |
 | `CONFIG_SND_SOC_FSL_AUD2HTX` | `REGMAP_MMIO` | `__devm_regmap_init_mmio_clk` | 252 s | `8a24c834c053` ("ASoC: fsl_aud2htx: Add aud2htx module driver") |
 | `CONFIG_SND_SOC_FSL_LPC3XXX` | `REGMAP_MMIO` | `__devm_regmap_init_mmio_clk` | 544 s | `0959de657a10` ("ASoC: fsl: Add i2s and pcm drivers for LPC32xx CPUs") |
+| `CONFIG_SND_SOC_ROCKCHIP_I2S` | `REGMAP_MMIO` | `__devm_regmap_init_mmio_clk` | 208 s | `4495c89fcf26` ("ASoC: add driver for Rockchip RK3xxx I2S controller") |
+| `CONFIG_SND_SOC_ROCKCHIP_I2S_TDM` | `REGMAP_MMIO` | `__devm_regmap_init_mmio_clk` | 491 s | `081068fd6414` ("ASoC: rockchip: add support for i2s-tdm controller") |
+| `CONFIG_SND_SOC_ROCKCHIP_PDM` | `REGMAP_MMIO` | `__devm_regmap_init_mmio_clk` | 142 s | `fc05a5b22253` ("ASoC: rockchip: add support for pdm controller") |
+| `CONFIG_SND_SOC_ROCKCHIP_SAI` | `REGMAP_MMIO` | `__devm_regmap_init_mmio_clk` | 755 s | `cc78d1eaabad` ("ASoC: rockchip: add Serial Audio Interface (SAI) driver") |
+| `CONFIG_SND_SOC_ROCKCHIP_SPDIF` | `REGMAP_MMIO` | `__devm_regmap_init_mmio_clk` | 54 s | `f874b80e1571` ("ASoC: rockchip: Add rockchip SPDIF transceiver driver") |
+| `CONFIG_SND_SUN50I_DMIC` | `REGMAP_MMIO` | `__devm_regmap_init_mmio_clk` | 368 s | `9fc2c8ed923d` ("ASoC: sunxi: Add Allwinner H6 Digital MIC driver") |
 
 One of the link errors is worth a second look:
 
@@ -221,13 +227,13 @@ candidates S6 rejects — that is, the quality of S4.
 
 | | |
 |---|---|
-| confirmed | 6 |
+| confirmed | 11 |
 | rejected: build succeeded | 2 |
 | rejected: build failed another way | 1 |
 | settled by a pre-check, no build spent | 3 |
-| **precision over builds spent** | **6/9 = 0.67** |
+| **precision over builds spent** | **11/14 = 0.79** |
 
-0.67 out of a candidate list that started at 12,315 pairs. Three refinements
+0.79 out of a candidate list that started at 12,315 pairs. Three refinements
 compound to get there, and none of them would be enough alone:
 
 - the `IS_REACHABLE` header scan drops 635 pairs before any solving
@@ -236,16 +242,14 @@ compound to get there, and none of them would be enough alone:
 - the two pre-flight checks settle witnesses that would have linked cleanly,
   for the price of a `make allnoconfig` or one compile
 
-The `REGMAP_MMIO` class ended at 3 confirmed of 6 examined. Reading the
-Kconfig stanzas suggested all twelve were real; building them shows half of
-what was checked is. That gap between what the source looks like and what the
-linker does is the whole reason the spec puts a build at the end.
-
-The `REGMAP_MMIO` class is the one that shows why the build gate matters. Four
-of its candidates were examined: one confirmed by a real link, one rejected by
-a successful build, and two rejected in twenty seconds each by compiling the
-caller object and finding the symbol no longer referenced. Reading the Kconfig
-alone suggested all twelve were real; they are not.
+The `REGMAP_MMIO` class is the one that shows why the build gate matters. It
+held twelve candidates. Ten were built: eight confirmed by a link that failed
+on `__devm_regmap_init_mmio_clk`, one rejected because the build succeeded,
+one rejected because the build failed for an unrelated reason. The other two
+never reached a build -- compiling the caller object took twenty seconds each
+and showed the symbol was no longer referenced. Reading the Kconfig stanzas
+suggested all twelve were real; four of them are not, and only the build
+distinguishes them.
 
 Each of the three `BITREVERSE` drivers includes
 `<linux/bitrev.h>` and calls `bitrev*`, which on an architecture without

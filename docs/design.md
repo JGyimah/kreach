@@ -142,25 +142,27 @@ implementing Kconfig's first-match-wins evaluation over them -- that is a
 tristate-valued expression evaluator for Kconfig, which is the thing the
 spec's non-goals rule out, and it is where this stops.
 
-The cost is bounded and visible, and now measured. Over 6,925 queries of the
+The cost is bounded and visible, and now measured. Over the complete 7,550-query
 `sound/` sweep:
 
 | | |
 |---|---|
-| unsatisfiable | 6,794 |
-| satisfiable, witness accepted by Kconfig | 49 |
-| satisfiable, witness rejected | **82** |
+| unsatisfiable | 7,402 |
+| satisfiable, witness accepted by Kconfig | 55 |
+| satisfiable, witness rejected | **93** |
 
-So roughly **five of every eight satisfiable queries produce a witness Kconfig
-will not honour**, and the rejections run both ways — 47 where the solver
-wanted `y` and Kconfig computed `m`, 34 the other way, one `m` to `n`. Both
-directions is the signature: this is not a missing constraint in one
-direction, it is Kconfig deciding a level that the Boolean encoding leaves
-free.
+The 93 span 45 distinct symbols, not just the Wolfson codecs above -- the most
+frequent are `SND_SOC_RL6231`, `SND_SEQ_DEVICE` and `SND_SOC_WM_ADSP`, all
+non-visible tristates whose level is computed rather than chosen. So roughly
+**five of every eight satisfiable queries produce a witness Kconfig will not
+honour**, and the rejections run both ways — 51 where the solver wanted `y`
+and Kconfig computed `m`, 41 the other way, one `m` to `n`. Both directions is
+the signature: this is not a missing constraint in one direction, it is Kconfig
+deciding a level that the Boolean encoding leaves free.
 
 Each rejection costs one `make allnoconfig`, a second or two, instead of a
 `vmlinux` link — so it is recall, not precision, and cheap recall at that.
-But 82 is a large enough number to make tristate-valued default evaluation
+But 93 is a large enough number to make tristate-valued default evaluation
 the clear next piece of work on this codebase: it would convert most of those
 into either a real finding or an honest `unsat`, and it is the same work that
 would close the last of the S1 acceptance gap and the `CONFIG_INPUT` false
@@ -430,7 +432,7 @@ ignores what is on disk.
 
 ### What counts as a verdict
 
-Five separate bugs in S6 turned out to be the same mistake: recording
+Six separate bugs in S6 turned out to be the same mistake: recording
 something that is not a verdict as one. Each would have dropped a real
 finding silently, and three of them also fed a false entry into S4's
 feedback loop, which suppresses the pair on every later run.
@@ -467,8 +469,7 @@ non-deterministic, looks like an answer, and silently costs a finding.
 The general shape is worth keeping in mind for anything built on this: a
 pipeline whose precision rests on "the build said so" has to be careful about
 what it lets the build say. Every one of these six was found by running the
-thing, not by reading it, and three of them also fed a false entry into S4's
-feedback loop, which suppresses the pair on every later run.
+thing, not by reading it.
 
 ### Why the shrinking is done in blocks
 
