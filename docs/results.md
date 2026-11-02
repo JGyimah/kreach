@@ -317,12 +317,24 @@ the predicted symbol.
 
 ### Feedback on the spec's fix policy
 
-All three findings land on a case the spec's fix rules do not cover.
-`CONFIG_BITREVERSE` has no prompt — it is a library tristate that exists only
-to be selected — so `depends on BITREVERSE` would leave the driver
-unselectable, and the fix a maintainer would apply is `select BITREVERSE`,
-exactly as `SND_SOC_FSL_SPDIF` already does. That is the one option the spec
-excludes ("Never suggest `select` as the fix").
+All eleven findings land on a case the spec's fix rules do not cover, because
+neither provider has a prompt. `BITREVERSE` and `REGMAP_MMIO` are both bare
+library tristates that exist only to be selected:
+
+```
+config BITREVERSE
+        tristate
+        select GENERIC_BITREVERSE if !HAVE_ARCH_BITREVERSE
+
+config REGMAP_MMIO
+        tristate
+```
+
+So `depends on BITREVERSE` would leave the driver unselectable, and the fix a
+maintainer would apply is `select BITREVERSE`, exactly as `SND_SOC_FSL_SPDIF`
+already does. That is the one option the spec excludes ("Never suggest
+`select` as the fix"), and every one of the eleven records carries the caveat
+saying so.
 
 The rule is well motivated — `select` on a symbol that has its own
 dependencies is how the unmet-dependency bugs kismet finds get created — but it
@@ -499,10 +511,10 @@ built in, the provider less available — and that is a check against the
 generated file. `kreach randcompare` runs N `make randconfig` invocations,
 seconds each, and reports per finding how many of them would have hit it.
 
-**0 of 3 findings were hit by 25 randconfigs.** Each finding's own witness
-does satisfy its condition, so the check fires when it should; 25 samples
-simply never produced a configuration with one of these drivers built in and
-`CONFIG_BITREVERSE` a module.
+**0 of 11 findings were hit by 25 randconfigs**, in 86 seconds. Each
+finding's own witness does satisfy its condition, so the check fires when it
+should; 25 samples simply never produced a configuration with one of these
+drivers built in and its provider a module.
 
 That is the argument for the method stated as a measurement. These are not
 configurations that randconfig stumbles into: with 18,333 symbols, the chance
@@ -516,8 +528,8 @@ which is cheap — the expensive part, the builds, is what this check avoids.
 | | |
 |---|---|
 | S1, per commit and architecture | 1.5 min |
-| S2, whole tree | 12.3 min |
+| S2, whole tree + `arch/x86` | 14.1 min |
 | S3, `allmodconfig` built under `sound/` | 8.2 min |
-| S4 | 8 s |
-| S5, 7,378 queries | ~2 s per query |
-| S6 | one `vmlinux` link per witness: 114 s and 277 s for the first two |
+| S4 | 6 s |
+| S5, 7,550 queries | 1.6 h, about 0.8 s per query |
+| S6, 14 `vmlinux` links | 21 s to 755 s, median 212 s; 0.96 h in total |
