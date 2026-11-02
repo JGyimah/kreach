@@ -1,21 +1,16 @@
 # SPDX-License-Identifier: GPL-2.0-or-later
-"""S7 -- Report and fix suggestion.
+"""S7 -- turn confirmed findings into patch material.
 
-Turn confirmed findings into material for a patch.
+Grouped by the caller's Kconfig symbol, so one report is one patch.  Writes
+s7/findings.jsonl, s7/findings.txt and s7/summary.json.
 
-  Group by the Kconfig symbol of the caller, so one report becomes one patch.
-  Each finding also carries what the patch conventions ask for: a ``Fixes:``
-  tag for the commit that introduced the reference, and the maintainers
-  ``scripts/get_maintainer.pl`` names for the caller's file.
-  Suggest a fix from the provider's role:
-    * ``depends on BAR``          if every caller path needs it
-    * ``depends on BAR || !BAR``  if the code has a stub for BAR=n
-    * ``IS_REACHABLE()``          only as a last resort, flagged as such
-  Never suggest ``select``.
+The fix follows the provider's role: ``depends on BAR`` when every caller
+path needs it, ``depends on BAR || !BAR`` when the code has a stub for BAR=n,
+and IS_REACHABLE only as a last resort, flagged as such.  Never select.
 
-Output: s7/findings.jsonl (one record per finding, holding everything needed
-to write and test the patch with no rerun of the tool), s7/findings.txt (the
-reproduction section for a commit message), s7/summary.json.
+Where that advice cannot be applied -- a provider with no prompt is only ever
+enabled by a select, so a depends on would leave the caller unselectable --
+the record says so in `caveat` rather than leaving it to be discovered.
 """
 
 import os

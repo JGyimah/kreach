@@ -1,22 +1,15 @@
 # SPDX-License-Identifier: GPL-2.0-or-later
-"""S3 -- Symbol references.
+"""S3 -- which objects reference which symbols, and which provide them.
 
-Find which objects reference which symbols, and which objects provide them.
+Reads symbols from compiled objects with nm rather than from C source: by
+then the compiler has resolved the macros, the inlining and the dead
+branches.  Writes s3/symbols.json.gz.
 
-  Input:  build trees from a small set of wide configurations
-          (allmodconfig, allyesconfig) for this architecture.
-  Method: read symbols from the compiled objects (nm/ELF), not from C source.
-          The compiler has already resolved macros, inlining and dead branches
-          for that configuration, which source parsing gets wrong.
-  Output: s3/symbols.json.gz -- (caller object, symbol) references,
-          symbol -> provider objects, module map, weak/absolute symbols.
-
-Providers outside the built subtree.  A build restricted to one subsystem
-compiles the callers but not every provider, so the exported-symbol side is
-completed by a whole-tree scan for EXPORT_SYMBOL*.  That macro takes the
-symbol name as a literal token at file scope, so the scan is reliable for
-*locating* a provider even though it cannot tell us anything about
-configuration.  References always come from binaries, as the spec requires.
+The provider side is completed by a whole-tree scan for EXPORT_SYMBOL*, since
+a build restricted to one subsystem compiles the callers but not every
+provider.  That macro takes the symbol as a literal token at file scope, so
+the scan locates a provider reliably; it says nothing about configuration,
+which is what S2 is for.
 """
 
 import os

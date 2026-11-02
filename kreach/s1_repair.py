@@ -1,87 +1,22 @@
 # SPDX-License-Identifier: GPL-2.0-or-later
-"""S1 repairs: two places where kclause's K is stricter than Kconfig.
+"""Repairs to the Kconfig formula kclause produces.
 
-The S1 acceptance test (``kreach test s1``) compares K against real
-``make randconfig`` output.  Two classes of disagreement show up, and both
-would cost kreach findings, so S1 repairs them and reports how often.
+kclause is right about Kconfig as a Boolean model and wrong in six places
+once levels matter.  Each repair here is named R1..R6, and docs/design.md
+gives the evidence for each and the randconfig measurements behind them:
 
-R1 -- a tristate that is ``select``ed may still be a module.
-    kclause emits, for every tristate X with reverse dependencies R,
+  R1  a selected tristate may still be a module
+  R2  imply carries no constraint, but the symbol is forced off
+  R3  a symbol declared in several files keeps only one dependency
+  R4  $(shell ...) and toolchain tests are mis-evaluated
+  R5  a non-visible selected symbol is not bounded above  (off by default)
+  R6  depends on loses the level cap
 
-        X==m  ->  not R
-
-    which reads "if X is a module, nothing selects it".  That is too strong:
-    Kconfig's ``select`` raises X to the *value of the selecting symbol*, so a
-    tristate selected only by modules is a module.  The constraint forbids
-    exactly the configurations kreach exists to find -- a provider at m -- so
-    it is replaced by the level-aware version, built from kclause's own
-    per-selecter data:
-
-        active_y(S)   ->  X==y        a select active at y forces X to y
-        active_on(S)  ->  X enabled   a select active at m forces X on
-
-    where the select's strength is the *tristate* minimum of the selecting
-    symbol's value and its visibility condition.  That second part matters:
-
-        config VIDEO_ADV7604_CEC
-                bool "..."
-                depends on VIDEO_ADV7604     # tristate
-                select CEC_CORE              # tristate
-
-    is a bool, so its own value is y, but with VIDEO_ADV7604=m the select is
-    only active at m and CEC_CORE may be a module.  ``active_y`` therefore
-    requires every tristate in the visibility condition to be y as well.
-
-R5 -- a non-visible selected symbol takes exactly its selecters' value.
-    R1 gives the lower bound.  For a symbol the user cannot set and that has
-    no default, the value is also bounded *above* by what selects it, which is
-    why ``make olddefconfig`` rewrites a model of K that sets such a symbol to
-    y when only a module selects it.  **Off by default.**  Measured on v6.17
-    x86_64 it rejects configurations that ``make randconfig`` really produces,
-    because kclause's per-selecter data does not capture every route to a
-    symbol being set.  Unlike R1-R4 this repair *adds* constraints, and the
-    costs are not symmetric: an unsound added constraint loses findings
-    silently, while an unsound relaxation costs at most one witness that S5
-    rejects before any build.  Enable it with ``kreach s1 --r5`` to experiment.
-
-R2 -- ``imply`` carries no constraint, but kclause forces the symbol off.
-    kextract does not record ``imply`` at all.  A symbol whose only route to
-    being enabled is an ``imply`` therefore looks orphaned to kclause, which
-    forces it false outright.  The spec asks for ``imply`` to impose no
-    constraint, so the flat ``not X`` is replaced by X's own dependency,
-    ``X -> dep(X)``.
-
-R3 -- a symbol declared in more than one Kconfig file keeps only one of its
-    dependencies.  ``CPU_MITIGATIONS`` is declared both in ``arch/Kconfig``
-    under ``if !ARCH_CONFIGURES_CPU_MITIGATIONS`` and, for x86, as a plain
-    ``menuconfig`` with no dependency.  kextract records the guarded
-    dependency and an unconditional prompt, and kclause keeps only the
-    dependency -- so on x86, which selects ARCH_CONFIGURES_CPU_MITIGATIONS,
-    the symbol and everything under it becomes unreachable.  The repair ORs
-    the declaration conditions back in.
-
-R4 -- ``$(shell ...)`` and toolchain tests are mis-evaluated.
-    kextract evaluates ``$(success,...)``, ``$(cc-option,...)`` and friends
-    itself, outside the kernel's own make, and gets 0 where the real
-    toolchain gets 1: ``TOOLS_SUPPORT_RELR`` comes out ``def_bool 0`` and
-    ``X86_X32_ABI`` comes out with dependency ``0``.  The spec asks for these
-    to be fixed to the values of the build host, so they are taken from real
-    ``make allnoconfig``/``allyesconfig`` runs on this machine.
-
-R6 -- ``depends on`` loses the level clamp.
-    kclause encodes ``depends on`` as a Boolean implication, so K admits
-    ``SND_SOC==y`` while ``SND==m``.  Kconfig does not: a tristate symbol's
-    value is capped by the value of its dependency expression, so with SND=m
-    the most SND_SOC can be is m.  Without this, S5 produces witnesses that
-    Kconfig silently downgrades.  (Bool symbols are not capped this way --
-    Kconfig promotes a bool whose visibility is ``mod`` back to y -- so the
-    clamp is added for tristate targets only.)
-
-All of these repairs *relax* or *re-pin* K, which is safe by construction in kreach: every
-witness S5 produces is materialised by the kernel's own Kconfig and checked
-to still have the levels the query asked for, and S6 then confirms it with a
-build.  A relaxation that is wrong costs a rejected witness, never a false
-finding.
+R1-R4 relax K and R6 tightens it.  Relaxing is safe here: S5 materialises
+every witness with real Kconfig and rechecks it, and S6 confirms with a
+build, so a bad relaxation costs a witness rather than a false finding.  R5
+is off because it was measured rejecting configurations randconfig really
+produces.
 """
 
 import re
@@ -145,10 +80,8 @@ class KextractFacts:
         """Cheap precondition for R3.
 
         kextract writes one ``config`` line per symbol however many times it
-        is declared, so the extra declarations only show up as extra
-        ``prompt``/``def_bool`` lines.  Two distinct declaration conditions,
-        or one that differs from the recorded dependency, is the signal worth
-        checking properly.
+        is declared; extra declarations show up only as extra prompt/def_bool
+        lines.  Two differing conditions is the signal worth checking.
         """
         decls = {c.strip() for c in self.decl_conditions.get(sym, ())}
         if not decls:
@@ -171,20 +104,13 @@ class KextractFacts:
     def dependency(self, sym: str):
         """The symbol's ``depends on`` condition, with level tests intact.
 
-        kclause's own ``get_dir_dep()`` is generated with tristate support
-        disabled -- it says so on stderr -- which collapses ``X==m`` to ``X``.
-        That matters for exactly the constructs kreach cares about:
+        Read from kextract rather than kclause's get_dir_dep(), which is
+        generated with tristate support disabled and collapses ``X==m`` to
+        ``X``.  That breaks the kernel's hand-rolled reachability guards --
+        ``depends on m || SCSI_SAS_ATTRS != m`` becomes "must be off" -- and
+        rejects configurations Kconfig accepts.
 
-            config SCSI_ENCLOSURE
-                    tristate
-                    depends on SCSI && ENCLOSURE_SERVICES
-                    depends on m || SCSI_SAS_ATTRS != m
-
-        the kernel's own hand-rolled reachability guard.  Collapsed, it reads
-        "SCSI_SAS_ATTRS must be off", and rejects configurations Kconfig
-        accepts.  kextract's ``dep`` line keeps the ``==m``, so it is the one
-        to use.  Several dep lines are per-declaration alternatives and are
-        ORed, as in `declaration_condition`.
+        Several dep lines are per-declaration alternatives, so they are ORed.
         """
         parts = []
         for cond in self.dep_conditions.get(sym, ()):
@@ -392,18 +318,14 @@ def select_upper_bounds(selects: dict, kconfig_types: dict, visible: set,
 def dependency_level_clamps(facts: "KextractFacts", kconfig_types: dict) -> list:
     """R6: a tristate is y only if its dependency expression is y.
 
-    ``config SND_SOC / tristate / depends on SND`` cannot be y while SND is a
-    module, because Kconfig caps a symbol's value at the value of its
-    dependencies.  The cap uses the same relabelling S2 uses for object
-    levels: every tristate in the dependency must itself be y.
+    Kconfig caps a symbol at the value of its dependencies, so SND=m means
+    SND_SOC cannot be y.  Uses the same relabelling as S2's object levels.
 
-    One deliberate under-approximation: Kconfig's ``m`` keyword in a
-    dependency (``depends on m || ...``) makes the expression's value m, so the
-    symbol should be capped to m.  kextract renders it as ``CONFIG_MODULES``,
-    which the relabelling cannot tell from a real ``depends on MODULES``, so
-    the clamp is weaker than Kconfig there.  That is the safe direction: it
-    admits configurations Kconfig would cap, which S5 then rejects when it
-    materialises the witness, rather than removing them silently.
+    Deliberately weaker than Kconfig in one place: ``depends on m || ...``
+    should cap the symbol to m, but kextract renders the ``m`` keyword as
+    CONFIG_MODULES and the relabelling cannot tell that from a real
+    ``depends on MODULES``.  Erring weak admits configurations Kconfig would
+    cap, which S5 then rejects -- the safe direction.
     """
     out: list = []
     for sym in sorted(facts.dep_conditions):

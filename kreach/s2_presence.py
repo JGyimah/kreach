@@ -1,79 +1,30 @@
 # SPDX-License-Identifier: GPL-2.0-or-later
-"""S2 -- Kbuild presence conditions.
+"""S2 -- per-object Kbuild presence conditions.
 
-Compute, for every object file, the condition under which it is built into
-vmlinux and the condition under which it is built at all.
+For every object file, the condition under which it is built into vmlinux and
+the condition under which it is built at all.  Writes s2/presence.json.gz and
+s2/unmodelled.json.
 
-  Input:  source tree, S1 symbol types.
-  Output: s2/presence.json.gz -- object -> (builtin condition, available
-          condition, module name), as SMT-LIB strings.  The spec states the
-          output as (condition for y, condition for m, module name); the m
-          condition is ``available and not builtin``, which `PresenceTable.module`
-          returns.  Storing (y, available) rather than (y, m) is what the
-          queries use directly and keeps the two independent.
-          s2/unmodelled.json  -- Makefile constructs we could not model.
-
-Reuse: kmax computes a per-object presence condition already, so kreach does
-not parse Makefiles to find objects.  But kmax's condition is over *enabled*
-variables -- it says the object is compiled, not at which level, because
-``obj-$(CONFIG_X) += foo.o`` puts foo.o somewhere whenever X is y or m.  The
-level split is kreach's job:
+kmax supplies one condition per object, meaning "this is compiled" -- it does
+not distinguish built-in from module, because ``obj-$(CONFIG_X) += foo.o``
+puts foo.o somewhere whenever X is y or m.  Splitting that is this stage's
+job:
 
     available(o) = kmax's condition, unchanged
-    builtin(o)   = the same formula with each selector variable X replaced by
-                   X==y, since the object reaches obj-y only when its
-                   selectors are y
+    builtin(o)   = the same with each selector X replaced by X==y
 
-Three kinds of Makefile test, not two:
+Which symbols count as selectors is per-object, and there are three readings
+to keep apart:
 
-  ``obj-$(CONFIG_X) += foo.o``   selector: foo.o is compiled when X is y or m,
-                                 and built in only when X is y -- so X is
-                                 relabelled in `builtin` and left alone in
-                                 `available`
-  ``ifdef CONFIG_X``             true for y and m, so X keeps its enabled
-  ``ifneq ($(CONFIG_X),)``       reading in both
-  ``ifeq ($(CONFIG_X),y)``       exact y: the object is not compiled *at all*
-                                 unless X is y, so X is relabelled in
-                                 `available` too
+    obj-$(CONFIG_X) += foo.o      selector: exact-y for builtin
+    ifdef CONFIG_X                true for y and m, so X keeps its
+    ifneq ($(CONFIG_X),)          enabled reading in both
+    ifeq ($(CONFIG_X),y)          exact y: not compiled at all unless X is y
 
-All three readings are per-object, not global.  ``sound/soc/Makefile`` has
-
-    ifneq ($(CONFIG_SND_SOC_ACPI),)
-    obj-$(CONFIG_SND_SOC_ACPI) += soc-acpi.o
-    endif
-
-where one symbol is a guard and a selector on adjacent lines.  A global guard
-set would keep the enabled reading and predict `y` for an object that is built
-as a module.  Where a symbol is a selector for an object, the selector reading
-wins -- it is the stronger of the two and both apply -- so S2 records which
-symbols actually select each object and subtracts those from the guard set.
-
-For a part of a composite the selector is on the composite, not the part:
-
-    ifneq ($(CONFIG_SND_SOC_ACPI),)
-    snd-soc-acpi-y := soc-acpi.o
-    endif
-    obj-$(CONFIG_SND_SOC_ACPI) += snd-soc-acpi.o
-
-so ``soc-acpi.o`` inherits its composite's selectors.
-
-The third kind is why ``sound/last.o`` exists:
-
-    ifeq ($(CONFIG_SND),y)
-      obj-y += last.o
-    endif
-
-With ``CONFIG_SND=m`` that object is not built, while every other object under
-``sound/`` is built as a module.  Treating the test as a plain selector
-predicts `m` and is wrong.  The symbols cannot be collected globally -- the
-same ``CONFIG_SND`` is an ordinary selector two lines above -- so S2 tracks
-which objects and directories actually sit inside such a block.
-
-``ifeq ($(CONFIG_X),m)`` cannot be expressed by this relabelling at all and is
-recorded in unmodelled.json.
-
-The S2 acceptance test (`kreach test s2`) checks the result against real
-builds, which is what the spec asks for: any mismatch is a bug in S2.
+A symbol can be a guard on one line and a selector on the next, and a
+composite's parts inherit their composite's selectors.  docs/design.md has
+the cases that forced each rule, and `kreach test s2` measures the result
+against real builds.
 """
 
 import os

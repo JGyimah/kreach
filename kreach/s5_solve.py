@@ -1,48 +1,17 @@
 # SPDX-License-Identifier: GPL-2.0-or-later
-"""S5 -- Solver query.
+"""S5 -- solve the core property per candidate and build a witness.
 
-For each candidate pair, check the core property and build a witness.
+Query is ``K and RC(c,s) and level(c) > level(p)``, one case at a time.
+Writes s5/queries.jsonl and s5/witness/<id>.config.
 
-  Query:   K and RC(c,s) and level(c) > level(p), split into the three cases.
-  Witness: minimise the number of enabled symbols -- start from allnoconfig
-           and add only what the constraints force -- so the reproducer is
-           small and quick to build.
-  Batching: group pairs by provider option, since one missing constraint
-           usually breaks many callers of the same subsystem.
-  Output:  s5/queries.jsonl, s5/witness/<id>.config
+The witness is minimised (see Minimiser) and then materialised by Kconfig
+itself, via ``make KCONFIG_ALLCONFIG=<fragment> allnoconfig``, so S6 gets a
+file an unmodified make produced.  It is checked twice before being kept: the
+caller and provider must still be at the queried levels, and the whole query
+must still hold under the result -- a presence condition names more symbols
+than those two, and Kconfig is free to turn one off.
 
-Minimisation works in phases, because assuming all 18,000 symbols off at once
-and relaxing from there is too slow to run per candidate:
-
-  1. Solve with the solver's default polarity set to false, so the first model
-     it finds already has almost everything off.
-  2. Assume off every symbol that model still has on, and while that is
-     unsatisfiable release exactly the symbols the unsat core says must be on.
-
-  3. Feed the smaller ON set back through step 2 and repeat until it stops
-     shrinking.  One pass stops at the first *satisfying* assignment, which is
-     not the same as a small one -- the model it lands on can have symbols on
-     that nothing required.  Without this, one finding at v7.3 came out with
-     3,822 settings enabled where the others needed 505-842, and its witness
-     could not be built at all.
-
-What is left on is what the constraints force, which is the spec's "start from
-allnoconfig and add only what the constraints force" stated operationally.  The
-base solver is kept across queries so z3 reuses what it has learned about K.
-
-The witness is then materialised by the kernel's own Kconfig:
-
-    make KCONFIG_ALLCONFIG=<partial> allnoconfig
-
-so the file we hand to S6 is one an unmodified ``make`` produced, and every
-symbol we did not have to set is off.  After that the witness is checked twice:
-the caller and provider options must still be at the levels the query asked
-for, and the whole query must still be satisfied by the configuration Kconfig
-produced.  The second check matters because a presence condition names more
-than those two symbols, and Kconfig turning any of them off makes the witness
-exercise nothing -- see `check_query_holds`.  A witness that fails either check
-is rejected here rather than wasting a build, and the disagreement is reported
-because it points at a gap in the S1 encoding.
+docs/design.md has the reasoning.
 """
 
 import hashlib
@@ -61,10 +30,8 @@ log = get_logger("s5")
 
 MAX_CORE_ROUNDS = 400
 
-# A witness far larger than its peers is a build nobody can afford: at v7.3
-# one came out at 3,822 enabled settings against 505-842 for the rest, and it
-# exhausted both memory and disk.  Flagging it costs nothing and makes the
-# problem visible before S6 spends hours finding out.
+# A witness far larger than its peers may not build at all on a small
+# machine.  Flag it before S6 spends the time finding out.
 OUTLIER_RATIO = 3.0
 OUTLIER_FLOOR = 1500
 
@@ -72,22 +39,11 @@ OUTLIER_FLOOR = 1500
 def load_realisability(ctx: Context) -> list:
     """Constraints that make a model writable as a .config file.
 
-    K is the set of configurations Kconfig *accepts*.  A witness has to be
-    stronger than that: it has to be one we can hand to the kernel's Kconfig
-    as a file.  3,016 of v6.17 x86_64's 18,333 symbols have no prompt, so they
-    cannot be set from a .config at all -- Kconfig recomputes them from what
-    selects them.  ``sound/soc/codecs`` is almost entirely like this:
-
-        config SND_SOC_AD1980
-                tristate
-                depends on SND_SOC_AC97_BUS
-
-    A model that simply sets ``CONFIG_SND_SOC_AD1980=y`` produces a .config
-    Kconfig throws the value away from, which S5 then rejects.  S1 writes the
-    "non-visible symbols need a selecter" constraints to a file of their own
-    so that the witness solver can require them without them being part of K,
-    where they would wrongly rule out configurations ``make randconfig``
-    really produces (see docs/design.md, R5).
+    K is what Kconfig accepts.  A witness needs more: it has to survive being
+    handed to Kconfig as a file.  A symbol with no prompt cannot be set from a
+    .config at all -- Kconfig recomputes it from what selects it -- and about
+    a sixth of them have none.  S1 keeps those constraints in a file of their
+    own because they are too strong for K itself (docs/design.md, R5).
     """
     path = os.path.join(ctx.s1_dir, "realisable.smt2")
     if not os.path.exists(path):
@@ -179,12 +135,8 @@ class Minimiser:
         initial_on = self._enabled_in(m)
         t_phase1 = time.time() - t0
 
-        # Phase 2, iterated to a fixed point.  One pass of the core loop
-        # releases whatever the constraints force and stops at the first
-        # satisfying assignment, which is not the same as a small one: the
-        # model it lands on can have symbols on that nothing required.
-        # Feeding that smaller ON set back through the same loop can only
-        # shrink it, so repeat until it stops shrinking.
+        # One shrinking pass stops at the first satisfying assignment, which
+        # need not be a small one, so repeat until it stops shrinking.
         best, on = m, list(initial_on)
         rounds = released = 0
         passes = 0
@@ -193,10 +145,8 @@ class Minimiser:
         while passes < self.max_passes:
             passes += 1
             model, r, rel, why = self._shrink(s, on)
-            # Account for the work before deciding what to do with it, or a
-            # pass that failed reports as having done nothing -- which is
-            # exactly the sort of statistic that sends you looking in the
-            # wrong place.
+            # Count the work before deciding what to do with it: a failed
+            # pass must not report as having done nothing.
             rounds += r
             released += rel
             if model is None:
@@ -227,22 +177,13 @@ class Minimiser:
 
         Returns (model, checks, turned_off, why).
 
-        The obvious method -- assume every candidate off and release whatever
-        the unsat core names, repeatedly -- releases about one symbol per
-        solver call, because the cores come back tiny.  That is fine for a
-        witness of a few hundred and useless for one of a few thousand: on a
-        3,818-symbol candidate set it released 412 in 400 rounds, never
-        reached a satisfying assignment, and the whole pass was discarded.
+        Removal is by block: assume a whole block off, and if that holds the
+        block goes in one call, otherwise split and try the halves.  A block
+        that fails at size one is required.  Releasing one unsat core at a
+        time instead costs a solver call per symbol, which does not scale past
+        a few hundred candidates.
 
-        So the candidates are removed in blocks instead.  Assume a whole block
-        off: if that is satisfiable the entire block goes, in one call.  If
-        not, split it and try the halves.  A block that fails at size one is a
-        symbol the constraints genuinely require.  Large removable regions
-        disappear early, which is exactly the shape of the problem -- most of
-        a bloated witness is incidental.
-
-        Whatever has been turned off is kept even if the budget runs out, so a
-        partial result still shrinks the witness.
+        Partial progress is kept if the budget runs out.
         """
         off: list[str] = []
         best = None
@@ -587,11 +528,9 @@ def mark_size_outliers(results: list[dict], ratio: float = OUTLIER_RATIO,
                        floor: int = OUTLIER_FLOOR) -> list[dict]:
     """Flag witnesses far larger than their peers.
 
-    Every witness is minimised, but minimisation is not a guarantee of
-    smallness -- it stops when the constraints are satisfied.  A witness that
-    is several times the median is a kernel several times the size, and may
-    not build at all on the machine to hand.  Saying so here, with the number,
-    beats discovering it after hours of linking.
+    Minimisation stops when the constraints are satisfied, which is not a
+    guarantee of smallness; a witness several times the median is a kernel
+    several times the size.
     """
     sizes = sorted(r["witness_symbols_on"] for r in results
                    if r.get("status") == "sat" and r.get("witness_symbols_on"))

@@ -1,36 +1,21 @@
 # SPDX-License-Identifier: GPL-2.0-or-later
-"""S6 -- Build confirmation.
+"""S6 -- build each witness and keep only the predicted failures.
 
-Build every witness with an unmodified ``make`` and keep only findings that
-fail exactly as predicted.
+Pass is ``undefined reference to <s>`` from the vmlinux link (y/m, y/n) or
+modpost reporting <s> undefined (m/n).  Anything else drops the pair and
+feeds back into S4.  This is what makes reported precision 100%, so it does
+not generalise: the predicted symbol must appear in the predicted kind of
+error, in this build.
 
-  Pass: ``undefined reference to '<s>'`` from the vmlinux link (cases y/m and
-        y/n), or modpost reporting ``<s>`` undefined (case m/n).
-  Fail: the build succeeds, or fails for another reason.  The pair is dropped
-        and logged as a false positive, which feeds back into S4.
-  Budget: one build per finding; witness minimisation in S5 keeps the builds
-        short.
+Two cheap checks run before each build, because a witness can satisfy the
+query on paper and exercise nothing in practice: the configuration is
+re-evaluated against the query, and the caller object is compiled on its own
+to see whether it still references the symbol.  Both have saved whole links.
 
-This is the stage that makes reported precision 100% by construction, so it
-deliberately refuses to generalise: the predicted symbol must appear in the
-predicted kind of error message, in this build, or the finding is dropped.
-
-Before spending a build, each witness goes through two cheap checks.
-
-The first re-evaluates the query against the `.config`.  A configuration can
-satisfy the caller and provider levels and still not exercise the finding,
-because a presence condition names more symbols than those two and Kconfig is
-free to turn one off.  That costs a second and has saved a ten-minute link.
-
-The second compiles *just the caller object* and looks for the symbol in its
-undefined list.  This is the spec's "later versions: derive RC precisely by
-compiling the caller under the variant configurations from S5", and it is
-worth having early because witness minimisation works against RC accuracy:
-the smaller the configuration, the more of the caller is compiled away, and
-the less likely the reference survives.  `sound/soc/meson/aiu.o` under one
-minimised witness came out 6.6 KB with no regmap reference at all, where
-`allmodconfig` had emitted one -- so the vmlinux link succeeded and 217
-seconds went nowhere.  Compiling the one object instead takes about forty.
+Verdicts split into terminal (settles the witness, may feed back to S4) and
+everything else (retried next run).  An interrupted build, an OOM-killed
+linker and a disturbed tree are not verdicts; see TERMINAL and
+docs/design.md.
 """
 
 import os

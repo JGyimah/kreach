@@ -1,26 +1,16 @@
 # SPDX-License-Identifier: GPL-2.0-or-later
-"""Tristate formula algebra.
+"""Tristate algebra.
 
-kreach's whole contribution rests on telling `y` apart from `m`, so the
-encoding is spelled out here rather than spread over the stages.
+Three variables per tristate symbol, following kclause's naming so the two
+formulas compose:
 
-Variable convention (kclause's, which we extend rather than replace):
+    CONFIG_FOO        enabled at some level, y or m
+    CONFIG_FOO==y     built into vmlinux
+    CONFIG_FOO==m     a module
 
-    CONFIG_FOO        FOO is enabled at *some* level, i.e. y or m
-    CONFIG_FOO==y     FOO is built into vmlinux
-    CONFIG_FOO==m     FOO is a module
-
-kclause only emits the ``==y`` / ``==m`` variables for symbols that Kconfig
-itself compares against y or m.  kreach needs them for every tristate symbol
-that can appear as a caller or a provider, so `completion_constraints()` adds
-the missing linkage:
-
-    FOO            <->  (FOO==y) or (FOO==m)        tristate FOO
-    not (FOO==y and FOO==m)                        never both true
-    (FOO==m)       ->   CONFIG_MODULES              m needs module support
-    FOO            <->  (FOO==y),  not (FOO==m)     bool FOO
-
-Levels are ordered n < m < y.
+kclause only emits the level variables for symbols Kconfig itself compares
+against y or m; `completion_constraints` adds them for the rest, along with
+the mutual exclusion and the MODULES linkage.  Levels order n < m < y.
 """
 
 import re

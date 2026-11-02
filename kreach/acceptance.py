@@ -1,27 +1,18 @@
 # SPDX-License-Identifier: GPL-2.0-or-later
-"""Stage acceptance tests, as specified.
+"""Stage acceptance tests.
 
-S1.  For N random .config files produced by ``make randconfig``, every one
-     satisfies K; for N random models of K, ``make olddefconfig`` leaves the
-     assignment unchanged.  (The spec asks for 1,000 each; --samples sets it.)
+S1  every ``make randconfig`` satisfies K, and every model of K survives
+    ``make olddefconfig`` unchanged.  The spec asks for 1,000 of each;
+    --samples sets it.
 
-S2.  Build allmodconfig, defconfig and N randconfigs; for each, the predicted
-     level of every object must match what the build produced (the thin
-     archives for y, the .mod files for m).  Any mismatch is a bug in S2.
+S2  the predicted level of every object matches what a build produced -- the
+    thin archives for y, the .mod files for m.
 
-     Composite module targets are counted separately rather than as
-     mismatches.  Kbuild links `snd-pcm.o` out of its nine parts only when
-     the module is built as a module; at y the parts go straight into
-     `built-in.a` and that file is never created.  kreach's `builtin`
-     condition means "this code is linked into vmlinux", which is the right
-     reading for reachability and is true for the composite, while the test
-     is comparing against files on disk, where it is false.  The two
-     disagree by definition, so the test says how many and moves on -- and
-     S4 works from the parts anyway, since the composite's symbols are the
-     union of theirs.
-
-Both tests are the real check on the model, so they report every mismatch they
-find rather than a pass/fail bit alone.
+Both report every mismatch rather than a pass bit, since that is the point of
+running them.  Composite module targets are counted separately: Kbuild links
+snd-pcm.o from its parts only when it is a module, so at y the file does not
+exist while its code is in vmlinux, and the two readings disagree by
+definition.
 """
 
 import os

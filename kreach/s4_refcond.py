@@ -1,29 +1,18 @@
 # SPDX-License-Identifier: GPL-2.0-or-later
-"""S4 -- Reference conditions.
+"""S4 -- estimate when a reference is actually emitted, and pair up callers
+and providers.
 
-Estimate RC(c, s): when the reference to s is actually emitted.
+Writes s4/candidates.jsonl and s4/guarded.jsonl.
 
-  Input:  S2 presence table, S3 references, S1 symbol types.
-  Output: s4/candidates.jsonl -- one candidate pair per line, with the RC rule
-          chosen for it;  s4/guarded.jsonl -- pairs dropped as guarded.
+The v1 rule is ``RC(c, s) = available(c) and available(p)``, which models the
+usual header pattern: a real declaration under ``IS_ENABLED(CONFIG_BAR)`` --
+true for m -- and a static inline stub otherwise.  Under that rule only the
+y/m case is satisfiable, which is the point: the stub covers the disabled
+case and not the module one.  y/n and m/n need evidence that the reference
+survives the provider being off, which v1 only has from a narrower build.
 
-Default rule (v1).  Assume the reference is emitted whenever the caller is
-built and the provider is enabled at any level:
-
-    RC(c, s) = available(c) and level(p) >= m
-
-This models the common header pattern: a real declaration under
-``IS_ENABLED(CONFIG_BAR)`` -- which is true for m -- and a ``static inline``
-stub otherwise.  Under this rule the y/m case is satisfiable and the y/n and
-m/n cases are not, which is the point: the stub protects the disabled case but
-not the module case.  y/n and m/n therefore need evidence that the reference
-survives with the provider off (`no_stub_evidence`), which v1 only has when a
-build compiled the caller with the provider disabled.
-
-Refinement.  A call site under ``IS_REACHABLE(CONFIG_BAR)`` or
-``IS_BUILTIN(CONFIG_BAR)`` is already protected, so the pair is marked guarded
-and dropped.  The scan does not need to be exact, because S6 confirms every
-finding with a build.
+Call sites already guarded by IS_REACHABLE or IS_BUILTIN are dropped.  The
+scan need not be exact because S6 confirms everything.
 """
 
 import os
