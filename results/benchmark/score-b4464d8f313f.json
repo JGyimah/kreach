@@ -1,0 +1,17 @@
+{
+ "checked": 1,
+ "excluded": [],
+ "hits": [
+  {
+   "commit": "b4464d8f313f903ba72db06042f3958a9a1e464a",
+   "matched": "pair",
+   "pair": [
+    "CONFIG_POWER_SEQUENCING_PCIE_M2",
+    "CONFIG_SERIAL_DEV_BUS"
+   ],
+   "subject": "power: sequencing: pcie-m2: add SERIAL_DEV_BUS dependency"
+  }
+ ],
+ "misses": [],
+ "recall": 1.0
+}

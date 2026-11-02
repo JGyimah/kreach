@@ -1,0 +1,45 @@
+kreach findings -- v7.0-rc1-8-g19b8c8fc83f7, arch x86_64
+========================================================================
+
+## CONFIG_POWER_SEQUENCING_PCIE_M2  (1 finding)
+
+  id          7fadc0cfbc50
+  arch        x86_64
+  case        y/m   (caller built-in, provider a module: vmlinux link error)
+  caller      drivers/power/sequencing/pwrseq-pcie-m2.o  [CONFIG_POWER_SEQUENCING_PCIE_M2]
+  provider    drivers/tty/serdev/core.o  [CONFIG_SERIAL_DEV_BUS]  module serdev.ko
+  symbols     of_find_serdev_controller_by_node, serdev_device_add, serdev_device_alloc, serdev_device_remove
+  witness     witness/94b28b0fb210.config   (1409 settings enabled)
+  levels      CONFIG_POWER_SEQUENCING_PCIE_M2=y, CONFIG_SERIAL_DEV_BUS=m
+  build_log   build/94b28b0fb210.log
+      pwrseq-pcie-m2.c:(.text+0x112): undefined reference to `serdev_device_remove'
+      pwrseq-pcie-m2.c:(.text+0x579): undefined reference to `of_find_serdev_controller_by_node'
+      ld: pwrseq-pcie-m2.c:(.text+0x5d9): undefined reference to `serdev_device_alloc'
+      ld: pwrseq-pcie-m2.c:(.text+0x7b0): undefined reference to `serdev_device_add'
+  Fixes: 3f736aecbdc8 ("power: sequencing: pcie-m2: Create serdev device for WCN7850 bluetooth")
+              (git log -Sof_find_serdev_controller_by_node on drivers/power/sequencing/pwrseq-pcie-m2.c)
+  send to     Manivannan Sadhasivam <mani@kernel.org>
+              Bartosz Golaszewski <brgl@kernel.org>
+              linux-pci@vger.kernel.org
+              linux-pm@vger.kernel.org
+              linux-kernel@vger.kernel.org
+  fix         depends on SERIAL_DEV_BUS
+              in config POWER_SEQUENCING_PCIE_M2
+              POWER_SEQUENCING_PCIE_M2 has no stub for SERIAL_DEV_BUS=n (no static inline stub found), so every caller path needs SERIAL_DEV_BUS present.
+
+  --- commit message reproduction section ---
+  |
+  | With the attached configuration (x86_64, v7.0-rc1-8-g19b8c8fc83f7):
+  |
+  |   pwrseq-pcie-m2.c:(.text+0x112): undefined reference to `serdev_device_remove'
+  |   pwrseq-pcie-m2.c:(.text+0x579): undefined reference to `of_find_serdev_controller_by_node'
+  |   ld: pwrseq-pcie-m2.c:(.text+0x5d9): undefined reference to `serdev_device_alloc'
+  |
+  | CONFIG_POWER_SEQUENCING_PCIE_M2 is built into vmlinux while CONFIG_SERIAL_DEV_BUS is a module, so of_find_serdev_controller_by_node, serdev_device_add, serdev_device_alloc and 1 more are
+  | not available at link time.
+  |
+  | Fix: depends on SERIAL_DEV_BUS in config POWER_SEQUENCING_PCIE_M2.
+  | Found with a static reachability check and confirmed by a build.
+  |
+  | Fixes: 3f736aecbdc8 ("power: sequencing: pcie-m2: Create serdev device for WCN7850 bluetooth")
+  ---
