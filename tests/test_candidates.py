@@ -477,8 +477,13 @@ def test_oom_killed_link_is_an_environment_failure_not_a_rejection():
 # --- S5: witness size, and the fixed-point shrink -----------------------
 
 def test_mark_size_outliers_flags_the_one_that_is_nothing_like_its_peers():
-    """The real v7.3 shape: ten witnesses at 505-842 settings and one at
-    3,822, which could not be built at all."""
+    """Sizes in the range the v7.3 run produced, plus a synthetic outlier.
+
+    The real run has none to flag: block-removal minimisation brought its
+    largest witness down to 1,078 against a median of 700, well inside the
+    threshold.  An unminimised one of that shape sat at 3,822 and was the
+    reason for this check, so that is the number used here.
+    """
     from kreach.s5_solve import mark_size_outliers
 
     results = [{"status": "sat", "caller_option": "CONFIG_%d" % n,
