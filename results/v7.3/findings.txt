@@ -9,9 +9,9 @@ kreach findings -- v7.3, arch x86_64
   caller      sound/soc/fsl/fsl_aud2htx.o  [CONFIG_SND_SOC_FSL_AUD2HTX]
   provider    drivers/base/regmap/regmap-mmio.o  [CONFIG_REGMAP_MMIO]  module regmap-mmio.ko
   symbols     __devm_regmap_init_mmio_clk
-  witness     s5/witness/6d3bbbf14c84.config   (700 settings enabled)
+  witness     witness/6d3bbbf14c84.config   (700 settings enabled)
   levels      CONFIG_REGMAP_MMIO=m, CONFIG_SND_SOC_FSL_AUD2HTX=y
-  build_log   s6/build/6d3bbbf14c84/build.log
+  build_log   build/6d3bbbf14c84.log
       fsl_aud2htx.c:(.text+0x30c): undefined reference to `__devm_regmap_init_mmio_clk'
   Fixes: 8a24c834c053 ("ASoC: fsl_aud2htx: Add aud2htx module driver")
               (commit that added sound/soc/fsl/fsl_aud2htx.c; the symbol does not appear in the source, so check this one)
@@ -50,9 +50,9 @@ kreach findings -- v7.3, arch x86_64
   caller      sound/soc/fsl/lpc3xxx-i2s.o  [CONFIG_SND_SOC_FSL_LPC3XXX]
   provider    drivers/base/regmap/regmap-mmio.o  [CONFIG_REGMAP_MMIO]  module regmap-mmio.ko
   symbols     __devm_regmap_init_mmio_clk
-  witness     s5/witness/277a3340a839.config   (505 settings enabled)
+  witness     witness/277a3340a839.config   (505 settings enabled)
   levels      CONFIG_REGMAP_MMIO=m, CONFIG_SND_SOC_FSL_LPC3XXX=y
-  build_log   s6/build/277a3340a839/build.log
+  build_log   build/277a3340a839.log
       /home/ubuntu/src/linux/sound/soc/fsl/lpc3xxx-i2s.c:320:(.text+0x13b8f6): undefined reference to `__devm_regmap_init_mmio_clk'
   Fixes: 0959de657a10 ("ASoC: fsl: Add i2s and pcm drivers for LPC32xx CPUs")
               (commit that added sound/soc/fsl/lpc3xxx-i2s.c; the symbol does not appear in the source, so check this one)
@@ -91,9 +91,9 @@ kreach findings -- v7.3, arch x86_64
   caller      sound/soc/fsl/fsl_xcvr.o  [CONFIG_SND_SOC_FSL_XCVR]
   provider    lib/bitrev.o  [CONFIG_GENERIC_BITREVERSE]  module bitrev.ko
   symbols     byte_rev_table
-  witness     s5/witness/644371d1b007.config   (1078 settings enabled)
+  witness     witness/644371d1b007.config   (1078 settings enabled)
   levels      CONFIG_GENERIC_BITREVERSE=m, CONFIG_SND_SOC_FSL_XCVR=y
-  build_log   s6/build/644371d1b007/build.log
+  build_log   build/644371d1b007.log
       fsl_xcvr.c:(.text+0x1634): undefined reference to `byte_rev_table'
       ld: fsl_xcvr.c:(.text+0x163b): undefined reference to `byte_rev_table'
       ld: fsl_xcvr.c:(.text+0x1653): undefined reference to `byte_rev_table'
@@ -139,9 +139,9 @@ kreach findings -- v7.3, arch x86_64
   caller      sound/soc/intel/keembay/kmb_platform.o  [CONFIG_SND_SOC_INTEL_KEEMBAY]
   provider    lib/bitrev.o  [CONFIG_GENERIC_BITREVERSE]  module bitrev.ko
   symbols     byte_rev_table
-  witness     s5/witness/ba025badfe60.config   (696 settings enabled)
+  witness     witness/ba025badfe60.config   (696 settings enabled)
   levels      CONFIG_GENERIC_BITREVERSE=m, CONFIG_SND_SOC_INTEL_KEEMBAY=y
-  build_log   s6/build/ba025badfe60/build.log
+  build_log   build/ba025badfe60.log
       kmb_platform.c:(.text+0x1473): undefined reference to `byte_rev_table'
       ld: kmb_platform.c:(.text+0x149e): undefined reference to `byte_rev_table'
       ld: kmb_platform.c:(.text+0x14a5): undefined reference to `byte_rev_table'
@@ -187,9 +187,9 @@ kreach findings -- v7.3, arch x86_64
   caller      sound/soc/rockchip/rockchip_i2s.o  [CONFIG_SND_SOC_ROCKCHIP_I2S]
   provider    drivers/base/regmap/regmap-mmio.o  [CONFIG_REGMAP_MMIO]  module regmap-mmio.ko
   symbols     __devm_regmap_init_mmio_clk
-  witness     s5/witness/3c5ec3ae665b.config   (841 settings enabled)
+  witness     witness/3c5ec3ae665b.config   (841 settings enabled)
   levels      CONFIG_REGMAP_MMIO=m, CONFIG_SND_SOC_ROCKCHIP_I2S=y
-  build_log   s6/build/3c5ec3ae665b/build.log
+  build_log   build/3c5ec3ae665b.log
       rockchip_i2s.c:(.text+0x418): undefined reference to `__devm_regmap_init_mmio_clk'
   Fixes: 4495c89fcf26 ("ASoC: add driver for Rockchip RK3xxx I2S controller")
               (commit that added sound/soc/rockchip/rockchip_i2s.c; the symbol does not appear in the source, so check this one)
@@ -228,9 +228,9 @@ kreach findings -- v7.3, arch x86_64
   caller      sound/soc/rockchip/rockchip_i2s_tdm.o  [CONFIG_SND_SOC_ROCKCHIP_I2S_TDM]
   provider    drivers/base/regmap/regmap-mmio.o  [CONFIG_REGMAP_MMIO]  module regmap-mmio.ko
   symbols     __devm_regmap_init_mmio_clk
-  witness     s5/witness/2b48cf8a3dbd.config   (506 settings enabled)
+  witness     witness/2b48cf8a3dbd.config   (506 settings enabled)
   levels      CONFIG_REGMAP_MMIO=m, CONFIG_SND_SOC_ROCKCHIP_I2S_TDM=y
-  build_log   s6/build/2b48cf8a3dbd/build.log
+  build_log   build/2b48cf8a3dbd.log
       /home/ubuntu/src/linux/sound/soc/rockchip/rockchip_i2s_tdm.c:1304:(.text+0x14b1b6): undefined reference to `__devm_regmap_init_mmio_clk'
   Fixes: 081068fd6414 ("ASoC: rockchip: add support for i2s-tdm controller")
               (commit that added sound/soc/rockchip/rockchip_i2s_tdm.c; the symbol does not appear in the source, so check this one)
@@ -269,9 +269,9 @@ kreach findings -- v7.3, arch x86_64
   caller      sound/soc/rockchip/rockchip_pdm.o  [CONFIG_SND_SOC_ROCKCHIP_PDM]
   provider    drivers/base/regmap/regmap-mmio.o  [CONFIG_REGMAP_MMIO]  module regmap-mmio.ko
   symbols     __devm_regmap_init_mmio_clk
-  witness     s5/witness/ad2f3dd9f157.config   (828 settings enabled)
+  witness     witness/ad2f3dd9f157.config   (828 settings enabled)
   levels      CONFIG_REGMAP_MMIO=m, CONFIG_SND_SOC_ROCKCHIP_PDM=y
-  build_log   s6/build/ad2f3dd9f157/build.log
+  build_log   build/ad2f3dd9f157.log
       rockchip_pdm.c:(.text+0xef4): undefined reference to `__devm_regmap_init_mmio_clk'
   Fixes: fc05a5b22253 ("ASoC: rockchip: add support for pdm controller")
               (commit that added sound/soc/rockchip/rockchip_pdm.c; the symbol does not appear in the source, so check this one)
@@ -310,9 +310,9 @@ kreach findings -- v7.3, arch x86_64
   caller      sound/soc/rockchip/rockchip_sai.o  [CONFIG_SND_SOC_ROCKCHIP_SAI]
   provider    drivers/base/regmap/regmap-mmio.o  [CONFIG_REGMAP_MMIO]  module regmap-mmio.ko
   symbols     __devm_regmap_init_mmio_clk
-  witness     s5/witness/69d816711f7b.config   (511 settings enabled)
+  witness     witness/69d816711f7b.config   (511 settings enabled)
   levels      CONFIG_REGMAP_MMIO=m, CONFIG_SND_SOC_ROCKCHIP_SAI=y
-  build_log   s6/build/69d816711f7b/build.log
+  build_log   build/69d816711f7b.log
       /home/ubuntu/src/linux/sound/soc/rockchip/rockchip_sai.c:1424:(.text+0x153060): undefined reference to `__devm_regmap_init_mmio_clk'
   Fixes: cc78d1eaabad ("ASoC: rockchip: add Serial Audio Interface (SAI) driver")
               (commit that added sound/soc/rockchip/rockchip_sai.c; the symbol does not appear in the source, so check this one)
@@ -351,9 +351,9 @@ kreach findings -- v7.3, arch x86_64
   caller      sound/soc/rockchip/rockchip_spdif.o  [CONFIG_SND_SOC_ROCKCHIP_SPDIF]
   provider    drivers/base/regmap/regmap-mmio.o  [CONFIG_REGMAP_MMIO]  module regmap-mmio.ko
   symbols     __devm_regmap_init_mmio_clk
-  witness     s5/witness/ab3a8b918f35.config   (842 settings enabled)
+  witness     witness/ab3a8b918f35.config   (842 settings enabled)
   levels      CONFIG_REGMAP_MMIO=m, CONFIG_SND_SOC_ROCKCHIP_SPDIF=y
-  build_log   s6/build/ab3a8b918f35/build.log
+  build_log   build/ab3a8b918f35.log
       rockchip_spdif.c:(.text+0xf67): undefined reference to `__devm_regmap_init_mmio_clk'
   Fixes: f874b80e1571 ("ASoC: rockchip: Add rockchip SPDIF transceiver driver")
               (commit that added sound/soc/rockchip/rockchip_spdif.c; the symbol does not appear in the source, so check this one)
@@ -392,9 +392,9 @@ kreach findings -- v7.3, arch x86_64
   caller      sound/soc/sunxi/sun50i-dmic.o  [CONFIG_SND_SUN50I_DMIC]
   provider    drivers/base/regmap/regmap-mmio.o  [CONFIG_REGMAP_MMIO]  module regmap-mmio.ko
   symbols     __devm_regmap_init_mmio_clk
-  witness     s5/witness/706acba2ec1c.config   (512 settings enabled)
+  witness     witness/706acba2ec1c.config   (512 settings enabled)
   levels      CONFIG_REGMAP_MMIO=m, CONFIG_SND_SUN50I_DMIC=y
-  build_log   s6/build/706acba2ec1c/build.log
+  build_log   build/706acba2ec1c.log
       sun50i-dmic.c:(.text+0x142bce): undefined reference to `__devm_regmap_init_mmio_clk'
   Fixes: 9fc2c8ed923d ("ASoC: sunxi: Add Allwinner H6 Digital MIC driver")
               (commit that added sound/soc/sunxi/sun50i-dmic.c; the symbol does not appear in the source, so check this one)

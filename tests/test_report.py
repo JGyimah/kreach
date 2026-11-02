@@ -296,3 +296,109 @@ def test_findings_carry_the_patch_conventions_fields(tmp_path):
     f = build_findings(ctx, [confirmed_record()])[0]
     assert "fixes" in f
     assert "maintainers" in f
+
+
+# --- S7: publishing a set that stands on its own ---------------------------
+
+def _finding(qid="abc123", wid="abc123", **kw):
+    f = {"id": "f1", "arch": "x86_64", "case": "y/m",
+         "caller": {"object": "a/b.o", "option": "CONFIG_A", "source": "a/b.c"},
+         "provider": {"object": "c/d.o", "option": "CONFIG_P", "module": "d.ko"},
+         "symbols": ["sym"], "all_symbols": ["sym"],
+         "witness": "s5/witness/%s.config" % wid,
+         "witness_settings": 500, "witness_size_outlier": False,
+         "build_log": ["b.c:(.text+0x1): undefined reference to `sym'"],
+         "build_log_path": "s6/build/%s/build.log" % qid,
+         "build_seconds": 212.0, "levels": {"CONFIG_A": "y", "CONFIG_P": "m"},
+         "fix": {"pattern": "depends on", "kconfig": "depends on CONFIG_P",
+                 "where": "config CONFIG_A", "rationale": "r", "last_resort": False},
+         "fixes": {"commit": "deadbeef", "subject": "s", "tag": "Fixes: deadbeef (\"s\")",
+                   "how": "h"},
+         "maintainers": ["M <m@example.com>"], "kernel": "v7.3",
+         "kernel_commit": "c0ffee"}
+    f.update(kw)
+    return f
+
+
+def test_published_paths_flattens_the_stage_layout():
+    """A work directory names files by the stage that wrote them, which means
+    nothing once the files are copied somewhere else."""
+    from kreach.s7_report import published_paths
+
+    wit, log = published_paths(_finding(qid="644371d1b007", wid="644371d1b007"))
+    assert wit == "witness/644371d1b007.config"
+    assert log == "build/644371d1b007.log"
+
+
+def test_published_paths_tolerates_a_finding_with_neither():
+    from kreach.s7_report import published_paths
+
+    assert published_paths(_finding(witness=None, build_log_path=None)) == (None, None)
+
+
+def test_publish_copies_the_files_and_rewrites_the_record(tmp_path):
+    """The point of the whole thing: findings.txt must cite files that are
+    there, so the report can be read without the work directory."""
+    from kreach.config import Context
+    from kreach.s7_report import publish
+    from kreach.util import read_jsonl
+
+    work = tmp_path / "work"
+    (work / "s5" / "witness").mkdir(parents=True)
+    (work / "s6" / "build" / "abc123").mkdir(parents=True)
+    (work / "s5" / "witness" / "abc123.config").write_text("CONFIG_A=y\n")
+    (work / "s6" / "build" / "abc123" / "build.log").write_text("undefined reference\n")
+    ctx = Context(ksrc=str(tmp_path / "src"), work=str(work), arch="x86_64")
+
+    dest = tmp_path / "out"
+    stats = publish(ctx, [_finding()], str(dest))
+
+    assert stats["witness"] == 1 and stats["log"] == 1 and not stats["missing"]
+    assert (dest / "witness" / "abc123.config").read_text() == "CONFIG_A=y\n"
+    assert (dest / "build" / "abc123.log").read_text() == "undefined reference\n"
+
+    rec = list(read_jsonl(str(dest / "findings.jsonl")))[0]
+    assert rec["witness"] == "witness/abc123.config"
+    assert rec["build_log_path"] == "build/abc123.log"
+    # Every path the report prints resolves relative to the published set.
+    for line in (dest / "findings.txt").read_text().splitlines():
+        for field in ("witness     ", "build_log   "):
+            if line.strip().startswith(field.strip()):
+                rel = line.split()[1]
+                assert (dest / rel).exists(), rel
+
+
+def test_publish_warns_rather_than_failing_when_a_file_is_gone(tmp_path):
+    """Build trees get pruned.  A missing log must not lose the finding."""
+    from kreach.config import Context
+    from kreach.s7_report import publish
+    from kreach.util import read_jsonl
+
+    work = tmp_path / "work"
+    (work / "s5" / "witness").mkdir(parents=True)
+    (work / "s5" / "witness" / "abc123.config").write_text("CONFIG_A=y\n")
+    ctx = Context(ksrc=str(tmp_path / "src"), work=str(work), arch="x86_64")
+
+    dest = tmp_path / "out"
+    stats = publish(ctx, [_finding()], str(dest))
+
+    assert stats["witness"] == 1 and stats["log"] == 0
+    assert stats["missing"] == ["s6/build/abc123/build.log"]
+    assert len(list(read_jsonl(str(dest / "findings.jsonl")))) == 1
+
+
+def test_render_table_groups_by_provider_then_caller():
+    """Findings sort by caller, but a table reads better with the provider
+    classes together -- that is how the published tables are ordered."""
+    from kreach.s7_report import render_table
+
+    rows = render_table([
+        _finding(caller={"object": "x", "option": "CONFIG_Z", "source": "z.c"},
+                 provider={"object": "p", "option": "CONFIG_AAA", "module": None}),
+        _finding(caller={"object": "y", "option": "CONFIG_A", "source": "a.c"},
+                 provider={"object": "p", "option": "CONFIG_ZZZ", "module": None}),
+    ]).splitlines()
+    assert "CONFIG_AAA" in rows[2] and "CONFIG_ZZZ" in rows[3]
+    assert rows[2].startswith("| `CONFIG_Z` |")
+    # The witness cell links into the published layout, not the work directory.
+    assert "(witness/abc123.config)" in rows[2]

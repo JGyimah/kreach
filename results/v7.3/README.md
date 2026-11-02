@@ -83,17 +83,11 @@ unmodified `make` reproduces the failure. The `settings` column is how many
 options each one enables — worth a glance before you start, since the largest
 needs appreciably more memory and disk than the smallest.
 
-Each finding's `build_log` line names a work-directory path. The published
-copies are here:
-
-| findings.txt says | published as |
-|---|---|
-| `s5/witness/<id>.config` | [`witness/<id>.config`](witness/) |
-| `s6/build/<id>/build.log` | [`build/<id>.log`](build/) |
-
-A log starts with the `make olddefconfig` that produced the configuration and
-ends with the failing link, so the `undefined reference` quoted in the report
-can be read in context rather than taken on trust.
+Every path in `findings.txt` resolves inside this directory: `kreach s7
+--publish` copies each finding's witness and link log in and rewrites the
+record to match. A log starts with the `make olddefconfig` that produced the
+configuration and ends with the failing link, so the `undefined reference`
+quoted in the report can be read in context rather than taken on trust.
 
 ## Files
 

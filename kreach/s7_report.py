@@ -13,8 +13,10 @@ enabled by a select, so a depends on would leave the caller unselectable --
 the record says so in `caveat` rather than leaving it to be discovered.
 """
 
+import copy
 import os
 import re
+import shutil
 import time
 
 from kreach.config import Context
@@ -431,21 +433,14 @@ def _symbol_phrase(symbols: list[str]) -> str:
     return "%s and %d more are" % (", ".join(symbols[:3]), len(symbols) - 3)
 
 
-def run_s7(ctx: Context, results: list[dict]) -> list[dict]:
-    t0 = time.time()
-    findings = build_findings(ctx, results)
-    write_jsonl(ctx.findings_file, findings)
-    text = render_text(ctx, findings)
-    with open(ctx.report_file, "w") as fh:
-        fh.write(text)
-
+def build_summary(ctx: Context, findings: list[dict]) -> dict:
     meta = ctx.read_meta()
     by_case: dict[str, int] = {}
     by_fix: dict[str, int] = {}
     for f in findings:
         by_case[f["case"]] = by_case.get(f["case"], 0) + 1
         by_fix[f["fix"]["pattern"]] = by_fix.get(f["fix"]["pattern"], 0) + 1
-    summary = {
+    return {
         "arch": ctx.arch,
         "kernel": meta.get("kernel_describe"),
         "kernel_commit": meta.get("kernel_commit"),
@@ -455,6 +450,102 @@ def run_s7(ctx: Context, results: list[dict]) -> list[dict]:
         "caller_options": len(group_by_caller(findings)),
         "stages": {k: v for k, v in meta.items() if k in ("s1", "s2", "s3", "s4", "s5", "s6")},
     }
+
+
+# ---------------------------------------------------------------------------
+# Publishing: the same findings with paths that mean something outside a
+# work directory.
+# ---------------------------------------------------------------------------
+
+# A work directory names files by the stage that wrote them --
+# s5/witness/<id>.config, s6/build/<id>/build.log -- which is right there and
+# meaningless anywhere else.  A published set is flat, one directory per kind.
+PUBLISHED_WITNESS_DIR = "witness"
+PUBLISHED_LOG_DIR = "build"
+
+
+def published_paths(finding: dict) -> tuple[str | None, str | None]:
+    """(witness, build log) as a published set names them, or None."""
+    wit = finding.get("witness")
+    log_path = finding.get("build_log_path")
+    qid = None
+    if log_path:
+        qid = os.path.basename(os.path.dirname(log_path)) or None
+    return (os.path.join(PUBLISHED_WITNESS_DIR, os.path.basename(wit)) if wit else None,
+            os.path.join(PUBLISHED_LOG_DIR, qid + ".log") if qid else None)
+
+
+def render_table(findings: list[dict]) -> str:
+    """The findings as a Markdown table, provider first so classes group."""
+    rows = ["| caller option | provider | symbol | witness | settings | link | `Fixes:` |",
+            "|---|---|---|---|---|---|---|"]
+    for f in sorted(findings, key=lambda f: (f["provider"]["option"] or "",
+                                             f["caller"]["option"] or "")):
+        wit, _ = published_paths(f)
+        rows.append("| `%s` | `%s` | `%s` | %s | %s | %s | `%s` |" % (
+            f["caller"]["option"], f["provider"]["option"],
+            ", ".join(f["symbols"]),
+            "[`%s`](%s)" % (os.path.basename(wit), wit) if wit else "-",
+            f.get("witness_settings") or "-",
+            "%d s" % round(f["build_seconds"]) if f.get("build_seconds") else "-",
+            (f.get("fixes") or {}).get("commit") or "-"))
+    return "\n".join(rows) + "\n"
+
+
+def publish(ctx: Context, findings: list[dict], dest: str) -> dict:
+    """Write a copy of the findings that stands on its own in `dest`.
+
+    Same records, but the witness and build log of each are copied in and the
+    two path fields rewritten to point at the copies, so findings.txt cites
+    files that are actually there.  Anything already in `dest` for these
+    findings is replaced; nothing else is touched.
+    """
+    os.makedirs(os.path.join(dest, PUBLISHED_WITNESS_DIR), exist_ok=True)
+    os.makedirs(os.path.join(dest, PUBLISHED_LOG_DIR), exist_ok=True)
+
+    published: list[dict] = []
+    copied = {"witness": 0, "log": 0}
+    missing: list[str] = []
+    for f in findings:
+        rec = copy.deepcopy(f)
+        wit, log_rel = published_paths(f)
+        for src_rel, out_rel, kind in ((f.get("witness"), wit, "witness"),
+                                       (f.get("build_log_path"), log_rel, "log")):
+            if not src_rel or not out_rel:
+                continue
+            src = os.path.join(ctx.work, src_rel)
+            if not os.path.exists(src):
+                missing.append(src_rel)
+                continue
+            shutil.copyfile(src, os.path.join(dest, out_rel))
+            copied[kind] += 1
+        rec["witness"] = wit
+        rec["build_log_path"] = log_rel
+        published.append(rec)
+
+    write_jsonl(os.path.join(dest, "findings.jsonl"), published)
+    with open(os.path.join(dest, "findings.txt"), "w") as fh:
+        fh.write(render_text(ctx, published))
+    with open(os.path.join(dest, "table.md"), "w") as fh:
+        fh.write(render_table(published))
+    write_json(os.path.join(dest, "summary.json"), build_summary(ctx, published))
+
+    for rel in missing:
+        log.warning("not published, no longer on disk: %s", rel)
+    log.info("published %d findings to %s (%d witnesses, %d build logs)",
+             len(published), dest, copied["witness"], copied["log"])
+    return {"findings": len(published), "dest": dest, "missing": missing, **copied}
+
+
+def run_s7(ctx: Context, results: list[dict]) -> list[dict]:
+    t0 = time.time()
+    findings = build_findings(ctx, results)
+    write_jsonl(ctx.findings_file, findings)
+    text = render_text(ctx, findings)
+    with open(ctx.report_file, "w") as fh:
+        fh.write(text)
+
+    summary = build_summary(ctx, findings)
     write_json(ctx.summary_file, summary)
     ctx.write_meta({"s7": {"findings": len(findings),
                            "seconds": round(time.time() - t0, 1)}})

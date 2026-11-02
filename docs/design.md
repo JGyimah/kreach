@@ -606,6 +606,26 @@ naming the problem rather than leaving the maintainer to find it. The
 visibility comes from S1's `vars.json`, which already records which symbols
 have a prompt. A finding whose provider is visible gets no caveat.
 
+## Publishing a result set
+
+`s7/findings.txt` names files the way a work directory does --
+`s5/witness/<id>.config`, `s6/build/<id>/build.log` -- which is correct there
+and meaningless anywhere else. Published on its own, the report cited evidence
+the reader had no way to open.
+
+`kreach s7 --publish DIR` writes the set so that it stands up by itself: the
+report, the records, `table.md` and `summary.json`, plus each finding's
+witness and link log copied in, with the two path fields rewritten to
+`witness/<id>.config` and `build/<id>.log`. The result is checkable without a
+work directory, which is the only form worth committing.
+
+One trap, found by falling into it. `meta.json` records whatever tree the last
+run saw, and S7 reads the kernel version from there, so republishing an old
+set while the tree is checked out somewhere else stamps it with the wrong
+kernel -- silently, because every other field still looks right. Check out the
+revision the set belongs to before republishing it, and check `kernel` in the
+output afterwards.
+
 ## Providers from source as well as binaries
 
 The spec is firm that references come from binaries, because the compiler has

@@ -49,6 +49,7 @@ kreach -a x86_64 s4                    # candidate pairs
 kreach -a x86_64 s5                    # solve + witness .config files
 kreach -a x86_64 s6 --ccache           # build confirmation
 kreach -a x86_64 s7                    # report and fix suggestion
+kreach -a x86_64 s7 --publish results/ # the same, self-contained, for a repo
 
 kreach -a x86_64 run -d sound          # all of the above
 kreach status                          # what has been computed so far

@@ -138,9 +138,11 @@ def _run_s6(ctx, args, model, table):
 
 def cmd_s7(args):
     from kreach.s6_confirm import load_results
-    from kreach.s7_report import run_s7
+    from kreach.s7_report import publish, run_s7
     ctx = _ctx(args)
     findings = run_s7(ctx, load_results(ctx))
+    if findings and getattr(args, "publish", None):
+        publish(ctx, findings, args.publish)
     if findings and not args.quiet:
         print(open(ctx.report_file).read())
     return 0
@@ -347,6 +349,10 @@ def build_parser() -> argparse.ArgumentParser:
 
     sp = sub.add_parser("s7", help="report and fix suggestion")
     sp.add_argument("--quiet", action="store_true")
+    sp.add_argument("--publish", metavar="DIR",
+                    help="also write a self-contained copy here: the report, "
+                         "the records, the table, and each finding's witness "
+                         "and build log, with paths rewritten to match")
     sp.set_defaults(func=cmd_s7)
 
     sp = sub.add_parser("run", help="S1..S7")
