@@ -472,3 +472,84 @@ def test_oom_killed_link_is_an_environment_failure_not_a_rejection():
     genuine = ("ld: fsl_xcvr.c:(.text+0x1): undefined reference to `byte_rev_table'\n"
                "make: *** [Makefile:1234: vmlinux] Error 1\n")
     assert not [s for s in ENVIRONMENT_FAILURES if s in genuine]
+
+
+# --- S5: witness size, and the fixed-point shrink -----------------------
+
+def test_mark_size_outliers_flags_the_one_that_is_nothing_like_its_peers():
+    """The real v7.3 shape: ten witnesses at 505-842 settings and one at
+    3,822, which could not be built at all."""
+    from kreach.s5_solve import mark_size_outliers
+
+    results = [{"status": "sat", "caller_option": "CONFIG_%d" % n,
+                "witness_symbols_on": n}
+               for n in (505, 506, 511, 512, 696, 697, 700, 828, 841, 842, 3822)]
+    mark_size_outliers(results)
+
+    flagged = [r["caller_option"] for r in results if r["witness_size_outlier"]]
+    assert flagged == ["CONFIG_3822"]
+    assert all(r["witness_median"] == 697 for r in results)
+
+
+def test_mark_size_outliers_flags_nothing_when_the_sizes_are_alike():
+    from kreach.s5_solve import mark_size_outliers
+
+    results = [{"status": "sat", "caller_option": "c%d" % n,
+                "witness_symbols_on": n} for n in (500, 600, 700, 800)]
+    mark_size_outliers(results)
+    assert not any(r["witness_size_outlier"] for r in results)
+
+
+def test_mark_size_outliers_has_a_floor_so_small_sets_are_not_flagged():
+    """Three times a median of 10 is 30, which is not a big build.  Without a
+    floor every tiny witness with a slightly larger sibling gets flagged."""
+    from kreach.s5_solve import mark_size_outliers
+
+    results = [{"status": "sat", "caller_option": "a", "witness_symbols_on": 10},
+               {"status": "sat", "caller_option": "b", "witness_symbols_on": 400}]
+    mark_size_outliers(results)
+    assert not any(r["witness_size_outlier"] for r in results)
+
+
+def test_mark_size_outliers_ignores_unsat_and_sizeless_records():
+    from kreach.s5_solve import mark_size_outliers
+
+    results = [{"status": "unsat"},
+               {"status": "sat"},
+               {"status": "sat", "witness_symbols_on": 100, "caller_option": "c"}]
+    mark_size_outliers(results)
+    assert "witness_size_outlier" not in results[0]
+    assert "witness_size_outlier" not in results[1]
+    assert results[2]["witness_size_outlier"] is False
+
+
+def test_minimiser_keeps_shrinking_while_it_can():
+    """One pass of the core loop stops at the first satisfying assignment,
+    which need not be a small one.  The loop runs to a fixed point."""
+    from kreach.s5_solve import Minimiser
+
+    types = {"CONFIG_MODULES": "bool"}
+    for n in range(12):
+        types["CONFIG_S%d" % n] = "tristate"
+
+    class FakeModel:
+        kconfig_types = types
+        constraints = (F.completion_constraints(types)
+                       + F.modules_off_forces_no_m(types)
+                       + [F.enabled_var("CONFIG_MODULES")])
+
+        @property
+        def bool_tristate(self):
+            return {s for s, t in types.items() if t in ("bool", "tristate")}
+
+    mini = Minimiser(FakeModel())
+    # Only S0 is required; everything else should end up off.
+    status, model, info = mini.solve(F.enabled_var("CONFIG_S0"))
+    assert status == "sat"
+    on = {s for s in FakeModel().bool_tristate
+          if z3.is_true(model.eval(F.enabled_var(s), model_completion=True))}
+    assert "CONFIG_S0" in on
+    assert not {s for s in on if s.startswith("CONFIG_S") and s != "CONFIG_S0"}
+    # Sizes are recorded, non-increasing, and the pass count is bounded.
+    assert info["sizes"] == sorted(info["sizes"], reverse=True)
+    assert 1 <= info["passes"] <= mini.max_passes

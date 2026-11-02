@@ -470,20 +470,49 @@ what it lets the build say. Every one of these six was found by running the
 thing, not by reading it, and three of them also fed a false entry into S4's
 feedback loop, which suppresses the pair on every later run.
 
-### Witness size is not bounded, and should be
+### Why the shrinking is done in blocks
 
-The minimisation above stops as soon as the unsat-core loop finds an
-assignment the constraints allow; nothing asks whether that assignment is
-*small*. For ten of eleven findings at v7.3 it came to 505-842 enabled
-settings, which builds in minutes. For one it came to **3,822**, and that
-witness could not be built at all on a 4-core, 3.9 GB machine — `ld` was
-OOM-killed twice and the object tree then filled the disk twice. The same
-finding at v6.17 had a 480-setting witness and linked in 21 seconds.
+The obvious way to minimise is to assume every candidate off and release
+whatever the unsat core names, repeatedly. That was the first implementation,
+and it works well up to a few hundred candidates. Past that it falls apart,
+because the cores come back tiny — roughly one symbol released per solver
+call. On a 3,818-candidate witness it released 412 in 400 rounds, never
+reached a satisfying assignment, and the pass was discarded entirely, leaving
+the unminimised model.
 
-So an outlier witness is a real failure mode, and two cheap things would
-address it: report the size alongside the finding so it is visible before S6
-spends a build, and give the minimiser a second pass over an outlier rather
-than accepting the first satisfying assignment. Neither is done.
+Blocks fix it. Assume a whole block off: if that is satisfiable the entire
+block goes in one call; if not, split it and try the halves; a block that
+still fails at size one is a symbol the constraints require. Large incidental
+regions disappear early, which is the shape of the problem — most of a
+bloated witness is accidental rather than forced. Measured on the witness
+above, iterated to a fixed point:
+
+```
+3818 -> 1964 -> 1228 -> 1201 -> 1080      37 seconds, 4 passes
+```
+
+A 72% reduction, and the difference between a witness that cannot be built on
+a 4-core, 3.9 GB machine and one that can. Partial progress is kept when the
+budget runs out, so a pathological witness shrinks as far as the budget
+allows instead of not at all.
+
+Two numbers bound it: `max_passes` (4) and `max_checks` per pass (400). The
+pass reports which way it ended — `satisfied`, `hit the check budget`,
+`solver gave up` — because "it would not shrink further" and "it ran out of
+budget" call for different responses, and a statistic that conflates them
+sends you looking in the wrong place. The first version of this code
+accumulated its counters after the early `break`, so a pass that hit its limit
+reported as having done no work at all; that reading cost an hour of believing
+the constraints genuinely forced 3,800 settings.
+
+### Reporting witness size
+
+Minimisation is not a guarantee of smallness, so the size travels with the
+finding. S5 takes the median across satisfiable findings and flags anything
+past three times it, with a floor so that a small set with one slightly larger
+member is not flagged. S6 repeats the warning before it starts building, and
+S7 puts the count in the record and the report. The point is that a witness
+nobody can build should say so before the hours go in, not after.
 
 ### What the link step needs
 

@@ -290,6 +290,8 @@ def build_findings(ctx: Context, results: list[dict]) -> list[dict]:
             "symbols": rec.get("failing_symbols") or rec["symbols"],
             "all_symbols": rec["symbols"],
             "witness": rec.get("witness"),
+            "witness_settings": rec.get("witness_symbols_on"),
+            "witness_size_outlier": bool(rec.get("witness_size_outlier")),
             # The spec's record holds the failing linker or modpost lines
             # under build_log; the file they came from is beside it so the
             # whole build can be re-read without rerunning anything.
@@ -343,7 +345,13 @@ def render_text(ctx: Context, findings: list[dict]) -> str:
                        % (prov["object"], prov["option"],
                           ("  module %s" % prov["module"]) if prov.get("module") else ""))
             out.append("  symbols     %s" % ", ".join(f["symbols"]))
-            out.append("  witness     %s" % (f["witness"] or "-"))
+            out.append("  witness     %s%s" % (
+                f["witness"] or "-",
+                ("   (%s settings enabled%s)" % (
+                    f["witness_settings"],
+                    ", far above the median -- a large build"
+                    if f.get("witness_size_outlier") else ""))
+                if f.get("witness_settings") else ""))
             if f.get("levels"):
                 out.append("  levels      %s" % ", ".join(
                     "%s=%s" % kv for kv in sorted(f["levels"].items())))

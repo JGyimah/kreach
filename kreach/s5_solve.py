@@ -11,13 +11,20 @@ For each candidate pair, check the core property and build a witness.
            usually breaks many callers of the same subsystem.
   Output:  s5/queries.jsonl, s5/witness/<id>.config
 
-Minimisation works in two phases, because assuming all 18,000 symbols off at
-once and relaxing from there is too slow to run per candidate:
+Minimisation works in phases, because assuming all 18,000 symbols off at once
+and relaxing from there is too slow to run per candidate:
 
   1. Solve with the solver's default polarity set to false, so the first model
      it finds already has almost everything off.
   2. Assume off every symbol that model still has on, and while that is
      unsatisfiable release exactly the symbols the unsat core says must be on.
+
+  3. Feed the smaller ON set back through step 2 and repeat until it stops
+     shrinking.  One pass stops at the first *satisfying* assignment, which is
+     not the same as a small one -- the model it lands on can have symbols on
+     that nothing required.  Without this, one finding at v7.3 came out with
+     3,822 settings enabled where the others needed 505-842, and its witness
+     could not be built at all.
 
 What is left on is what the constraints force, which is the spec's "start from
 allnoconfig and add only what the constraints force" stated operationally.  The
@@ -53,6 +60,13 @@ from kreach.util import get_logger, human_time, read_jsonl, write_jsonl
 log = get_logger("s5")
 
 MAX_CORE_ROUNDS = 400
+
+# A witness far larger than its peers is a build nobody can afford: at v7.3
+# one came out at 3,822 enabled settings against 505-842 for the rest, and it
+# exhausted both memory and disk.  Flagging it costs nothing and makes the
+# problem visible before S6 spends hours finding out.
+OUTLIER_RATIO = 3.0
+OUTLIER_FLOOR = 1500
 
 
 def load_realisability(ctx: Context) -> list:
@@ -124,10 +138,15 @@ class Minimiser:
     """Solve a query while keeping as few symbols enabled as possible."""
 
     def __init__(self, model, base_config: dict | None = None,
-                 timeout_ms: int = 120000, extra_constraints=None):
+                 timeout_ms: int = 120000, extra_constraints=None,
+                 max_passes: int = 4, max_checks: int = 400):
         self.model = model
         self.symbols = sorted(model.bool_tristate)
         self.base_config = base_config or {}
+        self.max_passes = max_passes
+        # Solver calls per shrinking pass.  Each is a fraction of a second;
+        # the budget stops one pathological witness eating the sweep.
+        self.max_checks = max_checks
         self._solver = z3.Solver()
         self._solver.set("timeout", timeout_ms)
         # ALWAYS_FALSE: prefer every symbol off, so the first model found is
@@ -160,43 +179,98 @@ class Minimiser:
         initial_on = self._enabled_in(m)
         t_phase1 = time.time() - t0
 
-        # Phase 2: try to turn off everything this model still has on, and
-        # release only what the unsat core says the constraints force.
-        candidates = list(initial_on)
-        released: set[str] = set()
-        rounds = 0
-        best = m
-        while rounds < MAX_CORE_ROUNDS:
-            assumptions = [z3.Not(F.enabled_var(sym)) for sym in candidates
-                           if sym not in released]
-            if not assumptions:
+        # Phase 2, iterated to a fixed point.  One pass of the core loop
+        # releases whatever the constraints force and stops at the first
+        # satisfying assignment, which is not the same as a small one: the
+        # model it lands on can have symbols on that nothing required.
+        # Feeding that smaller ON set back through the same loop can only
+        # shrink it, so repeat until it stops shrinking.
+        best, on = m, list(initial_on)
+        rounds = released = 0
+        passes = 0
+        sizes = [len(on)]
+        why = "not attempted"
+        while passes < self.max_passes:
+            passes += 1
+            model, r, rel, why = self._shrink(s, on)
+            # Account for the work before deciding what to do with it, or a
+            # pass that failed reports as having done nothing -- which is
+            # exactly the sort of statistic that sends you looking in the
+            # wrong place.
+            rounds += r
+            released += rel
+            if model is None:
                 break
-            rounds += 1
-            res = s.check(*assumptions)
-            if res == z3.sat:
-                best = s.model()
+            new_on = self._enabled_in(model)
+            if len(new_on) >= len(on):
+                why = "no further improvement"
+                best = model
                 break
-            if res == z3.unknown:
-                log.debug("minimisation gave up: %s", s.reason_unknown())
-                break
-            core_syms = set()
-            for lit in s.unsat_core():
-                expr = lit.arg(0) if z3.is_not(lit) else lit
-                core_syms.add(str(expr))
-            core_syms &= set(candidates)
-            if not core_syms:
-                break
-            released |= core_syms
+            best, on = model, new_on
+            sizes.append(len(on))
 
         on = self._enabled_in(best)
         return "sat", best, {
-            "rounds": rounds,
-            "released": len(released),
+            "checks": rounds,
+            "turned_off": released,
+            "passes": passes,
+            "sizes": sizes,
+            "stopped_because": why,
             "symbols_on_initial": len(initial_on),
             "symbols_on": len(on),
             "phase1_seconds": round(t_phase1, 2),
             "seconds": round(time.time() - t0, 2),
         }
+
+    def _shrink(self, s, candidates):
+        """Turn off as many of `candidates` as the constraints allow.
+
+        Returns (model, checks, turned_off, why).
+
+        The obvious method -- assume every candidate off and release whatever
+        the unsat core names, repeatedly -- releases about one symbol per
+        solver call, because the cores come back tiny.  That is fine for a
+        witness of a few hundred and useless for one of a few thousand: on a
+        3,818-symbol candidate set it released 412 in 400 rounds, never
+        reached a satisfying assignment, and the whole pass was discarded.
+
+        So the candidates are removed in blocks instead.  Assume a whole block
+        off: if that is satisfiable the entire block goes, in one call.  If
+        not, split it and try the halves.  A block that fails at size one is a
+        symbol the constraints genuinely require.  Large removable regions
+        disappear early, which is exactly the shape of the problem -- most of
+        a bloated witness is incidental.
+
+        Whatever has been turned off is kept even if the budget runs out, so a
+        partial result still shrinks the witness.
+        """
+        off: list[str] = []
+        best = None
+        checks = 0
+        queue = [list(candidates)]
+        why = "nothing to do"
+        while queue and checks < self.max_checks:
+            block = queue.pop(0)
+            if not block:
+                continue
+            checks += 1
+            assumptions = [z3.Not(F.enabled_var(sym)) for sym in off + block]
+            res = s.check(*assumptions)
+            if res == z3.sat:
+                off.extend(block)
+                best = s.model()
+                why = "satisfied"
+            elif res == z3.unknown:
+                why = "solver gave up: %s" % s.reason_unknown()
+                break
+            elif len(block) > 1:
+                mid = len(block) // 2
+                queue.insert(0, block[mid:])
+                queue.insert(0, block[:mid])
+            # A single symbol that cannot be turned off is required; drop it.
+        if queue and checks >= self.max_checks:
+            why = "hit the check budget with %d block(s) unexamined" % len(queue)
+        return best, checks, len(off), why
 
 
 def filter_candidates(candidates: list[dict], callers=None,
@@ -483,6 +557,7 @@ def run_s5(ctx: Context, model, table, candidates: list[dict],
             log.info("S5 %d/%d candidates, %d satisfiable so far",
                      idx, len(candidates), nsat)
 
+    mark_size_outliers(results)
     write_jsonl(ctx.queries_file, results)
     by_status: dict[str, int] = {}
     for r in results:
@@ -505,6 +580,39 @@ def run_s5(ctx: Context, model, table, candidates: list[dict],
     log.info("S5 complete: %d queries, %s, in %s", len(results),
              ", ".join("%s=%d" % kv for kv in sorted(by_status.items())),
              human_time(time.time() - t0))
+    return results
+
+
+def mark_size_outliers(results: list[dict], ratio: float = OUTLIER_RATIO,
+                       floor: int = OUTLIER_FLOOR) -> list[dict]:
+    """Flag witnesses far larger than their peers.
+
+    Every witness is minimised, but minimisation is not a guarantee of
+    smallness -- it stops when the constraints are satisfied.  A witness that
+    is several times the median is a kernel several times the size, and may
+    not build at all on the machine to hand.  Saying so here, with the number,
+    beats discovering it after hours of linking.
+    """
+    sizes = sorted(r["witness_symbols_on"] for r in results
+                   if r.get("status") == "sat" and r.get("witness_symbols_on"))
+    if not sizes:
+        return results
+    median = sizes[len(sizes) // 2]
+    threshold = max(floor, median * ratio)
+    flagged = []
+    for r in results:
+        n = r.get("witness_symbols_on")
+        if r.get("status") != "sat" or not n:
+            continue
+        r["witness_median"] = median
+        r["witness_size_outlier"] = n > threshold
+        if r["witness_size_outlier"]:
+            flagged.append((n, r.get("caller_option")))
+    if flagged:
+        log.warning("%d witness(es) far larger than the median of %d; these "
+                    "may not build on a small machine: %s", len(flagged),
+                    median, ", ".join("%s (%d settings)" % (c, n)
+                                      for n, c in sorted(flagged, reverse=True)))
     return results
 
 

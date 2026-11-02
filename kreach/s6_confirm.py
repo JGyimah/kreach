@@ -421,9 +421,16 @@ def run_s6(ctx: Context, queries: list[dict], limit: int | None = None,
                     write_jsonl(ctx.confirm_file, results)
                     continue
                 log.debug("    caller still %s", why)
-            log.info("[%d/%d] building witness %s (%s, %s -> %s)", i, len(unique),
-                     rec.get("query_id") or rec["id"], rec["case"],
-                     rec["caller_option"], rec["provider_option"])
+            if rec.get("witness_size_outlier"):
+                log.warning("    witness has %d settings enabled against a "
+                            "median of %d; this is a much larger kernel and "
+                            "may exhaust memory or disk",
+                            rec.get("witness_symbols_on"),
+                            rec.get("witness_median"))
+            log.info("[%d/%d] building witness %s (%s, %s -> %s, %s settings)",
+                     i, len(unique), rec.get("query_id") or rec["id"],
+                     rec["case"], rec["caller_option"], rec["provider_option"],
+                     rec.get("witness_symbols_on", "?"))
             res = confirm_one(ctx, rec, timeout=timeout, jobs=jobs,
                               keep_build=keep_build, make_vars=make_vars)
             log.info("    -> %s (%ss)", res["status"], res.get("build_seconds"))

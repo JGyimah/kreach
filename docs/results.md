@@ -382,17 +382,18 @@ build in minutes; that one is a substantial kernel, and its build exhausted
 first memory (`ld` OOM-killed) and then disk across four attempts. At v6.17
 the same finding had a 480-setting witness and linked in 21 seconds.
 
-So the gap is in S5's minimisation rather than in the hardware. The
-unsat-core loop releases whatever the constraints force and stops; for this
-pair at v7.3 that came to 3,822 settings, and nothing then tries to do better.
-Getting `BITREVERSE` to `m` while the caller is `y` now goes through
-`GENERIC_BITREVERSE`, and satisfying that appears to drag in a great deal.
+The gap was in S5's minimisation, not the hardware, and it has since been
+closed. The old core loop released about one symbol per solver call, which is
+fine for a few hundred candidates and hopeless for a few thousand: it released
+412 in 400 rounds, never reached a satisfying assignment, and discarded the
+pass. Removing candidates in blocks instead, iterated to a fixed point, takes
+that witness from **3,822 settings to 1,078** in 37 seconds — into the same
+range as its peers. See [docs/design.md](design.md) for why blocks and what
+bounds them.
 
-That suggests two things worth doing, neither of which is a hardware
-purchase: have S5 report when a witness is a size outlier so it is visible
-before a build is spent on it, and give the minimiser a second pass that tries
-to shrink an outlier further rather than accepting the first assignment the
-core loop lands on.
+S5 also now flags a witness that is far larger than the median, S6 repeats the
+warning before building, and S7 carries the count into the record. A witness
+nobody can build should say so before the hours go in.
 
 One thing changed upstream that the tool picked up without help: `BITREVERSE`
 now selects `GENERIC_BITREVERSE if !HAVE_ARCH_BITREVERSE`, and `bitrev.o` is
