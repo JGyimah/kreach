@@ -143,17 +143,36 @@ def build_benchmark(ctx: Context, limit: int = 50, since: str = "v6.0") -> dict:
     return result
 
 
+def same_commit(a: str | None, b: str | None) -> bool:
+    """Whether two revisions name the same commit, either abbreviated.
+
+    The benchmark stores 40 characters because that is what ``git log``
+    gives it; a person, and tools/bench_replicate.sh after them, passes the
+    short form.  Comparing the two as strings silently matches nothing.
+    """
+    if not a or not b:
+        return False
+    n = min(len(a), len(b))
+    return n >= 7 and a[:n] == b[:n]
+
+
 def score(benchmark: dict, findings_file: str, commit: str | None = None) -> dict:
     """Did the tool report the pair a benchmark fix addressed?"""
     findings = list(read_jsonl(findings_file))
     reported = {(f["caller"]["option"], f["provider"]["option"]) for f in findings}
     reported_callers = {f["caller"]["option"] for f in findings}
 
+    if commit and not any(same_commit(c.get("commit"), commit)
+                          for c in benchmark["cases"]):
+        log.warning("no benchmark case for %s; the mined set has %d cases, so "
+                    "either it was mined from a different range or the "
+                    "revision is wrong", commit, len(benchmark["cases"]))
+
     hits, misses = [], []
     for case in benchmark["cases"]:
         if not case.get("caller_option") or not case.get("provider_options"):
             continue
-        if commit and case["commit"] != commit:
+        if commit and not same_commit(case["commit"], commit):
             continue
         want = {(case["caller_option"], p) for p in case["provider_options"]}
         if want & reported:

@@ -44,7 +44,8 @@ def _subdirs(args, ctx=None) -> list[str]:
 def cmd_s1(args):
     from kreach.s1_kconfig import dump_dimacs, run_s1
     ctx = _ctx(args)
-    ctx.write_meta()
+    # S1 is the stage that fixes which tree this work directory is about.
+    ctx.write_meta(stamp=True)
     model = run_s1(ctx, force=args.force, repair=not args.no_repair,
                    r5=getattr(args, "r5", False))
     if args.dimacs:

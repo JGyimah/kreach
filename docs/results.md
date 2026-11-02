@@ -493,14 +493,40 @@ recent, **31 yield an extractable caller/provider pair**. The fix patterns in
 those real commits line up with what S7 suggests — `depends on X || !X` is the
 most common single pattern, 8 of 31.
 
-Scoring is implemented and tested (`kreach score`), but the protocol requires
-checking out each fix's **parent** commit and running the pipeline there, and
-S1–S3 are per-commit. `tools/bench_replicate.sh` does one case end to end.
-Only **2 of the 31** usable cases have a `sound/` caller option, so a
-meaningful recall number for this subsystem needs either those two parents
-built, or the caller side widened beyond `sound/` — which is a disk question,
-not a missing-code question. That is the main piece of the evaluation left
-undone, and it is stated as such rather than estimated.
+**One case has now been run end to end: a hit.** `999fb9d51f93` ("ASoC: qcom:
+sm8250: Fix possibly undefined reference", June 2025) fixed the bug with
+`depends on SND_SOC_QCOM_OFFLOAD_UTILS || !SND_SOC_QCOM_OFFLOAD_UTILS` — the
+`X || !X` tristate pattern, which is the y/m case exactly. Run at its parent,
+`86731a2a651e` (v6.16-rc3):
+
+| | |
+|---|---|
+| S1 | 110,473 constraints, 1.6 min |
+| S2 | 31,929 objects, whole tree, 10.4 min |
+| S3 | `allmodconfig` under `sound/`: 78,769 references from 2,583 objects, 8.5 min |
+| S4 | 12,159 candidate pairs, 672 guarded |
+| S5 | 6 of those name `CONFIG_SND_SOC_SM8250`, collapsed to 5 queries: **1 satisfiable**, 4 unsat, 39 s |
+| S6 | **1 confirmed of 1 built**, the `vmlinux` link failing in 650 s |
+| score | `recall 1.0 of 1 case` |
+
+The pair kreach reported is the pair the fix addressed —
+`CONFIG_SND_SOC_SM8250` → `CONFIG_SND_SOC_QCOM_OFFLOAD_UTILS` — on
+`qcom_snd_usb_offload_jack_remove`, the symbol named in the fix's own commit
+message, and on `qcom_snd_usb_offload_jack_setup` as well, which it does not
+mention. The published case is [results/benchmark/](../results/benchmark/).
+
+One honesty note on method: S5 and S6 were filtered to the caller option, so
+this measures whether kreach confirms that pair at the parent commit, not
+whether a full sweep surfaces it among everything else. The filter cannot
+change the verdict — the query and the build are identical either way — but it
+skips the rest of the sweep, so this is one case answered rather than a recall
+figure for the benchmark.
+
+A figure for the whole benchmark still needs the other cases, and the
+obstacle is unchanged: of the usable cases only a handful have a `sound/`
+caller, and the rest need S3 to build their own subsystem. That is a disk and
+wall-clock question rather than a missing-code one — about 25 minutes per case
+on this container, most of it S2 and the wide build.
 
 ### Comparison with randconfig
 

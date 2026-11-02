@@ -166,27 +166,34 @@ class Context:
             return "unknown"
 
     # ---- metadata ----------------------------------------------------
-    def write_meta(self, extra: dict | None = None) -> dict:
+    # Which tree the model was built from.  Written when S1 runs and left
+    # alone afterwards: a later stage reading the current checkout would
+    # relabel a finished run with whatever the tree happens to be now, and
+    # every other field would still look right.
+    IDENTITY = ("kernel_commit", "kernel_describe", "kernel_version")
+
+    def write_meta(self, extra: dict | None = None, stamp: bool = False) -> dict:
         meta = {
             "arch": self.arch,
             "srcarch": self.srcarch,
             "ksrc": self.ksrc,
-            "kernel_commit": self.kernel_commit(),
-            "kernel_describe": self.kernel_describe(),
-            "kernel_version": self.kernel_version(),
             "host": platform.node(),
             "gcc": self._tool_version(["gcc", "--version"]),
             "ld": self._tool_version(["ld", "--version"]),
             "jobs": self.jobs,
         }
-        if extra:
-            meta.update(extra)
         existing = {}
         if os.path.exists(self.path("meta.json")):
             try:
                 existing = read_json(self.path("meta.json"))
             except Exception:
                 existing = {}
+        if stamp or not all(existing.get(k) for k in self.IDENTITY):
+            meta["kernel_commit"] = self.kernel_commit()
+            meta["kernel_describe"] = self.kernel_describe()
+            meta["kernel_version"] = self.kernel_version()
+        if extra:
+            meta.update(extra)
         existing.update(meta)
         write_json(self.path("meta.json"), existing)
         return existing

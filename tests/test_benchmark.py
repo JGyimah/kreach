@@ -106,3 +106,62 @@ def test_score_skips_cases_with_no_extractable_pair(tmp_path):
     bench = {"cases": [{"commit": "abc", "subject": "s",
                         "caller_option": None, "provider_options": []}]}
     assert B.score(bench, path)["checked"] == 0
+
+
+# --- scoring: the commit filter ------------------------------------------
+
+def test_same_commit_accepts_either_side_abbreviated():
+    """The benchmark stores 40 characters; people type twelve."""
+    from kreach.benchmark import same_commit
+
+    full = "999fb9d51f939ee23cbb9313ae558d29d6987804"
+    assert same_commit(full, "999fb9d51f93")
+    assert same_commit("999fb9d51f93", full)
+    assert same_commit(full, full)
+    assert not same_commit(full, "deadbeef1234")
+    # Too short to mean anything: six hex digits would match by accident.
+    assert not same_commit(full, "999fb9")
+    assert not same_commit(full, None)
+
+
+def _case(commit, caller="CONFIG_A", providers=("CONFIG_P",)):
+    return {"commit": commit, "subject": "s", "date": "2026-01-01",
+            "caller_option": caller, "provider_options": list(providers),
+            "symbols": ["sym"], "files": ["sound/x/Kconfig"], "parent": "p",
+            "fix_patterns": ["depends on X || !X"], "matched": True}
+
+
+def _findings_file(tmp_path, caller="CONFIG_A", provider="CONFIG_P"):
+    import json
+    p = tmp_path / "findings.jsonl"
+    p.write_text(json.dumps({
+        "caller": {"option": caller}, "provider": {"option": provider}}) + "\n")
+    return str(p)
+
+
+def test_score_hits_on_an_abbreviated_commit(tmp_path):
+    """The regression that made the benchmark unrunnable: a short SHA scored
+    zero cases and a null recall, which reads like a miss and is not one."""
+    from kreach.benchmark import score
+
+    full = "999fb9d51f939ee23cbb9313ae558d29d6987804"
+    res = score({"cases": [_case(full)]}, _findings_file(tmp_path),
+                commit="999fb9d51f93")
+    assert res["checked"] == 1
+    assert res["recall"] == 1.0
+    assert tuple(res["hits"][0]["pair"]) == ("CONFIG_A", "CONFIG_P")
+
+
+def test_score_separates_wrong_provider_from_not_reported(tmp_path):
+    from kreach.benchmark import score
+
+    full = "999fb9d51f939ee23cbb9313ae558d29d6987804"
+    res = score({"cases": [_case(full)]},
+                _findings_file(tmp_path, provider="CONFIG_OTHER"),
+                commit=full)
+    assert res["checked"] == 1 and res["recall"] == 0.0
+    assert res["misses"][0]["reason"] == "caller reported, different provider"
+
+    res = score({"cases": [_case(full)]},
+                _findings_file(tmp_path, caller="CONFIG_ELSEWHERE"), commit=full)
+    assert res["misses"][0]["reason"] == "not reported"

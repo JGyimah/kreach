@@ -96,3 +96,46 @@ def test_work_lock_is_per_work_directory(tmp_path):
     b.mkdir()
     with work_lock(str(a), "s6"), work_lock(str(b), "s6"):
         pass
+
+
+def test_meta_identity_survives_a_later_stage(tmp_path, monkeypatch):
+    """A later stage must not relabel a finished run with whatever the tree
+    is checked out at now.  Caught by publishing a v6.17 result set while the
+    tree sat at v7.3: every field still looked right and the kernel was
+    wrong."""
+    from kreach.config import Context
+    from kreach.util import read_json
+
+    ctx = Context(ksrc=str(tmp_path / "src"), work=str(tmp_path / "w"), arch="x86_64")
+    monkeypatch.setattr(Context, "kernel_commit", lambda self: "aaaaaaaaaaaa")
+    monkeypatch.setattr(Context, "kernel_describe", lambda self: "v6.17")
+    monkeypatch.setattr(Context, "kernel_version", lambda self: "6.17.0")
+    ctx.write_meta(stamp=True)                      # S1, at v6.17
+
+    # The tree moves on, and a later stage records its own statistics.
+    monkeypatch.setattr(Context, "kernel_commit", lambda self: "bbbbbbbbbbbb")
+    monkeypatch.setattr(Context, "kernel_describe", lambda self: "v7.3")
+    monkeypatch.setattr(Context, "kernel_version", lambda self: "7.3.0")
+    ctx.write_meta({"s7": {"findings": 1}})
+
+    meta = read_json(str(tmp_path / "w" / "meta.json"))
+    assert meta["kernel_describe"] == "v6.17"
+    assert meta["kernel_commit"] == "aaaaaaaaaaaa"
+    assert meta["s7"] == {"findings": 1}
+
+    # Re-running S1 is how you move a work directory to another revision.
+    ctx.write_meta(stamp=True)
+    assert read_json(str(tmp_path / "w" / "meta.json"))["kernel_describe"] == "v7.3"
+
+
+def test_meta_fills_identity_when_it_is_missing(tmp_path, monkeypatch):
+    """A work directory from before this behaviour still gets stamped."""
+    from kreach.config import Context
+    from kreach.util import read_json
+
+    ctx = Context(ksrc=str(tmp_path / "src"), work=str(tmp_path / "w"), arch="x86_64")
+    monkeypatch.setattr(Context, "kernel_commit", lambda self: "cccccccccccc")
+    monkeypatch.setattr(Context, "kernel_describe", lambda self: "v7.3")
+    monkeypatch.setattr(Context, "kernel_version", lambda self: "7.3.0")
+    ctx.write_meta({"s2": {"objects": 3}})          # no stamp, nothing on disk
+    assert read_json(str(tmp_path / "w" / "meta.json"))["kernel_describe"] == "v7.3"

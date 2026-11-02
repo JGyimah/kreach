@@ -1,0 +1,45 @@
+kreach findings -- v7.3, arch x86_64
+========================================================================
+
+## CONFIG_SND_SOC_SM8250  (1 finding)
+
+  id          f77ddd4483f5
+  arch        x86_64
+  case        y/m   (caller built-in, provider a module: vmlinux link error)
+  caller      sound/soc/qcom/sm8250.o  [CONFIG_SND_SOC_SM8250]
+  provider    sound/soc/qcom/usb_offload_utils.o  [CONFIG_SND_SOC_QCOM_OFFLOAD_UTILS]  module snd-soc-qcom-offload-utils.ko
+  symbols     qcom_snd_usb_offload_jack_remove, qcom_snd_usb_offload_jack_setup
+  witness     witness/bd90db6d8145.config   (1720 settings enabled)
+  levels      CONFIG_SND_SOC_QCOM_OFFLOAD_UTILS=m, CONFIG_SND_SOC_SM8250=y
+  build_log   build/bd90db6d8145.log
+      sm8250.c:(.text+0x1d7): undefined reference to `qcom_snd_usb_offload_jack_remove'
+      sm8250.c:(.text+0x220): undefined reference to `qcom_snd_usb_offload_jack_setup'
+  Fixes: 1b8d0d87b934 ("ASoC: qcom: qdsp6: Add headphone jack for offload connection status")
+              (git log -Sqcom_snd_usb_offload_jack_remove on sound/soc/qcom/sm8250.c)
+  send to     Srinivas Kandagatla <srini@kernel.org>
+              Liam Girdwood <lgirdwood@gmail.com>
+              Mark Brown <broonie@kernel.org>
+              Jaroslav Kysela <perex@perex.cz>
+              Takashi Iwai <tiwai@suse.com>
+              linux-sound@vger.kernel.org
+  fix         depends on SND_SOC_QCOM_OFFLOAD_UTILS
+              in config SND_SOC_SM8250
+              SND_SOC_SM8250 has no stub for SND_SOC_QCOM_OFFLOAD_UTILS=n (no static inline stub found), so every caller path needs SND_SOC_QCOM_OFFLOAD_UTILS present.
+  caveat      SND_SOC_QCOM_OFFLOAD_UTILS has no prompt, so it is only ever enabled by a select; 'depends on SND_SOC_QCOM_OFFLOAD_UTILS' would leave SND_SOC_SM8250 unselectable.  This one needs a maintainer decision, not the standard fix.
+
+  --- commit message reproduction section ---
+  |
+  | With the attached configuration (x86_64, v6.16-rc3):
+  |
+  |   sm8250.c:(.text+0x1d7): undefined reference to `qcom_snd_usb_offload_jack_remove'
+  |   sm8250.c:(.text+0x220): undefined reference to `qcom_snd_usb_offload_jack_setup'
+  |
+  | CONFIG_SND_SOC_SM8250 is built into vmlinux while CONFIG_SND_SOC_QCOM_OFFLOAD_UTILS is a module, so qcom_snd_usb_offload_jack_remove, qcom_snd_usb_offload_jack_setup are
+  | not available at link time.
+  |
+  | Fix: depends on SND_SOC_QCOM_OFFLOAD_UTILS in config SND_SOC_SM8250.
+  | Note: SND_SOC_QCOM_OFFLOAD_UTILS has no prompt, so it is only ever enabled by a select; 'depends on SND_SOC_QCOM_OFFLOAD_UTILS' would leave SND_SOC_SM8250 unselectable.  This one needs a maintainer decision, not the standard fix.
+  | Found with a static reachability check and confirmed by a build.
+  |
+  | Fixes: 1b8d0d87b934 ("ASoC: qcom: qdsp6: Add headphone jack for offload connection status")
+  ---

@@ -619,12 +619,16 @@ witness and link log copied in, with the two path fields rewritten to
 `witness/<id>.config` and `build/<id>.log`. The result is checkable without a
 work directory, which is the only form worth committing.
 
-One trap, found by falling into it. `meta.json` records whatever tree the last
-run saw, and S7 reads the kernel version from there, so republishing an old
-set while the tree is checked out somewhere else stamps it with the wrong
-kernel -- silently, because every other field still looks right. Check out the
-revision the set belongs to before republishing it, and check `kernel` in the
-output afterwards.
+One trap, found by falling into it twice. `write_meta` rebuilt the kernel
+identity from the current checkout every time any stage recorded a statistic,
+and `run_s7` records one at the end -- so publishing a v6.17 set while the tree
+sat at v7.3 relabelled the run, silently, because every other field still
+looked right. The identity now belongs to S1, which is the stage that decides
+which tree a work directory is about; later stages leave
+`kernel_commit`/`kernel_describe`/`kernel_version` alone, and re-running S1 is
+how you move a work directory to another revision. Published records still
+deserve a glance at `kernel` afterwards, since a work directory whose S1 ran
+somewhere else is indistinguishable from one that did not.
 
 ## Providers from source as well as binaries
 
