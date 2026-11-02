@@ -168,8 +168,10 @@ into either a real finding or an honest `unsat`, and it is the same work that
 would close the last of the S1 acceptance gap and the `CONFIG_INPUT` false
 positives in S4.
 
-With R5-as-realisability and R6 together, witness rejections went from
-**10/10 to 0/40**.
+With R5-as-realisability and R6 together, the first 40 witnesses after the fix
+were all kept, up from **10 of 10 rejected** before it. That cured the
+non-visible-symbol and missing-level-cap rejections; the 93 above are the
+conditional-default cause, which is a different gap and still open.
 
 ### Where the dependency expression comes from matters
 
@@ -210,7 +212,14 @@ reason.
 | R6 clamps alone rejecting a randconfig | — | — | **0/8** |
 | models of K surviving `make olddefconfig` unchanged | 0/4 | 0/8 | 0/10 |
 | drift per model (of 18,333 symbols) | 73–1,394 | 73–1,394 | 63–182 (median 123) |
-| S5 witnesses Kconfig kept | — | 0/10 | **40/40** |
+| S5 witnesses Kconfig kept | — | 0/10 | **55/148** over the full sweep |
+
+The sample sizes differ by row because the directions were re-measured at
+different points: direction 1 and the R6-clamp check over 8 randconfigs after
+the `dep`-line fix, direction 2 over the 10 recorded in
+`acceptance-s1.json`, whose R6 still took the dependency from
+`get_dir_dep()`. Direction 2 was not re-run after that fix, so its drift
+figures are a lower bound on the improvement, not an upper one.
 
 The four remaining direction-1 failures are all one family: Kconfig's
 *value* propagation through `select` where the symbols involved are also
@@ -234,7 +243,10 @@ a fix and is not yet sound.
 This costs kreach less than the number suggests, because witnesses are not
 written out from a model — they are produced by real Kconfig from a fragment
 and then checked, so drift shows up as a rejected witness rather than as a
-wrong finding. That rejection rate is currently zero.
+wrong finding. Over the full sweep that rejection rate is 93 of 148
+satisfiable queries, for the one cause set out in "The one gap that is not
+worth closing here" above — and a rejection costs a `make allnoconfig`, not a
+link.
 
 ## Options the architecture does not declare
 
@@ -285,8 +297,10 @@ Selector versus guard is the subtlety. `obj-$(CONFIG_X)` and
 `ifeq ($(CONFIG_X),y)` are exact-y tests, so relabelling them is right.
 `ifdef CONFIG_X` and `ifneq ($(CONFIG_X),)` are true for `m` as well, so those
 symbols keep their enabled reading; S2 collects that set by scanning the
-Makefiles — 125 such symbols across `drivers/ sound/ net/ fs/ kernel/ lib/
-crypto/ mm/` in v6.17, 19 of them under `sound/` alone.
+Makefiles — 144 such symbols in v6.17 across S2's default scope, 19 of them
+under `sound/` alone. (An earlier default scope of eight directories found
+125; the figure moved when `arch/<SRCARCH>/` was added, for the reason in
+"Options the architecture does not declare" below.)
 `ifeq ($(CONFIG_X),m)` cannot be expressed by the relabelling at all; 6
 symbols use it, and those plus 3 other constructs are recorded in
 `s2/unmodelled.json` rather than silently mismodelled.
