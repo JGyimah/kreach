@@ -1,0 +1,46 @@
+kreach findings -- v6.15-rc6-176-ge2d8ae899760, arch x86_64
+========================================================================
+
+## CONFIG_SND_USB_AUDIO_QMI  (1 finding)
+
+  id          1b0b1dd2d93f
+  arch        x86_64
+  case        y/m   (caller built-in, provider a module: vmlinux link error)
+  caller      sound/usb/qcom/qc_audio_offload.o  [CONFIG_SND_USB_AUDIO_QMI]
+  provider    drivers/usb/host/xhci-sideband.o  [CONFIG_USB_XHCI_HCD]  module xhci-hcd.ko
+  symbols     xhci_sideband_add_endpoint, xhci_sideband_create_interrupter, xhci_sideband_get_endpoint_buffer, xhci_sideband_get_event_buffer, xhci_sideband_interrupter_id, xhci_sideband_register, xhci_sideband_remove_endpoint, xhci_sideband_remove_interrupter, xhci_sideband_stop_endpoint, xhci_sideband_unregister
+  witness     witness/f0b44127cb42.config   (1123 settings enabled)
+  levels      CONFIG_SND_USB_AUDIO_QMI=y, CONFIG_USB_XHCI_HCD=m
+  build_log   build/f0b44127cb42.log
+      qc_audio_offload.c:(.text+0xb74): undefined reference to `xhci_sideband_unregister'
+      qc_audio_offload.c:(.text+0xd37): undefined reference to `xhci_sideband_remove_endpoint'
+      ld: qc_audio_offload.c:(.text+0xd8b): undefined reference to `xhci_sideband_remove_endpoint'
+      qc_audio_offload.c:(.text+0x1055): undefined reference to `xhci_sideband_add_endpoint'
+      ld: qc_audio_offload.c:(.text+0x1065): undefined reference to `xhci_sideband_get_endpoint_buffer'
+      ld: qc_audio_offload.c:(.text+0x1138): undefined reference to `xhci_sideband_remove_endpoint'
+  Fixes: 326bbc348298 ("ALSA: usb-audio: qcom: Introduce QC USB SND offloading support")
+              (git log -Sxhci_sideband_add_endpoint on sound/usb/qcom/qc_audio_offload.c)
+  send to     Jaroslav Kysela <perex@perex.cz>
+              Takashi Iwai <tiwai@suse.com>
+              linux-sound@vger.kernel.org
+              linux-kernel@vger.kernel.org
+  fix         depends on USB_XHCI_HCD || !USB_XHCI_HCD
+              in config SND_USB_AUDIO_QMI
+              SND_USB_AUDIO_QMI already has a stub for USB_XHCI_HCD=n (static inline stub under CONFIG_USB_XHCI_SIDEBAND), so it only needs to be kept out of vmlinux when USB_XHCI_HCD is a module.
+
+  --- commit message reproduction section ---
+  |
+  | With the attached configuration (x86_64, v6.15-rc6-176-ge2d8ae899760):
+  |
+  |   qc_audio_offload.c:(.text+0xb74): undefined reference to `xhci_sideband_unregister'
+  |   qc_audio_offload.c:(.text+0xd37): undefined reference to `xhci_sideband_remove_endpoint'
+  |   ld: qc_audio_offload.c:(.text+0xd8b): undefined reference to `xhci_sideband_remove_endpoint'
+  |
+  | CONFIG_SND_USB_AUDIO_QMI is built into vmlinux while CONFIG_USB_XHCI_HCD is a module, so xhci_sideband_add_endpoint, xhci_sideband_create_interrupter, xhci_sideband_get_endpoint_buffer and 7 more are
+  | not available at link time.
+  |
+  | Fix: depends on USB_XHCI_HCD || !USB_XHCI_HCD in config SND_USB_AUDIO_QMI.
+  | Found with a static reachability check and confirmed by a build.
+  |
+  | Fixes: 326bbc348298 ("ALSA: usb-audio: qcom: Introduce QC USB SND offloading support")
+  ---

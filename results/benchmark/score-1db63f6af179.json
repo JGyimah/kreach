@@ -1,0 +1,12 @@
+{
+ "checked": 1,
+ "hits": [],
+ "misses": [
+  {
+   "commit": "1db63f6af17945aed7497ce34a5648add0c1b6d9",
+   "reason": "not reported",
+   "subject": "ASoC: rt5575: fix SPI dependency"
+  }
+ ],
+ "recall": 0.0
+}

@@ -493,10 +493,28 @@ recent, **31 yield an extractable caller/provider pair**. The fix patterns in
 those real commits line up with what S7 suggests — `depends on X || !X` is the
 most common single pattern, 8 of 31.
 
-**One case has now been run end to end: a hit.** `999fb9d51f93` ("ASoC: qcom:
-sm8250: Fix possibly undefined reference", June 2025) fixed the bug with
-`depends on SND_SOC_QCOM_OFFLOAD_UTILS || !SND_SOC_QCOM_OFFLOAD_UTILS` — the
-`X || !X` tristate pattern, which is the y/m case exactly. Run at its parent,
+**Four cases have now been run end to end: 2 hits of 4.** These are the four
+whose caller option lives in `sound/`, the subsystem S3 builds, so they are
+not a sample of the benchmark and 0.5 is not the benchmark's recall figure.
+The full table and the diagnosis of each miss is in
+[results/benchmark/](../results/benchmark/); the short version is that one
+miss is a real limitation and the other is a mis-extracted case.
+
+| case | result | why |
+|---|---|---|
+| `999fb9d51f93` ASoC: qcom: sm8250 | **hit** | `depends on X \|\| !X`, the y/m case exactly |
+| `882826f58b2c` ALSA: usb-audio: qcom | **hit** | found through `USB_XHCI_HCD`, ten `xhci_sideband_*` symbols |
+| `742048f2e128` ASoC: fsl_sai | miss | the reference is not emitted on x86_64: the call sits behind `of_device_is_compatible()`, which folds to false with `CONFIG_OF=n`, so the compiler deletes it. Real on i.MX |
+| `1db63f6af179` ASoC: rt5575 | miss | all queries unsat, and correctly: at the parent the stanza is a tristate with `depends on SPI_MASTER`, so it cannot be `y` while `SPI_MASTER` is `m`. The miner's pair is not the thing that could break |
+
+The first miss is the architecture limitation measured rather than asserted,
+and the pre-check doing its job — it refused to spend a build on a reference
+that is not there. The second says a recall figure from this benchmark is a
+lower bound, because a mis-extracted case is scored as a miss.
+
+The hit in detail. `999fb9d51f93` ("ASoC: qcom: sm8250: Fix possibly undefined
+reference", June 2025) fixed the bug with `depends on
+SND_SOC_QCOM_OFFLOAD_UTILS || !SND_SOC_QCOM_OFFLOAD_UTILS`. Run at its parent,
 `86731a2a651e` (v6.16-rc3):
 
 | | |
@@ -522,11 +540,14 @@ change the verdict — the query and the build are identical either way — but 
 skips the rest of the sweep, so this is one case answered rather than a recall
 figure for the benchmark.
 
-A figure for the whole benchmark still needs the other cases, and the
-obstacle is unchanged: of the usable cases only a handful have a `sound/`
-caller, and the rest need S3 to build their own subsystem. That is a disk and
-wall-clock question rather than a missing-code one — about 25 minutes per case
-on this container, most of it S2 and the wide build.
+A figure for the whole benchmark still needs the other 55 usable cases, and
+the obstacle is unchanged in kind: their callers are mostly in `drivers/`, so
+each needs S3 to build its own subsystem. That is a disk and wall-clock
+question rather than a missing-code one — about 25 minutes per case on this
+container, most of it S2 over the whole tree and the wide build. The `rt5575`
+case also argues for a pass over the miner before trusting an aggregate: a
+case whose extracted pair `depends on` its provider cannot be a y/m instance
+at all, and could be discarded at mining time rather than scored as a miss.
 
 ### Comparison with randconfig
 

@@ -1,0 +1,15 @@
+{
+ "checked": 1,
+ "hits": [
+  {
+   "commit": "882826f58b2c48cafc7084a799207e76f2c74fe0",
+   "pair": [
+    "CONFIG_SND_USB_AUDIO_QMI",
+    "CONFIG_USB_XHCI_HCD"
+   ],
+   "subject": "ALSA: usb-audio: qcom: fix USB_XHCI dependency"
+  }
+ ],
+ "misses": [],
+ "recall": 1.0
+}
