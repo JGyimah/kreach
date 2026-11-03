@@ -37,6 +37,17 @@ out suggesting `select`, and every record carries a `caveat` explaining why
 that advice cannot be applied here: neither provider has a Kconfig prompt, so
 a `depends on` would leave the driver unselectable.
 
+**That fix is verified, not just reasoned.** With the select added, all ten
+witnesses link — 98 s to 336 s each — and with all ten applied at once
+`allnoconfig`, `defconfig`, `allmodconfig` and `allyesconfig` come back
+Kconfig-clean. See [`fix-verification.json`](fix-verification.json), produced
+by [tools/verify_fix.py](../../tools/verify_fix.py). The one check still
+outstanding is an `allmodconfig` `vmlinux` link, which needs about 20 GB of
+object tree and does not fit on the machine these were found on.
+
+All eleven patches, signed and `checkpatch` clean, are in
+[outgoing/](../../outgoing/).
+
 For the two `byte_rev_table` findings, send **`select BITREVERSE`**, not
 `select GENERIC_BITREVERSE`. v7.3 gates `bitrev.o` on the latter, which is why
 it appears as the provider, but `BITREVERSE` is the symbol a driver selects:

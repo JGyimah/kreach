@@ -80,12 +80,22 @@ rather than about the checker:
 | the caller is a tristate that already `depends on` the provider | Kconfig caps a symbol at the level of what it depends on, so `y` with the provider at `m` is unreachable | `1db63f6af179` `SND_SOC_RT5575_SPI` |
 | no provider the fix names can be a module | only a tristate has an `m`; a `bool` provider means the bug is the **y/n** case, which v1 does not check | `10006ad04b74`, whose provider `NET_VENDOR_FREESCALE` is a menu gate |
 | the caller is gated on another architecture with no `COMPILE_TEST` | the caller is unselectable here, so S3 never compiles it and no reference of its is ever seen | `1274045b0eda` `SCSI_IBMVFC`, `depends on PPC_PSERIES` |
+| no provider the fix names gates any object | `PTP_1588_CLOCK_OPTIONAL` and `I3C_OR_I2C` are pure Kconfig plumbing: nothing in the tree builds on them, so they cannot provide a symbol in any configuration. A `select` counts, which is what keeps `BITREVERSE` — it gates nothing directly but selects `GENERIC_BITREVERSE`, which owns `bitrev.o` | `6a46e3e87b59` and two more naming `PTP_1588_CLOCK_OPTIONAL` |
 
 Over 120 mined commits, 59 cases have an extractable caller/provider pair and
-**22 are excluded: 16 for a bool provider, 4 for another architecture, 2 for a
-capped caller.** That leaves **37 usable**, and it reframes the benchmark: most
-of what it had been offering was the y/n case, which kreach v1 states as out
-of scope. Verdicts recorded before these rules existed are in
+**26 are excluded**, leaving **33 usable**:
+
+| reason | n |
+|---|---|
+| provider is a `bool`: the y/n case, out of scope for v1 | 15 |
+| caller belongs to another architecture | 4 |
+| no provider gates any object (`PTP_1588_CLOCK_OPTIONAL`) | 3 |
+| caller already depends on the provider | 2 |
+| no provider gates any object (`I3C_OR_I2C`) | 1 |
+| no provider gates any object (`SHMEM`) | 1 |
+
+That reframes the benchmark: most of what it offers is not the case v1
+checks. Verdicts recorded before these rules existed are in
 [superseded/](superseded/).
 
 ### The rule that started it
