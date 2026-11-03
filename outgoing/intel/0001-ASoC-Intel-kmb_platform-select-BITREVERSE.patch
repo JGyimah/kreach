@@ -1,6 +1,6 @@
-From 5fefc04afc2a2857bc1f487279b7a6169758c1e8 Mon Sep 17 00:00:00 2001
-From: InstructorZer0 <jude.gyimah87@gmail.com>
-Date: Tue, 3 Nov 2026 13:31:02 +0100
+From b8fdebe7692593af13685e34c3c81593d2132bda Mon Sep 17 00:00:00 2001
+From: Jude Gyimah <jude.gyimah87@gmail.com>
+Date: Tue, 3 Nov 2026 14:01:17 +0100
 Subject: [PATCH] ASoC: Intel: kmb_platform: select BITREVERSE
 
 kmb_platform calls byte_rev_table, which lib/bitrev.c provides under
@@ -26,6 +26,7 @@ Found with kreach, a static check that compares what Kconfig allows
 against the symbols the compiled objects actually reference.
 
 Fixes: c5477e966728 ("ASoC: Intel: Add KeemBay platform driver")
+Signed-off-by: Jude Gyimah <jude.gyimah87@gmail.com>
 ---
  sound/soc/intel/Kconfig | 1 +
  1 file changed, 1 insertion(+)

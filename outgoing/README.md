@@ -75,11 +75,27 @@ Leave **`fsl/0001`** (`fsl_aud2htx`) last. It is the only patch adding two
 selects, because its configuration fails on a second symbol as well, and it
 is the one most likely to draw questions.
 
-## Already signed
+## Signed
 
-`rockchip/` is applied and signed off — five patches, each with
-`Signed-off-by: Jude Gyimah <jude.gyimah87@gmail.com>`, and its cover letter
-refilled. It is ready to send. The other four groups are not signed yet.
+All eleven are applied, signed and checkpatch clean:
+
+```
+From: Jude Gyimah <jude.gyimah87@gmail.com>
+Signed-off-by: Jude Gyimah <jude.gyimah87@gmail.com>
+```
+
+Author and signer match deliberately. They did not at first — the patches
+were authored as `InstructorZer0` while the sign-off came from the tree's
+configured identity, and checkpatch flags that:
+
+```
+WARNING: From:/Signed-off-by: email name mismatch
+```
+
+A patch whose author and signer look like two people invites the question of
+who is actually certifying it, so `prepare_patches.py` now takes the author
+from `user.name`/`user.email` in the kernel tree and refuses to run if they
+are unset.
 
 ## Provenance
 

@@ -1,6 +1,6 @@
-From 929098da56bd6950798fc192a4fff9743432ea8b Mon Sep 17 00:00:00 2001
-From: InstructorZer0 <jude.gyimah87@gmail.com>
-Date: Tue, 3 Nov 2026 13:30:58 +0100
+From 653a5241d9cf27a29352511b3a678c4ce34615fc Mon Sep 17 00:00:00 2001
+From: Jude Gyimah <jude.gyimah87@gmail.com>
+Date: Tue, 3 Nov 2026 14:01:14 +0100
 Subject: [PATCH 3/5] ASoC: rockchip_pdm: select REGMAP_MMIO
 
 rockchip_pdm calls __devm_regmap_init_mmio_clk, which

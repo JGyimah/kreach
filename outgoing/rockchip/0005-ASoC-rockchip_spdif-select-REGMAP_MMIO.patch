@@ -1,6 +1,6 @@
-From c89e55a429f7d41831d0b39be5ef701a9a04635e Mon Sep 17 00:00:00 2001
-From: InstructorZer0 <jude.gyimah87@gmail.com>
-Date: Tue, 3 Nov 2026 13:30:59 +0100
+From ff495e115942850a97679dcddb4751a23aed9d3d Mon Sep 17 00:00:00 2001
+From: Jude Gyimah <jude.gyimah87@gmail.com>
+Date: Tue, 3 Nov 2026 14:01:15 +0100
 Subject: [PATCH 5/5] ASoC: rockchip_spdif: select REGMAP_MMIO
 
 rockchip_spdif calls __devm_regmap_init_mmio_clk, which

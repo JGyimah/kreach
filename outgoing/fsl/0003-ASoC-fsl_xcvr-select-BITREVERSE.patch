@@ -1,6 +1,6 @@
-From ceea40c93f6b1ba80208554407d8eee63c5dc8b8 Mon Sep 17 00:00:00 2001
-From: InstructorZer0 <jude.gyimah87@gmail.com>
-Date: Tue, 3 Nov 2026 13:31:01 +0100
+From 26952d263655e0b6e390c351a693719baddbb6ad Mon Sep 17 00:00:00 2001
+From: Jude Gyimah <jude.gyimah87@gmail.com>
+Date: Tue, 3 Nov 2026 14:01:16 +0100
 Subject: [PATCH 3/3] ASoC: fsl_xcvr: select BITREVERSE
 
 fsl_xcvr calls byte_rev_table, which lib/bitrev.c provides under
@@ -26,6 +26,7 @@ Found with kreach, a static check that compares what Kconfig allows
 against the symbols the compiled objects actually reference.
 
 Fixes: 28564486866f ("ASoC: fsl_xcvr: Add XCVR ASoC CPU DAI driver")
+Signed-off-by: Jude Gyimah <jude.gyimah87@gmail.com>
 ---
  sound/soc/fsl/Kconfig | 1 +
  1 file changed, 1 insertion(+)

@@ -1,6 +1,6 @@
-From a99a0353441130dbe92f8c2f71065e14a333dd91 Mon Sep 17 00:00:00 2001
-From: InstructorZer0 <jude.gyimah87@gmail.com>
-Date: Tue, 3 Nov 2026 13:30:28 +0100
+From 9610c2d73021fe5c323ce46416b336587b45cc3e Mon Sep 17 00:00:00 2001
+From: Jude Gyimah <jude.gyimah87@gmail.com>
+Date: Tue, 3 Nov 2026 14:01:51 +0100
 Subject: [PATCH] drm/xe: fix CONFIGFS_FS dependency
 
 xe_configfs.o is pulled into the xe module only when configfs is enabled:
@@ -34,6 +34,7 @@ Found with kreach, a static check that compares what Kconfig allows
 against the symbols the compiled objects actually reference.
 
 Fixes: 16280ded45fb ("drm/xe: Add configfs to enable survivability mode")
+Signed-off-by: Jude Gyimah <jude.gyimah87@gmail.com>
 ---
  drivers/gpu/drm/xe/Kconfig | 1 +
  1 file changed, 1 insertion(+)

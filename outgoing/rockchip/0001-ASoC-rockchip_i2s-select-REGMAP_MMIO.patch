@@ -1,6 +1,6 @@
-From 49682b3bdef06c4daa5656375c1e4e943efcf749 Mon Sep 17 00:00:00 2001
-From: InstructorZer0 <jude.gyimah87@gmail.com>
-Date: Tue, 3 Nov 2026 13:30:57 +0100
+From edb75949333c618987fa0ee85b3f7f2dbc07a562 Mon Sep 17 00:00:00 2001
+From: Jude Gyimah <jude.gyimah87@gmail.com>
+Date: Tue, 3 Nov 2026 14:01:13 +0100
 Subject: [PATCH 1/5] ASoC: rockchip_i2s: select REGMAP_MMIO
 
 rockchip_i2s calls __devm_regmap_init_mmio_clk, which

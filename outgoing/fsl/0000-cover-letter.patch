@@ -1,6 +1,6 @@
-From ceea40c93f6b1ba80208554407d8eee63c5dc8b8 Mon Sep 17 00:00:00 2001
-From: InstructorZer0 <jude.gyimah87@gmail.com>
-Date: Tue, 3 Nov 2026 13:31:01 +0100
+From 26952d263655e0b6e390c351a693719baddbb6ad Mon Sep 17 00:00:00 2001
+From: Jude Gyimah <jude.gyimah87@gmail.com>
+Date: Tue, 3 Nov 2026 14:01:24 +0100
 Subject: [PATCH 0/3] ASoC: fsl: fix missing GENERIC_BITREVERSE and REGMAP_MMIO dependencies
 
 Each of these drivers can be built into vmlinux while the code
@@ -19,7 +19,7 @@ the named symbol, and each links once the select is added.
 Found with kreach, a static check that compares what Kconfig allows
 against the symbols the compiled objects actually reference.
 
-InstructorZer0 (3):
+Jude Gyimah (3):
   ASoC: fsl_aud2htx: select missing dependencies
   ASoC: fsl: lpc3xxx-i2s: select REGMAP_MMIO
   ASoC: fsl_xcvr: select BITREVERSE

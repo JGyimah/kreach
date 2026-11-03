@@ -1,6 +1,6 @@
-From 5b1f8267667e40a03b9a7efb441049ca5f809c84 Mon Sep 17 00:00:00 2001
-From: InstructorZer0 <jude.gyimah87@gmail.com>
-Date: Tue, 3 Nov 2026 13:31:00 +0100
+From 57d0f992cd039721083eeaa033555fddee157d21 Mon Sep 17 00:00:00 2001
+From: Jude Gyimah <jude.gyimah87@gmail.com>
+Date: Tue, 3 Nov 2026 14:01:16 +0100
 Subject: [PATCH 2/3] ASoC: fsl: lpc3xxx-i2s: select REGMAP_MMIO
 
 lpc3xxx-i2s calls __devm_regmap_init_mmio_clk, which
@@ -23,6 +23,7 @@ Found with kreach, a static check that compares what Kconfig allows
 against the symbols the compiled objects actually reference.
 
 Fixes: 0959de657a10 ("ASoC: fsl: Add i2s and pcm drivers for LPC32xx CPUs")
+Signed-off-by: Jude Gyimah <jude.gyimah87@gmail.com>
 ---
  sound/soc/fsl/Kconfig | 1 +
  1 file changed, 1 insertion(+)

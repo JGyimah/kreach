@@ -1,6 +1,6 @@
-From e1e69ea8f9ba4efa3a857a5561994f2b4399ca9a Mon Sep 17 00:00:00 2001
-From: InstructorZer0 <jude.gyimah87@gmail.com>
-Date: Tue, 3 Nov 2026 13:31:02 +0100
+From 838a1620251b5ce943a8414379dd3339b1b56ef2 Mon Sep 17 00:00:00 2001
+From: Jude Gyimah <jude.gyimah87@gmail.com>
+Date: Tue, 3 Nov 2026 14:01:18 +0100
 Subject: [PATCH] ASoC: sunxi: sun50i-dmic: select REGMAP_MMIO
 
 sun50i-dmic calls __devm_regmap_init_mmio_clk, which
@@ -23,6 +23,7 @@ Found with kreach, a static check that compares what Kconfig allows
 against the symbols the compiled objects actually reference.
 
 Fixes: 9fc2c8ed923d ("ASoC: sunxi: Add Allwinner H6 Digital MIC driver")
+Signed-off-by: Jude Gyimah <jude.gyimah87@gmail.com>
 ---
  sound/soc/sunxi/Kconfig | 1 +
  1 file changed, 1 insertion(+)

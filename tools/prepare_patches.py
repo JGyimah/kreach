@@ -211,11 +211,19 @@ def main():
             f = json.loads(line)
             findings[f["caller"]["option"]] = f
 
+    # Author as whoever the tree is configured as, so From: matches the
+    # Signed-off-by: added later.  checkpatch warns when they differ, and a
+    # patch whose author and signer look like two people invites the
+    # question of who is actually certifying it.
+    who = subprocess.run(["git", "config", "user.name"], cwd=args.ksrc,
+                         capture_output=True, text=True).stdout.strip()
+    mail = subprocess.run(["git", "config", "user.email"], cwd=args.ksrc,
+                          capture_output=True, text=True).stdout.strip()
+    if not who or not mail:
+        raise SystemExit("set user.name and user.email in %s first" % args.ksrc)
     env = dict(os.environ,
-               GIT_AUTHOR_NAME="InstructorZer0",
-               GIT_AUTHOR_EMAIL="jude.gyimah87@gmail.com",
-               GIT_COMMITTER_NAME="InstructorZer0",
-               GIT_COMMITTER_EMAIL="jude.gyimah87@gmail.com")
+               GIT_AUTHOR_NAME=who, GIT_AUTHOR_EMAIL=mail,
+               GIT_COMMITTER_NAME=who, GIT_COMMITTER_EMAIL=mail)
 
     if args.cover_only:
         for path, name, prefix in SERIES:
