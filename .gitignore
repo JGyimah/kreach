@@ -28,3 +28,4 @@ htmlcov/
 
 # Scratch runners for long jobs, not part of the tool.
 .chain.sh
+.xeconfirm.sh
