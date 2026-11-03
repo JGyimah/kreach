@@ -4,18 +4,39 @@ Cases from the mined benchmark, run the way the protocol asks: check out the
 **parent** of a commit that fixed a reachability bug, run the pipeline there,
 and see whether kreach reports the pair the fix addressed.
 
-**2 hits of 3 scored cases, 1 excluded.** Four were run — the four whose
-caller option lives in `sound/`, the subsystem S3 builds. One of them turned
-out not to be a y/m instance at all and the miner now excludes it rather than
-scoring it as a miss; see *Excluding a case* below. These four are not a
-sample of the benchmark, so 0.67 is not the benchmark's recall figure.
+**14 hits of 33 usable cases — recall 0.42.** The whole mined benchmark was
+run: 120 commits since v6.0, 59 with an extractable caller/provider pair, 26
+excluded as not a y/m instance, 33 scored. `tools/bench_report.py --triage`
+reproduces the table below from the saved per-case diagnostics.
 
-| case | fix | run at | result |
-|---|---|---|---|
-| [`999fb9d51f93`](case-999fb9d51f93/) | ASoC: qcom: sm8250 — `depends on X \|\| !X` | `86731a2a651e`, v6.16-rc3 | **hit** |
-| [`882826f58b2c`](case-882826f58b2c/) | ALSA: usb-audio: qcom — USB_XHCI dependency | `e2d8ae899760`, v6.15-rc6+ | **hit** |
-| `742048f2e128` | ASoC: fsl_sai — IMX_SCMI_MISC_DRV dependency | `cad9720dd7e4`, v6.19-rc7 | miss |
-| `1db63f6af179` | ASoC: rt5575 — SPI dependency | `a1d14d8364ea`, v6.19-rc7 | excluded |
+| | |
+|---|---|
+| hits | **14** — 11 on the exact pair, 2 on symbol and provider, 1 on symbol and caller |
+| misses | 19 |
+| excluded | 26 |
+| recall over scored | **0.42** |
+
+### What stopped the 19 misses
+
+| cause | n | whose problem |
+|---|---|---|
+| K says the y/m case is unreachable | 4 | kreach's model, or correctly so — undiagnosed individually |
+| witness built, caller does not emit the reference | 4 | the reference depends on an option the query does not constrain (S4's approximated RC) |
+| satisfiable, but Kconfig rejected the witness | 3 | **the S1 conditional-default gap**, already the documented next task |
+| candidates formed, none against a provider the fix names | 3 | the two sides name the pair differently |
+| no candidate pair formed at all | 2 | the caller was not built in the scoped tree |
+| kreach confirmed a finding the scorer did not match | 1 | a *different*, real bug in the same driver |
+| build failed for an unrelated reason | 1 | environment |
+| no diagnostics saved | 1 | `fsl_sai`, diagnosed by hand: x86_64 cannot see it |
+
+Four were diagnosed in full and none was a plain checker failure. That is the
+honest frame for 0.42: it is a lower bound on a benchmark that is still partly
+measuring itself, not a statement that kreach finds two bugs in five.
+
+One miss is worth its own line. On `2182f358fb13` kreach confirmed a y/m bug
+in `drivers/gpu/drm/xe` — `xe_module.o` against `xe_configfs.o` — that is **not
+the bug the commit fixed and is not in the benchmark at all**. It is scored as
+a miss, correctly, and it is a finding nobody asked for.
 
 ## The hits
 

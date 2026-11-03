@@ -1,13 +1,18 @@
 {
  "checked": 1,
  "excluded": [],
- "hits": [],
- "misses": [
+ "hits": [
   {
    "commit": "31d3bd592df5bf2912b8d97b0652ac3f0cd335cf",
-   "reason": "caller reported, different provider",
+   "matched": "symbol and caller",
+   "note": "kreach names the provider CONFIG_CROS_EC_PROTO where the fix names CONFIG_ACPI, CONFIG_LEDS_CLASS, CONFIG_MFD_CROS_EC_DEV; same caller CONFIG_CROS_KBD_LED_BACKLIGHT and same symbol cros_ec_cmd_xfer_status",
+   "pair": [
+    "CONFIG_CROS_KBD_LED_BACKLIGHT",
+    "CONFIG_CROS_EC_PROTO"
+   ],
    "subject": "platform/chrome: cros_kbd_led_backlight: Fix build dependencies"
   }
  ],
- "recall": 0.0
+ "misses": [],
+ "recall": 1.0
 }

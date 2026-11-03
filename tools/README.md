@@ -14,7 +14,7 @@ Diagnostics and drivers that are not part of the library.
 | `verify_fix.py` | does the suggested fix make the witness link? applies `select <provider>` to each caller's stanza, hands the witness back to Kconfig and links again -- the check kreach itself does not do, since it confirms a finding by a build that *fails*. `--regression` then applies every fix at once and checks the stock configurations plus an allmodconfig `vmlinux` link |
 | `bench_replicate.sh` | historical recall for one benchmark case: run the pipeline at a fix's parent commit and score it |
 | `bench_worklist.py` | which benchmark cases remain, and what S3 must build for each: the scope follows the symbols the fix names rather than the Kconfig file it edited, because those are not always in the same subsystem |
-| `bench_report.py` | the sweep's aggregate: hits by how they matched, misses with reasons, and exclusions counted apart so they do not land in the recall denominator |
+| `bench_report.py` | the sweep's aggregate, and with `--triage` the misses grouped by what the saved diagnostics say stopped each one: hits by how they matched, misses with reasons, and exclusions counted apart so they do not land in the recall denominator |
 | `bench_sweep.sh` | the historical-recall benchmark over a worklist, one case at a time: per-case work directory, deleted once scored, so disk stays flat; resumable, since a case with a score file is skipped |
 | `reconfirm_tip.sh` | re-confirm a known set of findings against whatever the tree is checked out at, in its own work directory, with S2 scoped to the subtrees the providers live in |
 

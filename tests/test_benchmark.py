@@ -445,3 +445,122 @@ def test_symbol_sources_matches_whole_words_only(monkeypatch):
     out = B.symbol_sources(None, "rev", ["foo"], {})
     assert out == {"drivers/x/a.c"}
     assert "-lw" in seen["args"], seen["args"]
+
+
+CROS = {
+    "commit": "31d3bd592df500000000000000000000000000bb",
+    "subject": "platform/chrome: cros_kbd_led_backlight: Fix build dependencies",
+    "date": "2026-01-01", "parent": "p", "files": ["drivers/platform/chrome/Kconfig"],
+    "caller_option": "CONFIG_CROS_KBD_LED_BACKLIGHT",
+    "provider_options": ["CONFIG_ACPI", "CONFIG_LEDS_CLASS", "CONFIG_MFD_CROS_EC_DEV"],
+    "symbols": ["cros_ec_cmd_xfer_status"], "fix_patterns": [], "matched": True,
+}
+
+
+def test_a_differently_named_provider_counts_when_caller_and_symbol_match(tmp_path):
+    """The fix names MFD_CROS_EC_DEV, the menu option a human reaches for;
+    kreach names CROS_EC_PROTO, which gates the object defining the symbol.
+    Same caller, same symbol, so the same undefined reference."""
+    from kreach.benchmark import score
+
+    f = _finding("CONFIG_CROS_KBD_LED_BACKLIGHT", "CONFIG_CROS_EC_PROTO",
+                 "cros_ec_cmd_xfer_status",
+                 "drivers/platform/chrome/cros_kbd_led_backlight.c")
+    res = score({"cases": [CROS]}, _write(tmp_path, [f]), commit=CROS["commit"])
+    assert res["recall"] == 1.0
+    assert res["hits"][0]["matched"] == "symbol and caller"
+
+
+def test_the_same_caller_on_a_different_symbol_is_not_a_hit(tmp_path):
+    """drm/xe's shape: kreach confirmed a real bug in the same driver, on
+    other symbols entirely.  That is a different bug, not this one."""
+    from kreach.benchmark import score
+
+    case = dict(CROS, symbols=["intel_vsec_register"])
+    f = _finding("CONFIG_CROS_KBD_LED_BACKLIGHT", "CONFIG_CONFIGFS_FS",
+                 "xe_configfs_init", "drivers/gpu/drm/xe/xe_module.c")
+    res = score({"cases": [case]}, _write(tmp_path, [f]), commit=CROS["commit"])
+    assert res["recall"] == 0.0
+
+
+# --- mining: a provider that gates no code -------------------------------
+
+MAKEFILES = {
+    "lib/Makefile": "obj-$(CONFIG_GENERIC_BITREVERSE) += bitrev.o\n",
+    "drivers/base/regmap/Makefile": "obj-$(CONFIG_REGMAP_MMIO) += regmap-mmio.o\n",
+}
+KCONFIGS = {
+    "lib/Kconfig": ("config BITREVERSE\n\ttristate\n"
+                    "\tselect GENERIC_BITREVERSE if !HAVE_ARCH_BITREVERSE\n\n"
+                    "config GENERIC_BITREVERSE\n\ttristate\n"
+                    "\tdepends on BITREVERSE\n"),
+    "drivers/ptp/Kconfig": ("config PTP_1588_CLOCK_OPTIONAL\n\ttristate\n"
+                            "\tdefault y if PTP_1588_CLOCK=n\n"),
+}
+
+
+class _Tree:
+    """_git over a tiny tree: grep for Makefile gating, show for stanzas."""
+
+    def __call__(self, ctx, args, check=True):
+        if args[0] == "grep" and "*Makefile*" in args:
+            # The real call is a regex, CONFIG_X[)}]: Kbuild writes both
+            # $(CONFIG_X) and ${CONFIG_X}.
+            needle = args[2].replace("[)}]", "")
+            return "\n".join("%s:%s" % (args[3], p)
+                             for p, t in MAKEFILES.items() if needle in t)
+        if args[0] == "grep":
+            name = args[2].split()[-1].rstrip("$")
+            return "\n".join("%s:%s" % (args[3], p) for p, t in KCONFIGS.items()
+                             if any(l.strip() == "config " + name
+                                    for l in t.splitlines()))
+        if args[0] == "show":
+            return KCONFIGS.get(args[1].split(":", 1)[1], "")
+        return ""
+
+
+def test_an_option_that_gates_no_object_provides_nothing(monkeypatch):
+    """PTP_1588_CLOCK_OPTIONAL exists to be depended on.  No configuration
+    makes it provide a symbol, so the pair cannot fail to link."""
+    from kreach import benchmark as B
+
+    monkeypatch.setattr(B, "_git", _Tree())
+    assert not B.provider_can_provide_code(None, "rev",
+                                           "CONFIG_PTP_1588_CLOCK_OPTIONAL", {})
+
+
+def test_a_select_is_enough_to_count_as_providing_code(monkeypatch):
+    """BITREVERSE gates nothing directly but selects GENERIC_BITREVERSE,
+    which owns bitrev.o -- and 'select BITREVERSE' is the fix kreach's own
+    v7.3 findings call for, so excluding it would be badly wrong."""
+    from kreach import benchmark as B
+
+    monkeypatch.setattr(B, "_git", _Tree())
+    assert B.provider_can_provide_code(None, "rev", "CONFIG_BITREVERSE", {})
+    assert B.stanza_selects(None, "rev", "CONFIG_BITREVERSE", {}) == \
+        ["GENERIC_BITREVERSE"]
+
+
+def test_a_direct_gate_counts(monkeypatch):
+    from kreach import benchmark as B
+
+    monkeypatch.setattr(B, "_git", _Tree())
+    assert B.provider_can_provide_code(None, "rev", "CONFIG_REGMAP_MMIO", {})
+
+
+def test_brace_style_makefile_gating_counts(monkeypatch):
+    """drivers/firmware/imx writes obj-${CONFIG_X}, not obj-$(CONFIG_X).
+    Matching only the paren form excluded two cases that should be scored,
+    one of them a genuine miss."""
+    from kreach import benchmark as B
+
+    seen = {}
+
+    def fake_git(ctx, args, check=True):
+        seen["args"] = args
+        return "rev:drivers/firmware/imx/Makefile"
+
+    monkeypatch.setattr(B, "_git", fake_git)
+    assert B.gates_an_object(None, "rev", "CONFIG_IMX_SCMI_MISC_DRV", {})
+    assert "-lE" in seen["args"]
+    assert any("[)}]" in a for a in seen["args"]), seen["args"]

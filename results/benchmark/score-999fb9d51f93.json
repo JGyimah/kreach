@@ -4,6 +4,7 @@
  "hits": [
   {
    "commit": "999fb9d51f939ee23cbb9313ae558d29d6987804",
+   "matched": "pair",
    "pair": [
     "CONFIG_SND_SOC_SM8250",
     "CONFIG_SND_SOC_QCOM_OFFLOAD_UTILS"

@@ -4,6 +4,7 @@
  "hits": [
   {
    "commit": "654ddf855bebd8d45a6e707f5dc2344921f5e0cf",
+   "matched": "pair",
    "pair": [
     "CONFIG_BITLAND_MIFS_WMI",
     "CONFIG_LEDS_CLASS"

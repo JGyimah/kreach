@@ -4,6 +4,7 @@
  "hits": [
   {
    "commit": "e62bb5abdcc0dc57ff09c4db961784582e61cd9b",
+   "matched": "pair",
    "pair": [
     "CONFIG_VIDEO_AMD_ISP4_CAPTURE",
     "CONFIG_DRM_AMDGPU"

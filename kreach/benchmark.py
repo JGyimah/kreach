@@ -39,6 +39,7 @@ KCONFIG_FILE_RE = re.compile(r"(^|/)(Kconfig|Kconfig\.[A-Za-z0-9_.\-]+)$")
 RE_STANZA = re.compile(r"^\s*(?:menu)?config\s+([A-Z0-9_]+)\s*$")
 RE_STANZA_TYPE = re.compile(r"^\s+(bool|tristate|string|int|hex)\b")
 RE_STANZA_DEPENDS = re.compile(r"^\s+depends on\s+(.+?)\s*$")
+RE_STANZA_SELECT = re.compile(r"^\s+select\s+([A-Z0-9_]+)")
 
 
 def _git(ctx: Context, args: list[str], check=True) -> str:
@@ -167,6 +168,65 @@ def symbol_type(ctx: Context, rev: str, option: str,
         return None
     typ, _ = kconfig_stanza(ctx, rev, paths, option)
     return typ
+
+
+def stanza_selects(ctx: Context, rev: str, option: str,
+                   cache: dict | None = None) -> list[str]:
+    """What an option selects, at one revision."""
+    name = option[len("CONFIG_"):] if option.startswith("CONFIG_") else option
+    for path in declaring_paths(ctx, rev, name, cache):
+        text = _git(ctx, ["show", "%s:%s" % (rev, path)], check=False)
+        lines = text.splitlines()
+        for i, line in enumerate(lines):
+            m = RE_STANZA.match(line)
+            if not m or m.group(1) != name:
+                continue
+            out = []
+            for body in lines[i + 1:]:
+                if body.strip() and not body[0].isspace():
+                    break
+                sel = RE_STANZA_SELECT.match(body)
+                if sel:
+                    out.append(sel.group(1))
+            return out
+    return []
+
+
+def gates_an_object(ctx: Context, rev: str, option: str,
+                    cache: dict | None = None) -> bool:
+    """Whether any Makefile puts an object in the build on this option."""
+    name = option[len("CONFIG_"):] if option.startswith("CONFIG_") else option
+    key = (rev, "gates", name)
+    if cache is not None and key in cache:
+        return cache[key]
+    # Kbuild writes both $(CONFIG_X) and ${CONFIG_X} -- drivers/firmware/imx
+    # uses braces -- so matching only the paren form silently decides that a
+    # real provider gates nothing, and excludes a case that should be scored.
+    out = _git(ctx, ["grep", "-lE", r"CONFIG_%s[)}]" % name, rev,
+                     "--", "*Makefile*", "*Kbuild*"], check=False)
+    got = bool(out.strip())
+    if cache is not None:
+        cache[key] = got
+    return got
+
+
+def provider_can_provide_code(ctx: Context, rev: str, provider_option: str,
+                              cache: dict | None = None) -> bool:
+    """Whether this option can put the providing code in the build at all.
+
+    Some options are pure Kconfig plumbing: PTP_1588_CLOCK_OPTIONAL and
+    I3C_OR_I2C exist to be depended on and gate no object anywhere, so no
+    configuration makes them provide a symbol and the pair cannot fail to
+    link however the fix was written.
+
+    A select counts, which is what keeps BITREVERSE: it gates nothing
+    directly but selects GENERIC_BITREVERSE, which owns bitrev.o -- and
+    `select BITREVERSE` is the fix for the findings in results/v7.3.
+    """
+    if gates_an_object(ctx, rev, provider_option, cache):
+        return True
+    return any(gates_an_object(ctx, rev, sel, cache)
+               for sel in stanza_selects(ctx, rev, provider_option, cache))
 
 
 def provider_can_be_a_module(ctx: Context, rev: str, provider_option: str,
@@ -310,6 +370,11 @@ def extract_pair(ctx: Context, rec: dict, cache: dict | None = None) -> dict:
             "%s is a tristate and already depends on %s at the parent, so it "
             "cannot be y while that is m" % (
                 caller_option, ", ".join(capped)))
+    elif parent and providers and not any(
+            provider_can_provide_code(ctx, parent, p, cache) for p in providers):
+        rec["excluded"] = (
+            "no provider the fix names gates any object (%s), so none of them "
+            "can provide the symbol in any configuration" % ", ".join(providers))
     elif providers and not modular:
         rec["excluded"] = (
             "no provider the fix names can be a module (%s is bool), so the "
@@ -369,6 +434,25 @@ def by_symbol_and_provider(case: dict, findings: list[dict]) -> list[dict]:
         return []
     return [f for f in findings
             if f["provider"]["option"] in provs
+            and syms & set(f.get("symbols") or [])]
+
+
+def by_symbol_and_caller(case: dict, findings: list[dict]) -> list[dict]:
+    """Findings naming a symbol of this case, from the caller it names.
+
+    The mirror of the above, and it needs no source check.  A fix often
+    names the provider a human reaches for -- MFD_CROS_EC_DEV, the menu
+    option that pulls the driver in -- while kreach names the option that
+    actually gates the object defining the symbol, CROS_EC_PROTO.  When the
+    caller option and the symbol both match, it is the same undefined
+    reference whichever option is credited with providing it.
+    """
+    syms = set(case.get("symbols") or [])
+    caller = case.get("caller_option")
+    if not syms or not caller:
+        return []
+    return [f for f in findings
+            if f["caller"]["option"] == caller
             and syms & set(f.get("symbols") or [])]
 
 
@@ -438,6 +522,23 @@ def score(benchmark: dict, findings_file: str, commit: str | None = None,
         if want & reported:
             hits.append({"commit": case["commit"], "subject": case["subject"],
                          "pair": sorted(want & reported)[0], "matched": "pair"})
+            continue
+
+        same_caller = by_symbol_and_caller(case, findings)
+        if same_caller:
+            f = same_caller[0]
+            hits.append({
+                "commit": case["commit"], "subject": case["subject"],
+                "pair": [f["caller"]["option"], f["provider"]["option"]],
+                "matched": "symbol and caller",
+                "note": "kreach names the provider %s where the fix names %s; "
+                        "same caller %s and same symbol %s" % (
+                            f["provider"]["option"],
+                            ", ".join(case["provider_options"]),
+                            case["caller_option"],
+                            (sorted(set(f.get("symbols") or []) &
+                                    set(case.get("symbols") or [])) or ["?"])[0]),
+            })
             continue
 
         near = by_symbol_and_provider(case, findings)
