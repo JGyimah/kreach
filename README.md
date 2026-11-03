@@ -109,10 +109,10 @@ kreach compare old/findings.jsonl      # still present / fixed / new
 kreach randcompare --samples 25        # how many randconfigs would hit each finding
 ```
 
-`tools/bench_replicate.sh` runs one benchmark case properly: check out the
-parent of a fix, run the pipeline there, and score that commit. Four cases
-have been run end to end -- 2 hits, 1 miss, 1 excluded as not a y/m instance
--- in [results/benchmark/](results/benchmark/).
+`tools/bench_replicate.sh` runs one benchmark case properly, and
+`tools/bench_sweep.sh` runs a whole worklist. The benchmark has been run in
+full: **14 hits of 33 usable cases**, every miss diagnosed, in
+[results/benchmark/](results/benchmark/).
 
 ## Pipeline
 
@@ -173,6 +173,14 @@ findings, one of which no longer reproduces at v7.3.
 running the benchmark rather than asked for: `DRM_XE=y` with
 `CONFIGFS_FS=m` fails to link on eleven `xe_configfs_*` symbols, confirmed at
 v7.3.
+
+Every suggested fix is verified as well as every bug: all ten v7.3 witnesses
+link once `select <PROVIDER>` is added, and the four stock configurations stay
+Kconfig-clean with all ten applied
+([results/v7.3/fix-verification.json](results/v7.3/fix-verification.json)).
+
+[outgoing/](outgoing/) holds the eleven resulting patches, signed and
+`checkpatch` clean, with the recipients and sending order for each.
 
 ## Related work
 

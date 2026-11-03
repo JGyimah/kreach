@@ -487,78 +487,71 @@ around each rather than patching the package; `docs/design.md` has the detail.
 
 ### Historical-recall benchmark
 
-Mining works: 341 commits since v6.0 mention `undefined reference` or
-`IS_REACHABLE`, **209 of those change only Kconfig files**, and of the 60 most
-recent, **31 yield an extractable caller/provider pair**. The fix patterns in
-those real commits line up with what S7 suggests — `depends on X || !X` is the
-most common single pattern, 8 of 31.
+Mined from git history: **120 commits** since v6.0 mention `undefined
+reference` or `IS_REACHABLE` and change only Kconfig files, **59 yield an
+extractable caller/provider pair**, and **26 of those are excluded** as pairs
+that cannot be a y/m instance at the parent — leaving **33 usable**. The fix
+patterns in the real commits line up with what S7 suggests: `depends on X ||
+!X` is the most common single pattern, 12 of the 33.
 
-**Four cases have now been run end to end: 2 hits, 1 miss, 1 excluded.**
-These are the four whose caller option lives in `sound/`, the subsystem S3
-builds, so they are not a sample of the benchmark and 0.67 is not the
-benchmark's recall figure. The full table and the diagnosis of each is in
+**The whole benchmark has now been run: 14 hits of 33, recall 0.42.** Eleven
+matched on the exact `(caller option, provider option)` pair, two on symbol
+and provider, one on symbol and caller. Every miss has been diagnosed. The
+table, the exclusion rules and the per-miss causes are in
 [results/benchmark/](../results/benchmark/).
 
-| case | result | why |
-|---|---|---|
-| `999fb9d51f93` ASoC: qcom: sm8250 | **hit** | `depends on X \|\| !X`, the y/m case exactly |
-| `882826f58b2c` ALSA: usb-audio: qcom | **hit** | found through `USB_XHCI_HCD`, ten `xhci_sideband_*` symbols |
-| `742048f2e128` ASoC: fsl_sai | miss | the reference is not emitted on x86_64: the call sits behind `of_device_is_compatible()`, which folds to false with `CONFIG_OF=n`, so the compiler deletes it. Real on i.MX |
-| `1db63f6af179` ASoC: rt5575 | excluded | all queries unsat, and correctly: at the parent the stanza is a tristate with `depends on SPI_MASTER`, so it cannot be `y` while `SPI_MASTER` is `m`. The miner's pair is not a y/m instance |
+How to read 0.42. Of the misses, the largest single identified cause is
+kreach's own S1 conditional-default gap, at three cases. Four others are the
+reference not being emitted in the compiled object — the guard is a third
+option the query does not constrain, which is S4's approximated RC. Four are
+`K` ruling the y/m case unreachable. The rest are the two sides naming the
+pair differently, the caller not being built in the scoped tree, or one
+environment failure. None of the misses diagnosed in full is a plain
+reporting failure, so 0.42 is a lower bound on a benchmark that is still
+partly measuring itself.
 
-The miss is the architecture limitation measured rather than asserted, and the
-pre-check doing its job — it refused to spend a build on a reference that is
-not there.
+The exclusions are the more interesting number. **16 of the 26 are the y/n
+case** — the fix names a provider that is a `bool`, which has no `m`, so the
+bug is the case v1 states as out of scope. Four are callers gated to another
+architecture, which an x86_64 run cannot compile at all. Most of what this
+benchmark offers is not what v1 checks, and that is worth knowing before
+treating recall as the headline.
 
-The fourth case is what made the miner stricter. `kreach bench` now checks
-each extracted pair against the caller's own stanza at the parent, and
-excludes the case when every provider the fix names is already capped by a
-`depends on`: a tristate cannot be `y` while something it depends on is `m`,
-so such a pair cannot be the thing that broke, and counting it as a miss would
-measure the mining rather than the checker. The rule excludes a *bool* caller
-from the same treatment, because a bool has no `m` level and `depends on P`
-then leaves it `y` with P at `m` — the hazard rather than a protection — and
-it ignores `depends on P=y`, which is the fix for this class rather than an
-instance of it. It fires only when every named provider is capped, which is
-what keeps `882826f58b2c`: four of its five are, and the fifth is the pair
-kreach confirmed. Over 120 mined commits it excludes 2 of 59 extractable
-cases.
+Running it cost about 20 minutes a case, 31 cases, with S1–S3 repeated per
+commit because every case has a different parent.
+[tools/bench_sweep.sh](../tools/bench_sweep.sh) drives it and
+[tools/bench_report.py](../tools/bench_report.py) aggregates, with `--triage`
+grouping the misses by cause.
 
-The hit in detail. `999fb9d51f93` ("ASoC: qcom: sm8250: Fix possibly undefined
-reference", June 2025) fixed the bug with `depends on
-SND_SOC_QCOM_OFFLOAD_UTILS || !SND_SOC_QCOM_OFFLOAD_UTILS`. Run at its parent,
-`86731a2a651e` (v6.16-rc3):
+### Do the suggested fixes work?
 
-| | |
-|---|---|
-| S1 | 110,473 constraints, 1.6 min |
-| S2 | 31,929 objects, whole tree, 10.4 min |
-| S3 | `allmodconfig` under `sound/`: 78,769 references from 2,583 objects, 8.5 min |
-| S4 | 12,159 candidate pairs, 672 guarded |
-| S5 | 6 of those name `CONFIG_SND_SOC_SM8250`, collapsed to 5 queries: **1 satisfiable**, 4 unsat, 39 s |
-| S6 | **1 confirmed of 1 built**, the `vmlinux` link failing in 650 s |
-| score | `recall 1.0 of 1 case` |
+kreach confirms a finding with a build that *fails*, which is not the same as
+showing the patch works — and that is the first thing a maintainer asks.
+[tools/verify_fix.py](../tools/verify_fix.py) closes it: for each finding it
+adds `select <PROVIDER>` to the caller's stanza, hands the witness back to
+Kconfig and links `vmlinux` again.
 
-The pair kreach reported is the pair the fix addressed —
-`CONFIG_SND_SOC_SM8250` → `CONFIG_SND_SOC_QCOM_OFFLOAD_UTILS` — on
-`qcom_snd_usb_offload_jack_remove`, the symbol named in the fix's own commit
-message, and on `qcom_snd_usb_offload_jack_setup` as well, which it does not
-mention. The published case is [results/benchmark/](../results/benchmark/).
+**All ten witnesses link once the fix is applied**, 98 s to 336 s each, and
+with all ten fixes applied at once `allnoconfig`, `defconfig`, `allmodconfig`
+and `allyesconfig` are Kconfig-clean — no unmet dependencies anywhere. The
+record is [results/v7.3/fix-verification.json](../results/v7.3/fix-verification.json).
 
-One honesty note on method: S5 and S6 were filtered to the caller option, so
-this measures whether kreach confirms that pair at the parent commit, not
-whether a full sweep surfaces it among everything else. The filter cannot
-change the verdict — the query and the build are identical either way — but it
-skips the rest of the sweep, so this is one case answered rather than a recall
-figure for the benchmark.
+One check could not be completed. An `allmodconfig` `vmlinux` link needs
+about 20 GB for the object tree; the first attempt started with 5 GB free and
+died 3.5 hours later with the disk full, having produced no undefined
+reference at all. That is an inconclusive result rather than a failure, and
+the tool now says so and skips rather than attempting it — the same
+distinction between a verdict and a non-verdict that S6 was taught to make.
 
-A figure for the whole benchmark still needs the other 55 usable cases, and
-the obstacle is unchanged in kind: their callers are mostly in `drivers/`, so
-each needs S3 to build its own subsystem. That is a disk and wall-clock
-question rather than a missing-code one — about 25 minutes per case on this
-container, most of it S2 over the whole tree and the wide build. Mining now reports `usable`
-net of the excluded cases, so an aggregate taken later does not quietly
-include pairs that cannot fail.
+### An incidental finding
+
+Running the benchmark turned up a bug nobody asked for, at the parent of a
+commit that fixes a different dependency in the same driver: `DRM_XE=y` with
+`CONFIGFS_FS=m` fails to link on eleven `xe_configfs_*` symbols. Confirmed at
+v7.3 from a five-line configuration fragment, with the fix also confirmed to
+make the combination unreachable. The benchmark scores that case as a miss,
+correctly — it is not the bug the commit fixed.
+[results/incidental/](../results/incidental/) has it.
 
 ### Comparison with randconfig
 

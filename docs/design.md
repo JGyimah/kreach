@@ -586,6 +586,26 @@ witness immediately, with the reason recorded as
 `skipped_witness_defanged` so the count is visible, and candidate precision
 is reported over builds actually spent rather than over records.
 
+## Does the suggested fix work?
+
+S6 confirms a finding with a build that fails. That is not the same as
+showing the patch works, and it is the first thing a maintainer asks.
+Nothing in the pipeline answered it, because the pipeline's job ends at
+demonstrating the bug.
+
+[../tools/verify_fix.py](../tools/verify_fix.py) answers it separately: for
+each finding it adds `select <PROVIDER>` to the caller's stanza, hands the
+witness back to Kconfig and links `vmlinux` again. All ten v7.3 witnesses
+link once the fix is applied, and with all ten applied at once the four stock
+configurations stay Kconfig-clean — which is the check that matters for a
+`select`, since `select` on a symbol with its own dependencies is how
+unmet-dependency bugs get made.
+
+It is deliberately not part of S7. S7 suggests a fix under the
+specification's rules; whether a human's actual patch works is a different
+question, asked with a different tool, and keeping them apart stops the
+checker from grading its own homework.
+
 ## S7: what to do when the standard fix cannot work
 
 The spec names three fixes and rules out a fourth: `depends on BAR`,
@@ -798,5 +818,15 @@ real build, so a reported finding is one that failed to link.
 | weak symbols and linker-script symbols | treated as always provided | excluded from candidates by S4, listed separately in `s3/symbols.json.gz` |
 | symbols guarded by `#ifdef` *inside* a present object (S2) | the provider reads as built in while the symbol is compiled out, so that pair is never a candidate | found in `SND_SOC_FSL_AUD2HTX`'s witness: `devm_snd_dmaengine_pcm_register` is inside `#ifdef CONFIG_SND_SOC_GENERIC_DMAENGINE_PCM` in `soc-devres.c`, which is unconditionally part of `snd-soc-core`. Needs preprocessor-level provider conditions, not just Kbuild ones |
 
+| a reference guarded by an option the query does not constrain (S4) | the solver produces a witness, the minimiser turns the guard off because nothing requires it, and the reference disappears from the compiled object | the pre-check catches it for one compile instead of a link; four of the benchmark's misses are this. The reference condition should carry the guard, which is what `kreach s4 --use-feedback` is for |
+
 Out of scope by design: missing `EXPORT_SYMBOL`, namespace imports and GPL-only
 export mismatches, which modpost already reports.
+
+Measured against the historical-recall benchmark, these cost 33 usable cases
+**14 hits, recall 0.42** — and the breakdown matters more than the figure. The
+largest identified cause of a miss is the S1 conditional-default gap, at three
+cases; four are the guard problem in the row above. Separately, **16 of the 26
+excluded cases are the y/n case**, which the first row of this table states as
+out of scope: most of what the benchmark offers is not what v1 checks. The
+diagnosis of every miss is in [../results/benchmark/](../results/benchmark/).
