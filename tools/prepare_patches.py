@@ -161,6 +161,49 @@ def message(prefix, finding, pairs, provider_option):
     return "\n".join(body) + "\n"
 
 
+NOTE_MARK = "The checker is at "
+NOTE = ("The checker is at https://github.com/JGyimah/kreach, and the\n"
+        "reproducer configuration for each finding is published with it\n"
+        "under results/.\n")
+
+
+def add_note(path):
+    """Put a reviewer note below the --- line.
+
+    Below --- is the right place for it: git am drops everything there, so
+    the note reaches whoever reads the mail without becoming part of the
+    commit message.  A URL to a personal repository is useful to a reviewer
+    today and dead weight in git log in five years.
+    """
+    text = open(path).read()
+    if NOTE_MARK in text:
+        return False
+    marker = "\n---\n"
+    i = text.find(marker)
+    if i < 0:
+        return False
+    at = i + len(marker)
+    open(path, "w").write(text[:at] + NOTE + "\n" + text[at:])
+    return True
+
+
+def note_group(out):
+    """One note per posting: the cover letter if there is one, else the
+    single patch.  Six copies of the same URL in a five-patch series is
+    noise."""
+    cover = os.path.join(out, "0000-cover-letter.patch")
+    if os.path.exists(cover):
+        # The cover letter carries it in the blurb, which write_cover
+        # fills: there is no --- line to put it below, and nothing in a
+        # cover letter becomes a commit message anyway.
+        return []
+    done = []
+    for f in sorted(os.listdir(out)):
+        if re.match(r"^\d{4}-.*\.patch$", f) and add_note(os.path.join(out, f)):
+            done.append(os.path.join(out, f))
+    return done
+
+
 def write_cover(out, prefix, group):
     """Fill in format-patch's placeholders rather than shipping them."""
     path = os.path.join(out, "0000-cover-letter.patch")
@@ -186,9 +229,18 @@ def write_cover(out, prefix, group):
         "the named symbol, and each links once the select is added.",
         "",
         "\n".join(wrap(CREDIT)),
+        "",
+        NOTE.rstrip("\n"),
     ])
     text = text.replace("*** SUBJECT HERE ***", subject)
-    text = text.replace("*** BLURB HERE ***", blurb)
+    if "*** BLURB HERE ***" in text:
+        text = text.replace("*** BLURB HERE ***", blurb)
+    elif NOTE_MARK not in text:
+        # Already filled by an earlier run but missing the note: put it
+        # before the shortlog rather than rewriting what is there.
+        m = re.search(r"^\S.*\(\d+\):$", text, re.M)
+        if m:
+            text = text[:m.start()] + NOTE + "\n" + text[m.start():]
     open(path, "w").write(text)
 
 
@@ -197,6 +249,9 @@ def main():
     ap.add_argument("ksrc")
     ap.add_argument("results")
     ap.add_argument("outgoing")
+    ap.add_argument("--note-only", action="store_true",
+                    help="only add the reviewer note below the --- line, to "
+                         "the cover letter of each series or to a lone patch")
     ap.add_argument("--cover-only", action="store_true",
                     help="only refill the cover letters in place.  Signing a "
                          "series off means re-running format-patch, which "
@@ -224,6 +279,16 @@ def main():
     env = dict(os.environ,
                GIT_AUTHOR_NAME=who, GIT_AUTHOR_EMAIL=mail,
                GIT_COMMITTER_NAME=who, GIT_COMMITTER_EMAIL=mail)
+
+    if args.note_only:
+        groups = [os.path.abspath(args.outgoing)] + \
+            [os.path.abspath(os.path.join(args.outgoing, n))
+             for _, n, _ in SERIES]
+        for g in groups:
+            if os.path.isdir(g):
+                for f in note_group(g):
+                    print("  noted %s" % os.path.relpath(f, args.outgoing))
+        return 0
 
     if args.cover_only:
         for path, name, prefix in SERIES:
