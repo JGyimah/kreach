@@ -1,0 +1,52 @@
+From 724745fbd5ec29556ec3c11212ba4af5018f60c2 Mon Sep 17 00:00:00 2001
+From: InstructorZer0 <jude.gyimah87@gmail.com>
+Date: Tue, 3 Nov 2026 13:20:30 +0100
+Subject: [PATCH] drm/xe: fix CONFIGFS_FS dependency
+
+xe_configfs.o is pulled into the xe module only when configfs is enabled:
+
+  xe-$(CONFIG_CONFIGFS_FS) += xe_configfs.o
+
+With CONFIG_DRM_XE=y and CONFIG_CONFIGFS_FS=m that line becomes xe-m,
+which Kbuild ignores for a built-in module, so the object is left out
+while the rest of xe still calls into it:
+
+  xe_guc.c:(.text+0x217e): undefined reference to
+    `xe_configfs_get_psmi_enabled'
+  xe_guc_ads.c:(.text+0x1a28): undefined reference to
+    `xe_configfs_get_enable_multi_queue'
+
+Eleven xe_configfs_* symbols are undefined in all, referenced from
+xe_module.o, xe_guc.o and xe_guc_ads.o.
+
+Require configfs to be at least as available as xe, which is what the
+stanza already does for KUNIT, INTEL_VSEC and X86_PLATFORM_DEVICES.
+
+Reproduced on v7.3, x86_64, with:
+
+  CONFIG_DRM_XE=y
+  CONFIG_CONFIGFS_FS=m
+  CONFIG_DRM=y
+  CONFIG_PCI=y
+  CONFIG_MODULES=y
+
+Fixes: 16280ded45fb ("drm/xe: Add configfs to enable survivability mode")
+---
+ drivers/gpu/drm/xe/Kconfig | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/drivers/gpu/drm/xe/Kconfig b/drivers/gpu/drm/xe/Kconfig
+index 4d7dcaff2b91..fe3061f3b4ec 100644
+--- a/drivers/gpu/drm/xe/Kconfig
++++ b/drivers/gpu/drm/xe/Kconfig
+@@ -4,6 +4,7 @@ config DRM_XE
+ 	depends on DRM && PCI
+ 	depends on KUNIT || !KUNIT
+ 	depends on INTEL_VSEC || !INTEL_VSEC
++	depends on CONFIGFS_FS || !CONFIGFS_FS
+ 	depends on X86_PLATFORM_DEVICES || !(X86 && ACPI)
+ 	depends on PAGE_SIZE_4KB || COMPILE_TEST || BROKEN
+ 	select INTERVAL_TREE
+-- 
+2.43.0
+
