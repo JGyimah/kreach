@@ -1,0 +1,13 @@
+{
+ "checked": 1,
+ "excluded": [],
+ "hits": [],
+ "misses": [
+  {
+   "commit": "531f47fd35f4ead8c76d584ef8c546b4cd9cb3b7",
+   "reason": "not reported",
+   "subject": "extcon: max14526: depends on I2C to prevent build warning/errors"
+  }
+ ],
+ "recall": 0.0
+}

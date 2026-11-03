@@ -1,0 +1,48 @@
+kreach findings -- v6.15-rc5-1346-g94110827925a, arch x86_64
+========================================================================
+
+## CONFIG_DRM_XE  (1 finding)
+
+  id          44b4595b3ec7
+  arch        x86_64
+  case        y/m   (caller built-in, provider a module: vmlinux link error)
+  caller      drivers/gpu/drm/xe/xe_module.o  [CONFIG_DRM_XE]
+  provider    drivers/gpu/drm/xe/xe_configfs.o  [CONFIG_CONFIGFS_FS]  module xe.ko
+  symbols     xe_configfs_clear_survivability_mode, xe_configfs_exit, xe_configfs_get_survivability_mode, xe_configfs_init
+  witness     witness/34bf921af6d9.config   (1851 settings enabled)
+  levels      CONFIG_CONFIGFS_FS=m, CONFIG_DRM_XE=y
+  build_log   build/34bf921af6d9.log
+      ld: drivers/gpu/drm/xe/xe_module.o:(.rodata+0x50): undefined reference to `xe_configfs_init'
+      ld: drivers/gpu/drm/xe/xe_module.o:(.rodata+0x58): undefined reference to `xe_configfs_exit'
+      xe_survivability_mode.c:(.text+0x19): undefined reference to `xe_configfs_clear_survivability_mode'
+      xe_survivability_mode.c:(.text+0x400): undefined reference to `xe_configfs_get_survivability_mode'
+      ld: xe_survivability_mode.c:(.text+0x48b): undefined reference to `xe_configfs_clear_survivability_mode'
+      xe_survivability_mode.c:(.text+0x5f8): undefined reference to `xe_configfs_clear_survivability_mode'
+  Fixes: 16280ded45fb ("drm/xe: Add configfs to enable survivability mode")
+              (git log -Sxe_configfs_exit on drivers/gpu/drm/xe/xe_module.c)
+  send to     Lucas De Marchi <lucas.demarchi@intel.com>
+              "Thomas Hellström" <thomas.hellstrom@linux.intel.com>
+              Rodrigo Vivi <rodrigo.vivi@intel.com>
+              David Airlie <airlied@gmail.com>
+              Simona Vetter <simona@ffwll.ch>
+              intel-xe@lists.freedesktop.org
+  fix         depends on CONFIGFS_FS
+              in config DRM_XE
+              DRM_XE has no stub for CONFIGFS_FS=n (no static inline stub found), so every caller path needs CONFIGFS_FS present.
+
+  --- commit message reproduction section ---
+  |
+  | With the attached configuration (x86_64, v6.15-rc5-1346-g94110827925a):
+  |
+  |   ld: drivers/gpu/drm/xe/xe_module.o:(.rodata+0x50): undefined reference to `xe_configfs_init'
+  |   ld: drivers/gpu/drm/xe/xe_module.o:(.rodata+0x58): undefined reference to `xe_configfs_exit'
+  |   xe_survivability_mode.c:(.text+0x19): undefined reference to `xe_configfs_clear_survivability_mode'
+  |
+  | CONFIG_DRM_XE is built into vmlinux while CONFIG_CONFIGFS_FS is a module, so xe_configfs_clear_survivability_mode, xe_configfs_exit, xe_configfs_get_survivability_mode and 1 more are
+  | not available at link time.
+  |
+  | Fix: depends on CONFIGFS_FS in config DRM_XE.
+  | Found with a static reachability check and confirmed by a build.
+  |
+  | Fixes: 16280ded45fb ("drm/xe: Add configfs to enable survivability mode")
+  ---

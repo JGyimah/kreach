@@ -1,0 +1,13 @@
+{
+ "checked": 1,
+ "excluded": [],
+ "hits": [],
+ "misses": [
+  {
+   "commit": "31d3bd592df5bf2912b8d97b0652ac3f0cd335cf",
+   "reason": "caller reported, different provider",
+   "subject": "platform/chrome: cros_kbd_led_backlight: Fix build dependencies"
+  }
+ ],
+ "recall": 0.0
+}

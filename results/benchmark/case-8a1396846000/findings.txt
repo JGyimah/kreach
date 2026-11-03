@@ -1,0 +1,41 @@
+kreach findings -- v6.19-rc1-143-g3ddcd24b4d84, arch x86_64
+========================================================================
+
+## CONFIG_PHY_GOOGLE_USB  (1 finding)
+
+  id          3b0ad0c2aff2
+  arch        x86_64
+  case        y/m   (caller built-in, provider a module: vmlinux link error)
+  caller      drivers/phy/phy-google-usb.o  [CONFIG_PHY_GOOGLE_USB]
+  provider    drivers/usb/typec/mux.o  [CONFIG_TYPEC]  module typec.ko
+  symbols     typec_switch_unregister
+  witness     witness/69adea4fa72a.config   (911 settings enabled)
+  levels      CONFIG_PHY_GOOGLE_USB=y, CONFIG_TYPEC=m
+  build_log   build/69adea4fa72a.log
+      phy-google-usb.c:(.text+0x25): undefined reference to `typec_switch_unregister'
+  Fixes: cbce66669c82 ("phy: Add Google Tensor SoC USB PHY driver")
+              (git log -Stypec_switch_unregister on drivers/phy/phy-google-usb.c)
+  send to     Peter Griffin <peter.griffin@linaro.org>
+              "André Draszik" <andre.draszik@linaro.org>
+              Tudor Ambarus <tudor.ambarus@linaro.org>
+              Vinod Koul <vkoul@kernel.org>
+              Neil Armstrong <neil.armstrong@linaro.org>
+              linux-arm-kernel@lists.infradead.org
+  fix         depends on TYPEC || !TYPEC
+              in config PHY_GOOGLE_USB
+              PHY_GOOGLE_USB already has a stub for TYPEC=n (static inline stub under IS_ENABLED(CONFIG_TYPEC)), so it only needs to be kept out of vmlinux when TYPEC is a module.
+
+  --- commit message reproduction section ---
+  |
+  | With the attached configuration (x86_64, v6.19-rc1-143-g3ddcd24b4d84):
+  |
+  |   phy-google-usb.c:(.text+0x25): undefined reference to `typec_switch_unregister'
+  |
+  | CONFIG_PHY_GOOGLE_USB is built into vmlinux while CONFIG_TYPEC is a module, so typec_switch_unregister is
+  | not available at link time.
+  |
+  | Fix: depends on TYPEC || !TYPEC in config PHY_GOOGLE_USB.
+  | Found with a static reachability check and confirmed by a build.
+  |
+  | Fixes: cbce66669c82 ("phy: Add Google Tensor SoC USB PHY driver")
+  ---

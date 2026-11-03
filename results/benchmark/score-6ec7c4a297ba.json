@@ -1,0 +1,13 @@
+{
+ "checked": 1,
+ "excluded": [],
+ "hits": [],
+ "misses": [
+  {
+   "commit": "6ec7c4a297baea6be43d0b09d19bde8bbc1fec15",
+   "reason": "not reported",
+   "subject": "pmdomain: thead: fix TH1520_AON_PROTOCOL dependency"
+  }
+ ],
+ "recall": 0.0
+}

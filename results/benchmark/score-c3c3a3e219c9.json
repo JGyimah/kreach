@@ -1,0 +1,17 @@
+{
+ "checked": 1,
+ "excluded": [],
+ "hits": [
+  {
+   "commit": "c3c3a3e219c92d6f488e2213a73af508bc4daf82",
+   "matched": "pair",
+   "pair": [
+    "CONFIG_KEBA_CP500",
+    "CONFIG_I2C"
+   ],
+   "subject": "misc: keba: Fix missing I2C dependency"
+  }
+ ],
+ "misses": [],
+ "recall": 1.0
+}

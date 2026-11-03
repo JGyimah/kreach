@@ -1,0 +1,13 @@
+{
+ "checked": 1,
+ "excluded": [],
+ "hits": [],
+ "misses": [
+  {
+   "commit": "2182f358fb138f81a586ffdddd510f2a4fc61702",
+   "reason": "caller reported, different provider",
+   "subject": "drm/xe/vsec: fix CONFIG_INTEL_VSEC dependency"
+  }
+ ],
+ "recall": 0.0
+}

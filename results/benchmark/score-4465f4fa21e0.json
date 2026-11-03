@@ -1,0 +1,17 @@
+{
+ "checked": 1,
+ "excluded": [],
+ "hits": [
+  {
+   "commit": "4465f4fa21e0e54c10896db3ed49dbd5a9aad3fd",
+   "matched": "pair",
+   "pair": [
+    "CONFIG_HID_LOGITECH",
+    "CONFIG_LEDS_CLASS_MULTICOLOR"
+   ],
+   "subject": "HID: Kconfig: Add LEDS_CLASS_MULTICOLOR dependency to HID_LOGITECH"
+  }
+ ],
+ "misses": [],
+ "recall": 1.0
+}

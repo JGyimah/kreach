@@ -1,0 +1,18 @@
+{
+ "checked": 1,
+ "excluded": [],
+ "hits": [
+  {
+   "commit": "549d8994447f2f628c6cedd139d53926bdfee881",
+   "matched": "symbol and provider",
+   "note": "kreach names the caller CONFIG_VIDEO_VIVID where the fix edits CONFIG_VIDEO_VIVID_OSD; same symbol fb_alloc_cmap from CONFIG_FB_CORE, and the caller is drivers/media/test-drivers/vivid/vivid-osd.c",
+   "pair": [
+    "CONFIG_VIDEO_VIVID",
+    "CONFIG_FB_CORE"
+   ],
+   "subject": "media: vivid: fix FB dependency"
+  }
+ ],
+ "misses": [],
+ "recall": 1.0
+}

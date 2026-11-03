@@ -37,7 +37,10 @@ def referencing_dirs(ksrc: str, rev: str, symbol: str, cache: dict) -> set[str]:
     key = (rev, symbol)
     if key in cache:
         return cache[key]
-    out = subprocess.run(["git", "grep", "-l", symbol, rev],
+    # -w, not a substring match: without it a symbol `foo` pulls in every
+    # directory mentioning `foo_bar`, inflating the scope and pushing cases
+    # over MAX_SCOPES into the Kconfig-directory fallback for no reason.
+    out = subprocess.run(["git", "grep", "-lw", symbol, rev],
                          cwd=ksrc, capture_output=True, text=True).stdout
     dirs = set()
     for line in out.splitlines():

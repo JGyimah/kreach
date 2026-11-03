@@ -1,0 +1,1 @@
+{"caller": "drivers/platform/chrome/chromeos_pstore.o", "caller_option": "CONFIG_CHROMEOS_PSTORE", "guard_symbol": "CONFIG_IOSF_MBI", "macro": "IS_REACHABLE", "provider": "drivers/firmware/dmi_scan.o", "provider_option": "CONFIG_DMI", "symbol": "dmi_check_system", "where": "sound/soc/intel/common/soc-intel-quirks.h:14"}

@@ -1,0 +1,48 @@
+kreach findings -- v6.16-6620-gf752adfaf5f7, arch x86_64
+========================================================================
+
+## CONFIG_BRIDGE_NF_EBTABLES_LEGACY  (1 finding)
+
+  id          65a9adbbc45e
+  arch        x86_64
+  case        y/m   (caller built-in, provider a module: vmlinux link error)
+  caller      net/bridge/netfilter/ebtables.o  [CONFIG_BRIDGE_NF_EBTABLES_LEGACY]
+  provider    net/netfilter/x_tables.o  [CONFIG_NETFILTER_XTABLES]  module x_tables.ko
+  symbols     xt_check_match, xt_check_target, xt_data_to_user, xt_find_match, xt_register_target, xt_request_find_target, xt_unregister_target
+  witness     witness/d5270cbba8b4.config   (1009 settings enabled)
+  levels      CONFIG_BRIDGE_NF_EBTABLES_LEGACY=y, CONFIG_NETFILTER_XTABLES=m
+  build_log   build/d5270cbba8b4.log
+      ebtables.c:(.text+0x289): undefined reference to `xt_find_match'
+      ld: ebtables.c:(.text+0x2be): undefined reference to `xt_find_match'
+      ld: ebtables.c:(.text+0x2fa): undefined reference to `xt_check_match'
+      ld: ebtables.c:(.text+0x43f): undefined reference to `xt_request_find_target'
+      ld: ebtables.c:(.text+0x48c): undefined reference to `xt_check_target'
+      ld: ebtables.c:(.text+0x584): undefined reference to `xt_request_find_target'
+  Fixes: 043ef46c7690 ("netfilter: move Ebtables to use Xtables")
+              (git log -Sxt_check_match on net/bridge/netfilter/ebtables.c)
+  send to     Pablo Neira Ayuso <pablo@netfilter.org>
+              Jozsef Kadlecsik <kadlec@netfilter.org>
+              Florian Westphal <fw@strlen.de>
+              Nikolay Aleksandrov <razor@blackwall.org>
+              Ido Schimmel <idosch@nvidia.com>
+              "David S. Miller" <davem@davemloft.net>
+  fix         depends on NETFILTER_XTABLES
+              in config BRIDGE_NF_EBTABLES_LEGACY
+              BRIDGE_NF_EBTABLES_LEGACY has no stub for NETFILTER_XTABLES=n (no static inline stub found), so every caller path needs NETFILTER_XTABLES present.
+
+  --- commit message reproduction section ---
+  |
+  | With the attached configuration (x86_64, v6.16-6620-gf752adfaf5f7):
+  |
+  |   ebtables.c:(.text+0x289): undefined reference to `xt_find_match'
+  |   ld: ebtables.c:(.text+0x2be): undefined reference to `xt_find_match'
+  |   ld: ebtables.c:(.text+0x2fa): undefined reference to `xt_check_match'
+  |
+  | CONFIG_BRIDGE_NF_EBTABLES_LEGACY is built into vmlinux while CONFIG_NETFILTER_XTABLES is a module, so xt_check_match, xt_check_target, xt_data_to_user and 4 more are
+  | not available at link time.
+  |
+  | Fix: depends on NETFILTER_XTABLES in config BRIDGE_NF_EBTABLES_LEGACY.
+  | Found with a static reachability check and confirmed by a build.
+  |
+  | Fixes: 043ef46c7690 ("netfilter: move Ebtables to use Xtables")
+  ---

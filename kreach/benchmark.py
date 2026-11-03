@@ -382,7 +382,10 @@ def symbol_sources(ctx: Context, rev: str, symbols: list[str],
             out |= cache[key]
             continue
         got = set()
-        for line in _git(ctx, ["grep", "-l", sym, rev], check=False).splitlines():
+        # -w, not a substring match: a symbol `foo` otherwise matches every
+        # file mentioning `foo_bar`, which loosens the source check this
+        # exists to tighten.
+        for line in _git(ctx, ["grep", "-lw", sym, rev], check=False).splitlines():
             if ":" in line:
                 got.add(line.split(":", 1)[1])
         if cache is not None:

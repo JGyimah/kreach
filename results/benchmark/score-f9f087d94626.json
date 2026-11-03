@@ -1,0 +1,18 @@
+{
+ "checked": 1,
+ "excluded": [],
+ "hits": [
+  {
+   "commit": "f9f087d946266bc5da7c3a17bd8fd9d01969e3cf",
+   "matched": "symbol and provider",
+   "note": "kreach names the caller CONFIG_DRM_ZYNQMP_DPSUB where the fix edits CONFIG_DRM_ZYNQMP_DPSUB_AUDIO; same symbol devm_snd_dmaengine_pcm_register from CONFIG_SND_SOC, and the caller is drivers/gpu/drm/xlnx/zynqmp_dp_audio.c",
+   "pair": [
+    "CONFIG_DRM_ZYNQMP_DPSUB",
+    "CONFIG_SND_SOC"
+   ],
+   "subject": "drm: xlnx: zynqmp_dpsub: fix Kconfig dependencies for ASoC"
+  }
+ ],
+ "misses": [],
+ "recall": 1.0
+}

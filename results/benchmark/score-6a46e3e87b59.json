@@ -1,0 +1,13 @@
+{
+ "checked": 1,
+ "excluded": [],
+ "hits": [],
+ "misses": [
+  {
+   "commit": "6a46e3e87b5964f21eb90e8abfee916141df1763",
+   "reason": "not reported",
+   "subject": "net: phy: microchip_t1: depend on PTP_1588_CLOCK_OPTIONAL"
+  }
+ ],
+ "recall": 0.0
+}

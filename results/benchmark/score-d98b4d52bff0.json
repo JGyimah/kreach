@@ -1,0 +1,13 @@
+{
+ "checked": 1,
+ "excluded": [],
+ "hits": [],
+ "misses": [
+  {
+   "commit": "d98b4d52bff02d15ea73b1790d7610a2f4f023ab",
+   "reason": "not reported",
+   "subject": "scsi: ufs: core: Fix RPMB link error by reversing Kconfig dependencies"
+  }
+ ],
+ "recall": 0.0
+}

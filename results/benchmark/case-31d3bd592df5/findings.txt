@@ -1,0 +1,43 @@
+kreach findings -- v6.15-rc1-6-g9aea0edcc3e9, arch x86_64
+========================================================================
+
+## CONFIG_CROS_KBD_LED_BACKLIGHT  (1 finding)
+
+  id          d2d15db84b8a
+  arch        x86_64
+  case        y/m   (caller built-in, provider a module: vmlinux link error)
+  caller      drivers/platform/chrome/cros_kbd_led_backlight.o  [CONFIG_CROS_KBD_LED_BACKLIGHT]
+  provider    drivers/platform/chrome/cros_ec_proto.o  [CONFIG_CROS_EC_PROTO]  module cros-ec-proto.ko
+  symbols     cros_ec_cmd_xfer_status
+  witness     witness/ea5a37407442.config   (1281 settings enabled)
+  levels      CONFIG_CROS_EC_PROTO=m, CONFIG_CROS_KBD_LED_BACKLIGHT=y
+  build_log   build/ea5a37407442.log
+      /home/ubuntu/bench/sweep-9aea0edcc3e9-x86_64/s6/build/ea5a37407442/drivers/platform/chrome/cros_kbd_led_backlight.c:151:(.text+0x150): undefined reference to `cros_ec_cmd_xfer_status'
+      /home/ubuntu/bench/sweep-9aea0edcc3e9-x86_64/s6/build/ea5a37407442/drivers/platform/chrome/cros_kbd_led_backlight.c:167:(.text+0x187): undefined reference to `cros_ec_cmd_xfer_status'
+  Fixes: 40f58143745e ("platform/chrome: cros_kbd_led_backlight: support EC PWM backend")
+              (git log -Scros_ec_cmd_xfer_status on drivers/platform/chrome/cros_kbd_led_backlight.c)
+  send to     Benson Leung <bleung@chromium.org>
+              Tzung-Bi Shih <tzungbi@kernel.org>
+              chrome-platform@lists.linux.dev
+              linux-kernel@vger.kernel.org
+  fix         depends on CROS_EC_PROTO
+              in config CROS_KBD_LED_BACKLIGHT
+              CROS_KBD_LED_BACKLIGHT has no stub for CROS_EC_PROTO=n (no static inline stub found), so every caller path needs CROS_EC_PROTO present.
+  caveat      CROS_EC_PROTO has no prompt, so it is only ever enabled by a select; 'depends on CROS_EC_PROTO' would leave CROS_KBD_LED_BACKLIGHT unselectable.  This one needs a maintainer decision, not the standard fix.
+
+  --- commit message reproduction section ---
+  |
+  | With the attached configuration (x86_64, v6.15-rc1-6-g9aea0edcc3e9):
+  |
+  |   /home/ubuntu/bench/sweep-9aea0edcc3e9-x86_64/s6/build/ea5a37407442/drivers/platform/chrome/cros_kbd_led_backlight.c:151:(.text+0x150): undefined reference to `cros_ec_cmd_xfer_status'
+  |   /home/ubuntu/bench/sweep-9aea0edcc3e9-x86_64/s6/build/ea5a37407442/drivers/platform/chrome/cros_kbd_led_backlight.c:167:(.text+0x187): undefined reference to `cros_ec_cmd_xfer_status'
+  |
+  | CONFIG_CROS_KBD_LED_BACKLIGHT is built into vmlinux while CONFIG_CROS_EC_PROTO is a module, so cros_ec_cmd_xfer_status is
+  | not available at link time.
+  |
+  | Fix: depends on CROS_EC_PROTO in config CROS_KBD_LED_BACKLIGHT.
+  | Note: CROS_EC_PROTO has no prompt, so it is only ever enabled by a select; 'depends on CROS_EC_PROTO' would leave CROS_KBD_LED_BACKLIGHT unselectable.  This one needs a maintainer decision, not the standard fix.
+  | Found with a static reachability check and confirmed by a build.
+  |
+  | Fixes: 40f58143745e ("platform/chrome: cros_kbd_led_backlight: support EC PWM backend")
+  ---

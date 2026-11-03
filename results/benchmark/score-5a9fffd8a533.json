@@ -1,0 +1,13 @@
+{
+ "checked": 1,
+ "excluded": [],
+ "hits": [],
+ "misses": [
+  {
+   "commit": "5a9fffd8a533bfb2688ec69dd6d1b6e53ef1177a",
+   "reason": "not reported",
+   "subject": "platform/x86/intel/pmt: fix build dependency for kunit test"
+  }
+ ],
+ "recall": 0.0
+}

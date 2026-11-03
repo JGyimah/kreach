@@ -1,0 +1,42 @@
+kreach findings -- v6.13-4729-ga3a064146c50, arch x86_64
+========================================================================
+
+## CONFIG_HID_LOGITECH  (1 finding)
+
+  id          da1f7f25bf36
+  arch        x86_64
+  case        y/m   (caller built-in, provider a module: vmlinux link error)
+  caller      drivers/hid/hid-lg-g15.o  [CONFIG_HID_LOGITECH]
+  provider    drivers/leds/led-class-multicolor.o  [CONFIG_LEDS_CLASS_MULTICOLOR]  module led-class-multicolor.ko
+  symbols     devm_led_classdev_multicolor_register_ext, led_mc_calc_color_components
+  witness     witness/0c6384b88242.config   (1149 settings enabled)
+  levels      CONFIG_HID_LOGITECH=y, CONFIG_LEDS_CLASS_MULTICOLOR=m
+  build_log   build/0c6384b88242.log
+      hid-lg-g15.c:(.text+0x3bc): undefined reference to `led_mc_calc_color_components'
+      hid-lg-g15.c:(.text+0x6c7): undefined reference to `devm_led_classdev_multicolor_register_ext'
+  Fixes: a3a064146c50 ("HID: hid-lg-g15: Use standard multicolor LED API")
+              (git log -Sdevm_led_classdev_multicolor_register_ext on drivers/hid/hid-lg-g15.c)
+  send to     Hans de Goede <hdegoede@redhat.com>
+              Jiri Kosina <jikos@kernel.org>
+              Benjamin Tissoires <bentiss@kernel.org>
+              linux-input@vger.kernel.org
+              linux-kernel@vger.kernel.org
+  fix         depends on LEDS_CLASS_MULTICOLOR
+              in config HID_LOGITECH
+              HID_LOGITECH has no stub for LEDS_CLASS_MULTICOLOR=n (no static inline stub found), so every caller path needs LEDS_CLASS_MULTICOLOR present.
+
+  --- commit message reproduction section ---
+  |
+  | With the attached configuration (x86_64, v6.13-4729-ga3a064146c50):
+  |
+  |   hid-lg-g15.c:(.text+0x3bc): undefined reference to `led_mc_calc_color_components'
+  |   hid-lg-g15.c:(.text+0x6c7): undefined reference to `devm_led_classdev_multicolor_register_ext'
+  |
+  | CONFIG_HID_LOGITECH is built into vmlinux while CONFIG_LEDS_CLASS_MULTICOLOR is a module, so devm_led_classdev_multicolor_register_ext, led_mc_calc_color_components are
+  | not available at link time.
+  |
+  | Fix: depends on LEDS_CLASS_MULTICOLOR in config HID_LOGITECH.
+  | Found with a static reachability check and confirmed by a build.
+  |
+  | Fixes: a3a064146c50 ("HID: hid-lg-g15: Use standard multicolor LED API")
+  ---

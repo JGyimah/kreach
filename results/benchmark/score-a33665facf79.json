@@ -1,0 +1,13 @@
+{
+ "checked": 1,
+ "excluded": [],
+ "hits": [],
+ "misses": [
+  {
+   "commit": "a33665facf792de619e451bdbf66e86b9c6763bc",
+   "reason": "not reported",
+   "subject": "usb: typec: ucsi: yoga-c630: add DRM dependency"
+  }
+ ],
+ "recall": 0.0
+}

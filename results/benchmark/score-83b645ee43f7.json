@@ -1,0 +1,17 @@
+{
+ "checked": 1,
+ "excluded": [],
+ "hits": [
+  {
+   "commit": "83b645ee43f796dc765cc541d5cafa6fe2b1f3fa",
+   "matched": "pair",
+   "pair": [
+    "CONFIG_SENSORS_TMP108",
+    "CONFIG_I3C"
+   ],
+   "subject": "hwmon: tmp108: fix I3C dependency"
+  }
+ ],
+ "misses": [],
+ "recall": 1.0
+}

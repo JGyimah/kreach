@@ -1,0 +1,37 @@
+kreach findings -- v6.11-rc4-66-g2650fd867929, arch x86_64
+========================================================================
+
+## CONFIG_TURRIS_OMNIA_MCU  (1 finding)
+
+  id          a0bdfb429e95
+  arch        x86_64
+  case        y/m   (caller built-in, provider a module: vmlinux link error)
+  caller      drivers/platform/cznic/turris-omnia-mcu-trng.o  [CONFIG_TURRIS_OMNIA_MCU]
+  provider    drivers/char/hw_random/core.o  [CONFIG_HW_RANDOM]  module rng-core.ko
+  symbols     devm_hwrng_register
+  witness     witness/8d37bbe0a608.config   (1165 settings enabled)
+  levels      CONFIG_HW_RANDOM=m, CONFIG_TURRIS_OMNIA_MCU=y
+  build_log   build/8d37bbe0a608.log
+      turris-omnia-mcu-trng.c:(.text+0x2af): undefined reference to `devm_hwrng_register'
+  Fixes: 41bb142a4028 ("platform: cznic: turris-omnia-mcu: Add support for MCU provided TRNG")
+              (git log -Sdevm_hwrng_register on drivers/platform/cznic/turris-omnia-mcu-trng.c)
+  send to     "Marek Behún" <kabel@kernel.org>
+              linux-kernel@vger.kernel.org
+  fix         depends on HW_RANDOM
+              in config TURRIS_OMNIA_MCU
+              TURRIS_OMNIA_MCU has no stub for HW_RANDOM=n (no static inline stub found), so every caller path needs HW_RANDOM present.
+
+  --- commit message reproduction section ---
+  |
+  | With the attached configuration (x86_64, v6.11-rc4-66-g2650fd867929):
+  |
+  |   turris-omnia-mcu-trng.c:(.text+0x2af): undefined reference to `devm_hwrng_register'
+  |
+  | CONFIG_TURRIS_OMNIA_MCU is built into vmlinux while CONFIG_HW_RANDOM is a module, so devm_hwrng_register is
+  | not available at link time.
+  |
+  | Fix: depends on HW_RANDOM in config TURRIS_OMNIA_MCU.
+  | Found with a static reachability check and confirmed by a build.
+  |
+  | Fixes: 41bb142a4028 ("platform: cznic: turris-omnia-mcu: Add support for MCU provided TRNG")
+  ---

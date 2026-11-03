@@ -1,0 +1,17 @@
+{
+ "checked": 1,
+ "excluded": [],
+ "hits": [
+  {
+   "commit": "25a8b88f000c33a1d580c317e93e40b953dc2fa5",
+   "matched": "pair",
+   "pair": [
+    "CONFIG_BRIDGE_NF_EBTABLES_LEGACY",
+    "CONFIG_NETFILTER_XTABLES"
+   ],
+   "subject": "netfilter: add back NETFILTER_XTABLES dependencies"
+  }
+ ],
+ "misses": [],
+ "recall": 1.0
+}

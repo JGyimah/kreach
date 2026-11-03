@@ -1,0 +1,13 @@
+{
+ "checked": 1,
+ "excluded": [],
+ "hits": [],
+ "misses": [
+  {
+   "commit": "2193ede180dde21b7f866cc457eb9e13341e663b",
+   "reason": "not reported",
+   "subject": "net/9p/usbg: fix CONFIG_USB_GADGET dependency"
+  }
+ ],
+ "recall": 0.0
+}

@@ -1,0 +1,13 @@
+{
+ "checked": 1,
+ "excluded": [],
+ "hits": [],
+ "misses": [
+  {
+   "commit": "17c40f3c94bc2279b879ea9ceb3eea973bcd1ac4",
+   "reason": "not reported",
+   "subject": "leds: blinkm: Fix CONFIG_LEDS_CLASS_MULTICOLOR dependency"
+  }
+ ],
+ "recall": 0.0
+}

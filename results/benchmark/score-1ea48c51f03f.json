@@ -1,0 +1,13 @@
+{
+ "checked": 1,
+ "excluded": [],
+ "hits": [],
+ "misses": [
+  {
+   "commit": "1ea48c51f03fc3186ee0bcc05d06b652c209e0ae",
+   "reason": "not reported",
+   "subject": "power: supply: max77976: add EXTCON dependency"
+  }
+ ],
+ "recall": 0.0
+}

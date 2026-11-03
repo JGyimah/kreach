@@ -1,0 +1,13 @@
+{
+ "checked": 1,
+ "excluded": [],
+ "hits": [],
+ "misses": [
+  {
+   "commit": "dc3a6a942e9ee3f18560bfcb16c06bb94f37fabf",
+   "reason": "not reported",
+   "subject": "soundwire: intel_ace2x: add SND_HDA_CORE dependency"
+  }
+ ],
+ "recall": 0.0
+}

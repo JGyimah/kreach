@@ -428,3 +428,20 @@ def test_without_a_tree_only_exact_pairs_count(tmp_path):
                  "drivers/infiniband/hw/mlx5/macsec.c")
     res = score({"cases": [MLX5]}, _write(tmp_path, [f]), commit=MLX5["commit"])
     assert res["recall"] == 0.0
+
+
+def test_symbol_sources_matches_whole_words_only(monkeypatch):
+    """A substring match would pull in every file mentioning a longer
+    identifier, loosening the source check the near-match rule depends on."""
+    from kreach import benchmark as B
+
+    seen = {}
+
+    def fake_git(ctx, args, check=True):
+        seen["args"] = args
+        return "rev:drivers/x/a.c"
+
+    monkeypatch.setattr(B, "_git", fake_git)
+    out = B.symbol_sources(None, "rev", ["foo"], {})
+    assert out == {"drivers/x/a.c"}
+    assert "-lw" in seen["args"], seen["args"]

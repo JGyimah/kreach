@@ -1,0 +1,13 @@
+{
+ "checked": 1,
+ "excluded": [],
+ "hits": [],
+ "misses": [
+  {
+   "commit": "d3296a9d0bc2576a8e3dee7925d6f47e1f225fc2",
+   "reason": "not reported",
+   "subject": "eth: fbnic: add CONFIG_PTP_1588_CLOCK_OPTIONAL dependency"
+  }
+ ],
+ "recall": 0.0
+}

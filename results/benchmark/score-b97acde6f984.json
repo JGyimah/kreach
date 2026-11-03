@@ -1,0 +1,18 @@
+{
+ "checked": 1,
+ "excluded": [],
+ "hits": [
+  {
+   "commit": "b97acde6f9840edbac5c7ea07cba6f10308d24ee",
+   "matched": "symbol and provider",
+   "note": "kreach names the caller CONFIG_TURRIS_OMNIA_MCU where the fix edits CONFIG_TURRIS_OMNIA_MCU_TRNG; same symbol devm_hwrng_register from CONFIG_HW_RANDOM, and the caller is drivers/platform/cznic/turris-omnia-mcu-trng.c",
+   "pair": [
+    "CONFIG_TURRIS_OMNIA_MCU",
+    "CONFIG_HW_RANDOM"
+   ],
+   "subject": "platform: cznic: turris-omnia-mcu: fix HW_RANDOM dependency"
+  }
+ ],
+ "misses": [],
+ "recall": 1.0
+}

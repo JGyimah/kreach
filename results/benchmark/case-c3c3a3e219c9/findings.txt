@@ -1,0 +1,38 @@
+kreach findings -- v6.12-rc2-30-gccb22ca28052, arch x86_64
+========================================================================
+
+## CONFIG_KEBA_CP500  (1 finding)
+
+  id          f1318ae92d97
+  arch        x86_64
+  case        y/m   (caller built-in, provider a module: vmlinux link error)
+  caller      drivers/misc/keba/cp500.o  [CONFIG_KEBA_CP500]
+  provider    drivers/i2c/i2c-core-base.o  [CONFIG_I2C]  module i2c-core.ko
+  symbols     i2c_verify_client
+  witness     witness/800ed9e187e9.config   (835 settings enabled)
+  levels      CONFIG_I2C=m, CONFIG_KEBA_CP500=y
+  build_log   build/800ed9e187e9.log
+      cp500.c:(.text+0x231d2f): undefined reference to `i2c_verify_client'
+  Fixes: 794848300103 ("misc: keba: Add SPI controller device")
+              (git log -Si2c_verify_client on drivers/misc/keba/cp500.c)
+  send to     Arnd Bergmann <arnd@arndb.de>
+              Greg Kroah-Hartman <gregkh@linuxfoundation.org>
+              linux-kernel@vger.kernel.org
+  fix         depends on I2C
+              in config KEBA_CP500
+              KEBA_CP500 has no stub for I2C=n (no static inline stub found), so every caller path needs I2C present.
+
+  --- commit message reproduction section ---
+  |
+  | With the attached configuration (x86_64, v6.12-rc2-30-gccb22ca28052):
+  |
+  |   cp500.c:(.text+0x231d2f): undefined reference to `i2c_verify_client'
+  |
+  | CONFIG_KEBA_CP500 is built into vmlinux while CONFIG_I2C is a module, so i2c_verify_client is
+  | not available at link time.
+  |
+  | Fix: depends on I2C in config KEBA_CP500.
+  | Found with a static reachability check and confirmed by a build.
+  |
+  | Fixes: 794848300103 ("misc: keba: Add SPI controller device")
+  ---

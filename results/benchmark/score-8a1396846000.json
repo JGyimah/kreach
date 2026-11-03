@@ -1,0 +1,17 @@
+{
+ "checked": 1,
+ "excluded": [],
+ "hits": [
+  {
+   "commit": "8a13968460004d21dd0ca457b06fccfdfdfafd6c",
+   "matched": "pair",
+   "pair": [
+    "CONFIG_PHY_GOOGLE_USB",
+    "CONFIG_TYPEC"
+   ],
+   "subject": "phy: GOOGLE_USB: add TYPEC dependency"
+  }
+ ],
+ "misses": [],
+ "recall": 1.0
+}

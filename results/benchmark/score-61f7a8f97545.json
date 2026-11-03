@@ -1,0 +1,13 @@
+{
+ "checked": 1,
+ "excluded": [],
+ "hits": [],
+ "misses": [
+  {
+   "commit": "61f7a8f975456d7be21100ee0936389142b95a81",
+   "reason": "not reported",
+   "subject": "Bluetooth: btmtk: Fix btmtk.c undefined reference build error harder"
+  }
+ ],
+ "recall": 0.0
+}

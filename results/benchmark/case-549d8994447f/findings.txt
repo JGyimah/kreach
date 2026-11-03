@@ -1,0 +1,48 @@
+kreach findings -- v6.15-rc1, arch x86_64
+========================================================================
+
+## CONFIG_VIDEO_VIVID  (1 finding)
+
+  id          52e8894845a7
+  arch        x86_64
+  case        y/m   (caller built-in, provider a module: vmlinux link error)
+  caller      drivers/media/test-drivers/vivid/vivid-osd.o  [CONFIG_VIDEO_VIVID]
+  provider    drivers/video/fbdev/core/fbcmap.o  [CONFIG_FB_CORE]  module fb.ko
+  symbols     fb_alloc_cmap, fb_dealloc_cmap, register_framebuffer, unregister_framebuffer
+  witness     witness/c2a169827361.config   (1008 settings enabled)
+  levels      CONFIG_FB_CORE=m, CONFIG_VIDEO_VIVID=y
+  build_log   build/c2a169827361.log
+      vivid-osd.c:(.text+0xda6): undefined reference to `fb_alloc_cmap'
+      ld: vivid-osd.c:(.text+0xe07): undefined reference to `register_framebuffer'
+      ld: vivid-osd.c:(.text+0xf0e): undefined reference to `fb_dealloc_cmap'
+      ld: vivid-osd.c:(.text+0xf90): undefined reference to `fb_dealloc_cmap'
+      vivid-osd.c:(.text+0xfe6): undefined reference to `unregister_framebuffer'
+      ld: vivid-osd.c:(.text+0x1048): undefined reference to `fb_dealloc_cmap'
+  Fixes: dacca5f0fa69 ("media: media/test_drivers: rename to test-drivers")
+              (git log -Sfb_alloc_cmap on drivers/media/test-drivers/vivid/vivid-osd.c)
+  send to     Hans Verkuil <hverkuil@xs4all.nl>
+              Mauro Carvalho Chehab <mchehab@kernel.org>
+              linux-media@vger.kernel.org
+              linux-kernel@vger.kernel.org
+  fix         depends on FB_CORE
+              in config VIDEO_VIVID
+              VIDEO_VIVID has no stub for FB_CORE=n (no static inline stub found), so every caller path needs FB_CORE present.
+  caveat      FB_CORE has no prompt, so it is only ever enabled by a select; 'depends on FB_CORE' would leave VIDEO_VIVID unselectable.  This one needs a maintainer decision, not the standard fix.
+
+  --- commit message reproduction section ---
+  |
+  | With the attached configuration (x86_64, v6.15-rc1):
+  |
+  |   vivid-osd.c:(.text+0xda6): undefined reference to `fb_alloc_cmap'
+  |   ld: vivid-osd.c:(.text+0xe07): undefined reference to `register_framebuffer'
+  |   ld: vivid-osd.c:(.text+0xf0e): undefined reference to `fb_dealloc_cmap'
+  |
+  | CONFIG_VIDEO_VIVID is built into vmlinux while CONFIG_FB_CORE is a module, so fb_alloc_cmap, fb_dealloc_cmap, register_framebuffer and 1 more are
+  | not available at link time.
+  |
+  | Fix: depends on FB_CORE in config VIDEO_VIVID.
+  | Note: FB_CORE has no prompt, so it is only ever enabled by a select; 'depends on FB_CORE' would leave VIDEO_VIVID unselectable.  This one needs a maintainer decision, not the standard fix.
+  | Found with a static reachability check and confirmed by a build.
+  |
+  | Fixes: dacca5f0fa69 ("media: media/test_drivers: rename to test-drivers")
+  ---

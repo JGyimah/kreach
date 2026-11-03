@@ -124,6 +124,37 @@ the bug rather than to the class — and the last clause is what stops a
 different driver's bug on the same symbol being credited. Scoring without a
 kernel tree to check that clause against falls back to exact pairs only.
 
+## A rule that cannot be written
+
+`514b2262ade4` ("firmware: arm_scmi: Fix i.MX build dependency") missed, and
+the obvious reading was that the miner had named a stanza that is neither side
+of the pair: `IMX_SCMI_MISC_EXT` gates
+`drivers/firmware/arm_scmi/vendors/imx/imx-sm-misc.o`, while the exported
+`scmi_imx_misc_ctrl_get`/`_set` come from `drivers/firmware/imx/sm-misc.o`
+under `IMX_SCMI_MISC_DRV`, and the only genuine caller is
+`sound/soc/fsl/fsl_mqs.c` under `SND_SOC_FSL_MQS`. That suggests a mining
+rule: exclude a case when no object the named caller gates actually
+references the named symbols.
+
+It cannot be decided at mining time. `imx-sm-misc.c` contains
+
+```
+static int scmi_imx_misc_ctrl_get(const struct scmi_protocol_handle *ph,
+                                  u32 ctrl_id, u32 *num, u32 *val)
+```
+
+-- a file-local static with the same name as the exported symbol. Neither a
+substring grep nor a word-boundary grep can tell that from a reference to the
+exported one; only the compiled object's symbol table can, which is precisely
+what S3 and S4 already compute. A grep-based rule would also be wrong in the
+other direction: it would exclude `93b5d21e8b5c`, where the caller option
+appears nowhere near the referencing object's Makefile and the case is a
+genuine limitation worth counting as a miss.
+
+So this shape stays a miss, with the reason recorded here rather than encoded
+as an exclusion. The useful part of looking was finding that both symbol
+lookups used a substring grep where they meant whole words.
+
 ## Method
 
 S5 and S6 were filtered to each case's caller option, so this answers "does

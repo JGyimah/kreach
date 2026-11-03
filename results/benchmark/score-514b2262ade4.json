@@ -1,0 +1,13 @@
+{
+ "checked": 1,
+ "excluded": [],
+ "hits": [],
+ "misses": [
+  {
+   "commit": "514b2262ade48a0503ac6aa03c3bfb8c5be69b21",
+   "reason": "not reported",
+   "subject": "firmware: arm_scmi: Fix i.MX build dependency"
+  }
+ ],
+ "recall": 0.0
+}
