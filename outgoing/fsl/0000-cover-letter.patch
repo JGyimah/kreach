@@ -1,0 +1,29 @@
+From 8d3d6cf036c2f0dbe58fb4acc138d533cf219bae Mon Sep 17 00:00:00 2001
+From: InstructorZer0 <jude.gyimah87@gmail.com>
+Date: Tue, 3 Nov 2026 13:27:41 +0100
+Subject: [PATCH 0/3] ASoC: fsl: fix missing GENERIC_BITREVERSE and REGMAP_MMIO dependencies
+
+Each of these drivers can be built into vmlinux while the code
+providing a symbol it calls is a module, which fails to link.  The
+same shape in 3 drivers, so they are here as one series.
+
+Affected: fsl_aud2htx, fsl_xcvr, lpc3xxx-i2s.
+
+The fix is a select rather than a depends on: the providers have no
+prompt of their own and are only ever enabled by a select, so a
+depends on would leave these drivers unselectable.
+
+Each was reproduced on v7.3, x86_64, by a vmlinux link that failed on
+the named symbol, and each links once the select is added.
+
+InstructorZer0 (3):
+  ASoC: fsl_aud2htx: select missing dependencies
+  ASoC: fsl: lpc3xxx-i2s: select REGMAP_MMIO
+  ASoC: fsl_xcvr: select BITREVERSE
+
+ sound/soc/fsl/Kconfig | 4 ++++
+ 1 file changed, 4 insertions(+)
+
+-- 
+2.43.0
+

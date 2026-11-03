@@ -1,0 +1,41 @@
+From b4da6d401b29366c719ec6abd0752ebfd5e8ff48 Mon Sep 17 00:00:00 2001
+From: InstructorZer0 <jude.gyimah87@gmail.com>
+Date: Tue, 3 Nov 2026 13:27:39 +0100
+Subject: [PATCH 4/5] ASoC: rockchip_sai: select REGMAP_MMIO
+
+rockchip_sai calls __devm_regmap_init_mmio_clk, which
+drivers/base/regmap/regmap-mmio.c provides under REGMAP_MMIO.
+
+  rockchip_sai.c:1424:(.text+0x153060): undefined reference to
+    `__devm_regmap_init_mmio_clk'
+
+The driver can be built into vmlinux while REGMAP_MMIO is a module, in
+which case the symbol is not there at link time.
+
+Select rather than depend on: REGMAP_MMIO has no prompt of its own and is
+only ever enabled by a select, so a depends on would leave
+SND_SOC_ROCKCHIP_SAI unselectable.
+
+Reproduced on v7.3, x86_64, with CONFIG_SND_SOC_ROCKCHIP_SAI=y and
+CONFIG_REGMAP_MMIO=m.
+
+Fixes: cc78d1eaabad ("ASoC: rockchip: add Serial Audio Interface (SAI) driver")
+---
+ sound/soc/rockchip/Kconfig | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/sound/soc/rockchip/Kconfig b/sound/soc/rockchip/Kconfig
+index e0ded1fa4da5..aba9a518d3b2 100644
+--- a/sound/soc/rockchip/Kconfig
++++ b/sound/soc/rockchip/Kconfig
+@@ -35,6 +35,7 @@ config SND_SOC_ROCKCHIP_PDM
+ 
+ config SND_SOC_ROCKCHIP_SAI
+ 	tristate "Rockchip SAI Controller Driver"
++	select REGMAP_MMIO
+ 	select SND_SOC_GENERIC_DMAENGINE_PCM
+ 	help
+ 	  Say Y or M if you want to add support for the Rockchip Serial Audio
+-- 
+2.43.0
+

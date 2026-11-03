@@ -1,0 +1,41 @@
+From ba10cede4cef4812b08ff9ddf7ffdb11a56e1e14 Mon Sep 17 00:00:00 2001
+From: InstructorZer0 <jude.gyimah87@gmail.com>
+Date: Tue, 3 Nov 2026 13:27:39 +0100
+Subject: [PATCH 3/5] ASoC: rockchip_pdm: select REGMAP_MMIO
+
+rockchip_pdm calls __devm_regmap_init_mmio_clk, which
+drivers/base/regmap/regmap-mmio.c provides under REGMAP_MMIO.
+
+  rockchip_pdm.c:(.text+0xef4): undefined reference to
+    `__devm_regmap_init_mmio_clk'
+
+The driver can be built into vmlinux while REGMAP_MMIO is a module, in
+which case the symbol is not there at link time.
+
+Select rather than depend on: REGMAP_MMIO has no prompt of its own and is
+only ever enabled by a select, so a depends on would leave
+SND_SOC_ROCKCHIP_PDM unselectable.
+
+Reproduced on v7.3, x86_64, with CONFIG_SND_SOC_ROCKCHIP_PDM=y and
+CONFIG_REGMAP_MMIO=m.
+
+Fixes: fc05a5b22253 ("ASoC: rockchip: add support for pdm controller")
+---
+ sound/soc/rockchip/Kconfig | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/sound/soc/rockchip/Kconfig b/sound/soc/rockchip/Kconfig
+index 0f8ef6868356..e0ded1fa4da5 100644
+--- a/sound/soc/rockchip/Kconfig
++++ b/sound/soc/rockchip/Kconfig
+@@ -25,6 +25,7 @@ config SND_SOC_ROCKCHIP_I2S_TDM
+ 
+ config SND_SOC_ROCKCHIP_PDM
+ 	tristate "Rockchip PDM Controller Driver"
++	select REGMAP_MMIO
+ 	select SND_SOC_GENERIC_DMAENGINE_PCM
+ 	select RATIONAL
+ 	help
+-- 
+2.43.0
+

@@ -1,0 +1,40 @@
+From 8d3d6cf036c2f0dbe58fb4acc138d533cf219bae Mon Sep 17 00:00:00 2001
+From: InstructorZer0 <jude.gyimah87@gmail.com>
+Date: Tue, 3 Nov 2026 13:27:41 +0100
+Subject: [PATCH 3/3] ASoC: fsl_xcvr: select BITREVERSE
+
+fsl_xcvr calls byte_rev_table, which lib/bitrev.c provides under
+BITREVERSE.
+
+  fsl_xcvr.c:(.text+0x1634): undefined reference to `byte_rev_table'
+
+The driver can be built into vmlinux while GENERIC_BITREVERSE is a module,
+in which case the symbol is not there at link time.
+
+Select rather than depend on: BITREVERSE has no prompt of its own and is
+only ever enabled by a select, so a depends on would leave
+SND_SOC_FSL_XCVR unselectable.
+
+Reproduced on v7.3, x86_64, with CONFIG_SND_SOC_FSL_XCVR=y and
+CONFIG_GENERIC_BITREVERSE=m.
+
+Fixes: 28564486866f ("ASoC: fsl_xcvr: Add XCVR ASoC CPU DAI driver")
+---
+ sound/soc/fsl/Kconfig | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/sound/soc/fsl/Kconfig b/sound/soc/fsl/Kconfig
+index 2f58a1a51afd..21b0509da76d 100644
+--- a/sound/soc/fsl/Kconfig
++++ b/sound/soc/fsl/Kconfig
+@@ -104,6 +104,7 @@ config SND_SOC_FSL_EASRC
+ 
+ config SND_SOC_FSL_XCVR
+ 	tristate "NXP Audio Transceiver (XCVR) module support"
++	select BITREVERSE
+ 	select REGMAP_MMIO
+ 	select SND_SOC_IMX_PCM_DMA if SND_IMX_SOC != n
+ 	select SND_SOC_GENERIC_DMAENGINE_PCM
+-- 
+2.43.0
+

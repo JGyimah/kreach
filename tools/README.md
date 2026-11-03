@@ -11,6 +11,7 @@ Diagnostics and drivers that are not part of the library.
 | `probe_clauses.py` | the per-variable kclause clauses and reverse dependencies |
 | `probe_clamp.py` | the dependency expression and R6 clamp for a symbol |
 | `probe_r6.py` | per randconfig seed: is K violated, and do the R6 clamps alone reject it |
+| `prepare_patches.py` | confirmed findings as kernel patches, one per caller option and one series per Kconfig file, adding `select` rather than the `depends on` the records carry |
 | `verify_fix.py` | does the suggested fix make the witness link? applies `select <provider>` to each caller's stanza, hands the witness back to Kconfig and links again -- the check kreach itself does not do, since it confirms a finding by a build that *fails*. `--regression` then applies every fix at once and checks the stock configurations plus an allmodconfig `vmlinux` link |
 | `bench_replicate.sh` | historical recall for one benchmark case: run the pipeline at a fix's parent commit and score it |
 | `bench_worklist.py` | which benchmark cases remain, and what S3 must build for each: the scope follows the symbols the fix names rather than the Kconfig file it edited, because those are not always in the same subsystem |

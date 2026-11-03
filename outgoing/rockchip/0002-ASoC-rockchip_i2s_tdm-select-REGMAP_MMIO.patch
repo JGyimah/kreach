@@ -1,0 +1,41 @@
+From c03c2706df8aaaa7ab4d32342786b891509cf611 Mon Sep 17 00:00:00 2001
+From: InstructorZer0 <jude.gyimah87@gmail.com>
+Date: Tue, 3 Nov 2026 13:27:39 +0100
+Subject: [PATCH 2/5] ASoC: rockchip_i2s_tdm: select REGMAP_MMIO
+
+rockchip_i2s_tdm calls __devm_regmap_init_mmio_clk, which
+drivers/base/regmap/regmap-mmio.c provides under REGMAP_MMIO.
+
+  rockchip_i2s_tdm.c:1304:(.text+0x14b1b6): undefined reference to
+    `__devm_regmap_init_mmio_clk'
+
+The driver can be built into vmlinux while REGMAP_MMIO is a module, in
+which case the symbol is not there at link time.
+
+Select rather than depend on: REGMAP_MMIO has no prompt of its own and is
+only ever enabled by a select, so a depends on would leave
+SND_SOC_ROCKCHIP_I2S_TDM unselectable.
+
+Reproduced on v7.3, x86_64, with CONFIG_SND_SOC_ROCKCHIP_I2S_TDM=y and
+CONFIG_REGMAP_MMIO=m.
+
+Fixes: 081068fd6414 ("ASoC: rockchip: add support for i2s-tdm controller")
+---
+ sound/soc/rockchip/Kconfig | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/sound/soc/rockchip/Kconfig b/sound/soc/rockchip/Kconfig
+index d7ec1fbe17a5..0f8ef6868356 100644
+--- a/sound/soc/rockchip/Kconfig
++++ b/sound/soc/rockchip/Kconfig
+@@ -14,6 +14,7 @@ config SND_SOC_ROCKCHIP_I2S
+ 
+ config SND_SOC_ROCKCHIP_I2S_TDM
+ 	tristate "Rockchip I2S/TDM Device Driver"
++	select REGMAP_MMIO
+ 	select SND_SOC_GENERIC_DMAENGINE_PCM
+ 	help
+ 	  Say Y or M if you want to add support for the I2S/TDM driver for
+-- 
+2.43.0
+

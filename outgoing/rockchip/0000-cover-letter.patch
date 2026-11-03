@@ -1,0 +1,32 @@
+From 85fa000005ecbaf5bdf9359907cd963a56bea4a7 Mon Sep 17 00:00:00 2001
+From: InstructorZer0 <jude.gyimah87@gmail.com>
+Date: Tue, 3 Nov 2026 13:27:40 +0100
+Subject: [PATCH 0/5] ASoC: rockchip: fix missing REGMAP_MMIO dependencies
+
+Each of these drivers can be built into vmlinux while the code
+providing a symbol it calls is a module, which fails to link.  The
+same shape in 5 drivers, so they are here as one series.
+
+Affected: rockchip_i2s, rockchip_i2s_tdm, rockchip_pdm, rockchip_sai,
+rockchip_spdif.
+
+The fix is a select rather than a depends on: the providers have no
+prompt of their own and are only ever enabled by a select, so a
+depends on would leave these drivers unselectable.
+
+Each was reproduced on v7.3, x86_64, by a vmlinux link that failed on
+the named symbol, and each links once the select is added.
+
+InstructorZer0 (5):
+  ASoC: rockchip_i2s: select REGMAP_MMIO
+  ASoC: rockchip_i2s_tdm: select REGMAP_MMIO
+  ASoC: rockchip_pdm: select REGMAP_MMIO
+  ASoC: rockchip_sai: select REGMAP_MMIO
+  ASoC: rockchip_spdif: select REGMAP_MMIO
+
+ sound/soc/rockchip/Kconfig | 5 +++++
+ 1 file changed, 5 insertions(+)
+
+-- 
+2.43.0
+

@@ -1,0 +1,41 @@
+From 17377cd2ee66164774ef12d386d4d6f4f79f7e7b Mon Sep 17 00:00:00 2001
+From: InstructorZer0 <jude.gyimah87@gmail.com>
+Date: Tue, 3 Nov 2026 13:27:43 +0100
+Subject: [PATCH] ASoC: sunxi: sun50i-dmic: select REGMAP_MMIO
+
+sun50i-dmic calls __devm_regmap_init_mmio_clk, which
+drivers/base/regmap/regmap-mmio.c provides under REGMAP_MMIO.
+
+  sun50i-dmic.c:(.text+0x142bce): undefined reference to
+    `__devm_regmap_init_mmio_clk'
+
+The driver can be built into vmlinux while REGMAP_MMIO is a module, in
+which case the symbol is not there at link time.
+
+Select rather than depend on: REGMAP_MMIO has no prompt of its own and is
+only ever enabled by a select, so a depends on would leave SND_SUN50I_DMIC
+unselectable.
+
+Reproduced on v7.3, x86_64, with CONFIG_SND_SUN50I_DMIC=y and
+CONFIG_REGMAP_MMIO=m.
+
+Fixes: 9fc2c8ed923d ("ASoC: sunxi: Add Allwinner H6 Digital MIC driver")
+---
+ sound/soc/sunxi/Kconfig | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/sound/soc/sunxi/Kconfig b/sound/soc/sunxi/Kconfig
+index 205f422d9ded..c8a626396e9a 100644
+--- a/sound/soc/sunxi/Kconfig
++++ b/sound/soc/sunxi/Kconfig
+@@ -58,6 +58,7 @@ config SND_SUN4I_SPDIF
+ 
+ config SND_SUN50I_DMIC
+ 	tristate "Allwinner H6 DMIC Support"
++	select REGMAP_MMIO
+ 	select SND_SOC_GENERIC_DMAENGINE_PCM
+ 	help
+ 	  Say Y or M to add support for the DMIC audio block in the Allwinner
+-- 
+2.43.0
+

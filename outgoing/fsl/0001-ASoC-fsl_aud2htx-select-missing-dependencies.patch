@@ -1,0 +1,45 @@
+From 88af17cc3753e4ad9b99f461223c34edb9150c56 Mon Sep 17 00:00:00 2001
+From: InstructorZer0 <jude.gyimah87@gmail.com>
+Date: Tue, 3 Nov 2026 13:27:40 +0100
+Subject: [PATCH 1/3] ASoC: fsl_aud2htx: select missing dependencies
+
+fsl_aud2htx calls __devm_regmap_init_mmio_clk, which
+drivers/base/regmap/regmap-mmio.c provides under REGMAP_MMIO.
+fsl_aud2htx calls devm_snd_dmaengine_pcm_register, which
+sound/soc/soc-generic-dmaengine-pcm.c provides under
+SND_SOC_GENERIC_DMAENGINE_PCM.
+
+  fsl_aud2htx.c:(.text+0x30c): undefined reference to
+    `__devm_regmap_init_mmio_clk'
+
+The driver can be built into vmlinux while REGMAP_MMIO is a module, in
+which case the symbol is not there at link time.
+
+Select rather than depend on: REGMAP_MMIO has no prompt of its own and is
+only ever enabled by a select, so a depends on would leave
+SND_SOC_FSL_AUD2HTX unselectable.
+
+Reproduced on v7.3, x86_64, with CONFIG_SND_SOC_FSL_AUD2HTX=y and
+CONFIG_REGMAP_MMIO=m.
+
+Fixes: 8a24c834c053 ("ASoC: fsl_aud2htx: Add aud2htx module driver")
+---
+ sound/soc/fsl/Kconfig | 2 ++
+ 1 file changed, 2 insertions(+)
+
+diff --git a/sound/soc/fsl/Kconfig b/sound/soc/fsl/Kconfig
+index 04940879dfd8..e8924ed652ba 100644
+--- a/sound/soc/fsl/Kconfig
++++ b/sound/soc/fsl/Kconfig
+@@ -116,6 +116,8 @@ config SND_SOC_FSL_XCVR
+ config SND_SOC_FSL_AUD2HTX
+ 	tristate "AUDIO TO HDMI TX module support"
+ 	depends on ARCH_MXC || COMPILE_TEST
++	select REGMAP_MMIO
++	select SND_SOC_GENERIC_DMAENGINE_PCM
+ 	select SND_SOC_IMX_PCM_DMA if SND_IMX_SOC != n
+ 	help
+ 	  Say Y if you want to add AUDIO TO HDMI TX support for NXP.
+-- 
+2.43.0
+

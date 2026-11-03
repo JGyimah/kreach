@@ -1,0 +1,41 @@
+From 2af0cc62d9ba9d18eb29a4fe57343e666169a850 Mon Sep 17 00:00:00 2001
+From: InstructorZer0 <jude.gyimah87@gmail.com>
+Date: Tue, 3 Nov 2026 13:27:41 +0100
+Subject: [PATCH 2/3] ASoC: fsl: lpc3xxx-i2s: select REGMAP_MMIO
+
+lpc3xxx-i2s calls __devm_regmap_init_mmio_clk, which
+drivers/base/regmap/regmap-mmio.c provides under REGMAP_MMIO.
+
+  lpc3xxx-i2s.c:320:(.text+0x13b8f6): undefined reference to
+    `__devm_regmap_init_mmio_clk'
+
+The driver can be built into vmlinux while REGMAP_MMIO is a module, in
+which case the symbol is not there at link time.
+
+Select rather than depend on: REGMAP_MMIO has no prompt of its own and is
+only ever enabled by a select, so a depends on would leave
+SND_SOC_FSL_LPC3XXX unselectable.
+
+Reproduced on v7.3, x86_64, with CONFIG_SND_SOC_FSL_LPC3XXX=y and
+CONFIG_REGMAP_MMIO=m.
+
+Fixes: 0959de657a10 ("ASoC: fsl: Add i2s and pcm drivers for LPC32xx CPUs")
+---
+ sound/soc/fsl/Kconfig | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/sound/soc/fsl/Kconfig b/sound/soc/fsl/Kconfig
+index e8924ed652ba..2f58a1a51afd 100644
+--- a/sound/soc/fsl/Kconfig
++++ b/sound/soc/fsl/Kconfig
+@@ -140,6 +140,7 @@ config SND_SOC_FSL_RPMSG
+ config SND_SOC_FSL_LPC3XXX
+ 	tristate "SoC Audio for NXP LPC32XX CPUs"
+ 	depends on ARCH_LPC32XX || COMPILE_TEST
++	select REGMAP_MMIO
+ 	select SND_SOC_GENERIC_DMAENGINE_PCM
+ 	help
+ 	  Say Y or M if you want to add support for the LPC3XXX I2S interface.
+-- 
+2.43.0
+
