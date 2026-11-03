@@ -1,4 +1,4 @@
-From 49b98c7e356d6d505c99c21a735b2acc8515760a Mon Sep 17 00:00:00 2001
+From 49682b3bdef06c4daa5656375c1e4e943efcf749 Mon Sep 17 00:00:00 2001
 From: InstructorZer0 <jude.gyimah87@gmail.com>
 Date: Tue, 3 Nov 2026 13:30:57 +0100
 Subject: [PATCH 1/5] ASoC: rockchip_i2s: select REGMAP_MMIO
@@ -23,6 +23,7 @@ Found with kreach, a static check that compares what Kconfig allows
 against the symbols the compiled objects actually reference.
 
 Fixes: 4495c89fcf26 ("ASoC: add driver for Rockchip RK3xxx I2S controller")
+Signed-off-by: Jude Gyimah <jude.gyimah87@gmail.com>
 ---
  sound/soc/rockchip/Kconfig | 1 +
  1 file changed, 1 insertion(+)

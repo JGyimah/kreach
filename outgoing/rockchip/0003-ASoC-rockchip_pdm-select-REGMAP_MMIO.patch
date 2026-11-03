@@ -1,4 +1,4 @@
-From 3021b868addada3c0217261933376fd11f188c97 Mon Sep 17 00:00:00 2001
+From 929098da56bd6950798fc192a4fff9743432ea8b Mon Sep 17 00:00:00 2001
 From: InstructorZer0 <jude.gyimah87@gmail.com>
 Date: Tue, 3 Nov 2026 13:30:58 +0100
 Subject: [PATCH 3/5] ASoC: rockchip_pdm: select REGMAP_MMIO
@@ -23,6 +23,7 @@ Found with kreach, a static check that compares what Kconfig allows
 against the symbols the compiled objects actually reference.
 
 Fixes: fc05a5b22253 ("ASoC: rockchip: add support for pdm controller")
+Signed-off-by: Jude Gyimah <jude.gyimah87@gmail.com>
 ---
  sound/soc/rockchip/Kconfig | 1 +
  1 file changed, 1 insertion(+)

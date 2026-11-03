@@ -197,6 +197,12 @@ def main():
     ap.add_argument("ksrc")
     ap.add_argument("results")
     ap.add_argument("outgoing")
+    ap.add_argument("--cover-only", action="store_true",
+                    help="only refill the cover letters in place.  Signing a "
+                         "series off means re-running format-patch, which "
+                         "rewrites the cover letter back to its placeholders; "
+                         "this puts the subject and blurb back without "
+                         "touching the signed patches.")
     args = ap.parse_args()
 
     findings = {}
@@ -210,6 +216,23 @@ def main():
                GIT_AUTHOR_EMAIL="jude.gyimah87@gmail.com",
                GIT_COMMITTER_NAME="InstructorZer0",
                GIT_COMMITTER_EMAIL="jude.gyimah87@gmail.com")
+
+    if args.cover_only:
+        for path, name, prefix in SERIES:
+            out = os.path.abspath(os.path.join(args.outgoing, name))
+            cover = os.path.join(out, "0000-cover-letter.patch")
+            if not os.path.exists(cover):
+                continue
+            group = [f for o, f in findings.items()
+                     if subprocess.run(["git", "grep", "-l",
+                                        "^config %s$" % o.removeprefix("CONFIG_"),
+                                        "v7.3", "--", path],
+                                       cwd=args.ksrc, capture_output=True,
+                                       text=True).stdout.strip()]
+            write_cover(out, prefix, group)
+            filled = "*** SUBJECT HERE ***" not in open(cover).read()
+            print("  %-10s cover letter %s" % (name, "filled" if filled else "STILL A TEMPLATE"))
+        return 0
 
     made = 0
     for path, name, prefix in SERIES:

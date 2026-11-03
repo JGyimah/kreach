@@ -1,4 +1,4 @@
-From 25e02429b327d3a99a236667f8a2610e359d0eed Mon Sep 17 00:00:00 2001
+From c89e55a429f7d41831d0b39be5ef701a9a04635e Mon Sep 17 00:00:00 2001
 From: InstructorZer0 <jude.gyimah87@gmail.com>
 Date: Tue, 3 Nov 2026 13:30:59 +0100
 Subject: [PATCH 5/5] ASoC: rockchip_spdif: select REGMAP_MMIO
@@ -23,6 +23,7 @@ Found with kreach, a static check that compares what Kconfig allows
 against the symbols the compiled objects actually reference.
 
 Fixes: f874b80e1571 ("ASoC: rockchip: Add rockchip SPDIF transceiver driver")
+Signed-off-by: Jude Gyimah <jude.gyimah87@gmail.com>
 ---
  sound/soc/rockchip/Kconfig | 1 +
  1 file changed, 1 insertion(+)

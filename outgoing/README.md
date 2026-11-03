@@ -32,6 +32,18 @@ git checkout --detach v7.3
 git am ~/kreach/outgoing/rockchip/000[1-9]-*.patch
 git rebase --exec 'git commit --amend --no-edit -s' v7.3   # sign off each
 git format-patch -5 --cover-letter -o ~/kreach/outgoing/rockchip
+
+# format-patch rewrites the cover letter back to *** SUBJECT HERE ***.
+# Put the subject and blurb back; this does not touch the signed patches:
+~/venv/bin/python ~/kreach/tools/prepare_patches.py \
+    ~/src/linux ~/kreach/results/v7.3 ~/kreach/outgoing --cover-only
+```
+
+Check it before sending — `git send-email` refuses a template subject, which
+is a good last line of defence but a late one:
+
+```bash
+head -4 ~/kreach/outgoing/rockchip/0000-cover-letter.patch
 ```
 
 Then send with the recipients `get_maintainer.pl` gives for that file —
@@ -62,6 +74,12 @@ Then `rockchip/` as a series, then `sunxi/`.
 Leave **`fsl/0001`** (`fsl_aud2htx`) last. It is the only patch adding two
 selects, because its configuration fails on a second symbol as well, and it
 is the one most likely to draw questions.
+
+## Already signed
+
+`rockchip/` is applied and signed off — five patches, each with
+`Signed-off-by: Jude Gyimah <jude.gyimah87@gmail.com>`, and its cover letter
+refilled. It is ready to send. The other four groups are not signed yet.
 
 ## Provenance
 
