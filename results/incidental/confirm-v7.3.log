@@ -1,0 +1,13 @@
+tree: v7.3   free:  6377MB
+levels: DRM_XE=y(1) CONFIGFS_FS=m(1)
+linking vmlinux...
+rc=2 in 245s   free:  6284MB
+xe_configfs undefined references: undefined reference to `xe_configfs_check_device' undefined reference to `xe_configfs_exit' undefined reference to `xe_configfs_get_ctx_restore_mid_bb' undefined reference to `xe_configfs_get_ctx_restore_post_bb' undefined reference to `xe_configfs_get_enable_multi_queue' undefined reference to `xe_configfs_get_engines_allowed' undefined reference to `xe_configfs_get_psmi_enabled' undefined reference to `xe_configfs_get_survivability_mode' undefined reference to `xe_configfs_init' undefined reference to `xe_configfs_media_gt_allowed' undefined reference to `xe_configfs_primary_gt_allowed' 
+  xe_guc.c:(.text+0x217e): undefined reference to `xe_configfs_get_psmi_enabled'
+  ld: xe_guc.c:(.text+0x21d9): undefined reference to `xe_configfs_get_enable_multi_queue'
+  xe_guc_ads.c:(.text+0x1a28): undefined reference to `xe_configfs_get_enable_multi_queue'
+CONFIRMED at v7.3
+--- with 'depends on CONFIGFS_FS || !CONFIGFS_FS' added to DRM_XE
+levels with the fix: 
+the fix makes the bad combination unreachable
+XE CONFIRM DONE

@@ -36,7 +36,8 @@ measuring itself, not a statement that kreach finds two bugs in five.
 One miss is worth its own line. On `2182f358fb13` kreach confirmed a y/m bug
 in `drivers/gpu/drm/xe` — `xe_module.o` against `xe_configfs.o` — that is **not
 the bug the commit fixed and is not in the benchmark at all**. It is scored as
-a miss, correctly, and it is a finding nobody asked for.
+a miss, correctly. It has since been confirmed at v7.3, where it has grown to
+eleven symbols across three objects: [results/incidental/](../incidental/).
 
 ## The hits
 

@@ -169,6 +169,11 @@ published alongside, so the failure can be read rather than taken on trust.
 [results/](results/) holds the earlier v6.17 run of the same set — eleven
 findings, one of which no longer reproduces at v7.3.
 
+[results/incidental/](results/incidental/) holds one more, turned up while
+running the benchmark rather than asked for: `DRM_XE=y` with
+`CONFIGFS_FS=m` fails to link on eleven `xe_configfs_*` symbols, confirmed at
+v7.3.
+
 ## Related work
 
 kismet (kmax) checks `select` against `depends on`; `kconfig-sym-check`, in

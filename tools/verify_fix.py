@@ -92,8 +92,15 @@ def kconfig_warnings(log: str) -> list[str]:
                    if any(k in l.lower() for k in keep)})
 
 
+# An allmodconfig vmlinux builds essentially every driver in the tree.  The
+# first attempt here started with 5 GB free and died 3.5 hours later with the
+# disk full, having produced no link error at all -- so the figure is not a
+# safety margin, it is the real requirement.
+ALLMODCONFIG_VMLINUX_MB = 20000
+
+
 def regression(ksrc: str, findings: list[dict], build: str, jobs: int,
-               min_free_mb: int = 5000) -> dict:
+               min_free_mb: int = ALLMODCONFIG_VMLINUX_MB) -> dict:
     """Apply every fix at once, then see what Kconfig and the linker say."""
     edited: list[str] = []
     out: dict = {"configs": {}, "selects_applied": {}}
@@ -129,7 +136,9 @@ def regression(ksrc: str, findings: list[dict], build: str, jobs: int,
         free = shutil.disk_usage("/").free // (1024 * 1024)
         if free < min_free_mb:
             out["allmodconfig_vmlinux"] = {
-                "result": "skipped", "reason": "%dMB free, below %dMB" % (free, min_free_mb)}
+                "result": "skipped",
+                "reason": "needs about %d MB for the object tree, %d MB free"
+                          % (min_free_mb, free)}
             print("   vmlinux       skipped: %dMB free" % free, flush=True)
             return out
 
@@ -141,10 +150,22 @@ def regression(ksrc: str, findings: list[dict], build: str, jobs: int,
         log = (p.stdout or "") + (p.stderr or "")
         undef = sorted(set(re.findall(
             r"undefined reference to [`\']([A-Za-z_][A-Za-z0-9_]*)\'", log)))
+        # A build that died for want of disk says nothing about the patches,
+        # and calling it "fails" is the same mistake S6 was taught not to
+        # make: recording a non-verdict as a verdict.
+        starved = (shutil.disk_usage("/").free // (1024 * 1024) < 512
+                   or "No space left on device" in log
+                   or "Out of diskspace" in log)
+        if p.returncode == 0:
+            result = "links"
+        elif starved and not undef:
+            result = "inconclusive: ran out of disk"
+        else:
+            result = "fails"
         out["allmodconfig_vmlinux"] = {
             "rc": p.returncode, "seconds": round(time.time() - t0, 1),
             "undefined": undef,
-            "result": "links" if p.returncode == 0 else "fails",
+            "result": result,
             "tail": [] if p.returncode == 0 else
                     [l for l in log.splitlines() if l.strip()][-15:],
         }
@@ -168,11 +189,25 @@ def main() -> int:
     ap.add_argument("--regression", action="store_true",
                     help="also apply every fix at once and check the stock "
                          "configurations plus an allmodconfig vmlinux link")
+    ap.add_argument("--regression-only", action="store_true",
+                    help="redo just the regression pass, merging it into an "
+                         "existing report rather than rebuilding every witness")
     args = ap.parse_args()
 
     findings = [json.loads(l) for l in
                 open(os.path.join(args.results, "findings.jsonl")) if l.strip()]
     os.makedirs(args.build, exist_ok=True)
+
+    if args.regression_only:
+        prev = json.load(open(args.output)) if args.output and \
+            os.path.exists(args.output) else {}
+        prev["regression"] = regression(args.ksrc, findings, args.build, args.jobs)
+        if args.output:
+            with open(args.output, "w") as fh:
+                json.dump(prev, fh, indent=1, sort_keys=True)
+            print("   merged into %s" % args.output)
+        return 0
+
     report = []
 
     for f in findings:
