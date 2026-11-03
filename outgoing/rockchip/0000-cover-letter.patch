@@ -20,6 +20,10 @@ the named symbol, and each links once the select is added.
 Found with kreach, a static check that compares what Kconfig allows
 against the symbols the compiled objects actually reference.
 
+The checker is at https://github.com/JGyimah/kreach, and the
+reproducer configuration for each finding is published with it
+under results/.
+
 Jude Gyimah (5):
   ASoC: rockchip_i2s: select REGMAP_MMIO
   ASoC: rockchip_i2s_tdm: select REGMAP_MMIO

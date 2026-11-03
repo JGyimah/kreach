@@ -28,6 +28,10 @@ against the symbols the compiled objects actually reference.
 Fixes: c5477e966728 ("ASoC: Intel: Add KeemBay platform driver")
 Signed-off-by: Jude Gyimah <jude.gyimah87@gmail.com>
 ---
+The checker is at https://github.com/JGyimah/kreach, and the
+reproducer configuration for each finding is published with it
+under results/.
+
  sound/soc/intel/Kconfig | 1 +
  1 file changed, 1 insertion(+)
 

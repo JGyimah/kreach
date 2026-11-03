@@ -36,6 +36,10 @@ against the symbols the compiled objects actually reference.
 Fixes: 16280ded45fb ("drm/xe: Add configfs to enable survivability mode")
 Signed-off-by: Jude Gyimah <jude.gyimah87@gmail.com>
 ---
+The checker is at https://github.com/JGyimah/kreach, and the
+reproducer configuration for each finding is published with it
+under results/.
+
  drivers/gpu/drm/xe/Kconfig | 1 +
  1 file changed, 1 insertion(+)
 

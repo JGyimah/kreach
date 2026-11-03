@@ -19,6 +19,10 @@ the named symbol, and each links once the select is added.
 Found with kreach, a static check that compares what Kconfig allows
 against the symbols the compiled objects actually reference.
 
+The checker is at https://github.com/JGyimah/kreach, and the
+reproducer configuration for each finding is published with it
+under results/.
+
 Jude Gyimah (3):
   ASoC: fsl_aud2htx: select missing dependencies
   ASoC: fsl: lpc3xxx-i2s: select REGMAP_MMIO

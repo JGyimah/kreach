@@ -99,7 +99,7 @@ are unset.
 
 ## Provenance
 
-Every message credits the checker, above the `Fixes:` tag:
+Every commit message credits the checker, above the `Fixes:` tag:
 
 ```
 Found with kreach, a static check that compares what Kconfig allows
@@ -107,6 +107,27 @@ against the symbols the compiled objects actually reference.
 ```
 
 This follows kernel practice rather than hiding from it — `kismet` findings
-and `kernel test robot` reports both name the tool that found them, and a
-maintainer who can see how a bug was found can judge the reproducer on its
-merits.
+and `kernel test robot` reports both name the tool that found them.
+
+The repository link is kept **out** of the commit message and carried below
+the `---` instead, where `git am` drops it:
+
+```
+The checker is at https://github.com/JGyimah/kreach, and the
+reproducer configuration for each finding is published with it
+under results/.
+```
+
+Below `---` is the right place for it. Everything above lives in git history
+forever, and a URL to a personal repository is useful to a reviewer today and
+dead weight in `git log` in five years. It is also not a `Link:` tag:
+`Link:` conventionally points at a mailing-list archive or a bug, not a tool
+homepage.
+
+One note per posting — the cover letter for a series, the patch itself for a
+singleton. Six copies of the same URL in a five-patch series is noise.
+Verified that the note does not reach the commit: applying a patch with
+`git am` and reading `git log -1` shows the credit sentence and no URL.
+
+Regenerate it with `--note-only`, or `--cover-only` for the cover letters;
+both are idempotent.
