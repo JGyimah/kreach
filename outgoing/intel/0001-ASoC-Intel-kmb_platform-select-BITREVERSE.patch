@@ -1,6 +1,6 @@
-From f53c6f21e96e879cfcf9f5ac0ee1fbff6ab1146a Mon Sep 17 00:00:00 2001
+From 5fefc04afc2a2857bc1f487279b7a6169758c1e8 Mon Sep 17 00:00:00 2001
 From: InstructorZer0 <jude.gyimah87@gmail.com>
-Date: Tue, 3 Nov 2026 13:27:42 +0100
+Date: Tue, 3 Nov 2026 13:31:02 +0100
 Subject: [PATCH] ASoC: Intel: kmb_platform: select BITREVERSE
 
 kmb_platform calls byte_rev_table, which lib/bitrev.c provides under
@@ -15,8 +15,15 @@ Select rather than depend on: BITREVERSE has no prompt of its own and is
 only ever enabled by a select, so a depends on would leave
 SND_SOC_INTEL_KEEMBAY unselectable.
 
+BITREVERSE is the symbol to select rather than GENERIC_BITREVERSE: it
+selects GENERIC_BITREVERSE only where the architecture has no native
+implementation, so this stays correct on the architectures that do.
+
 Reproduced on v7.3, x86_64, with CONFIG_SND_SOC_INTEL_KEEMBAY=y and
 CONFIG_GENERIC_BITREVERSE=m.
+
+Found with kreach, a static check that compares what Kconfig allows
+against the symbols the compiled objects actually reference.
 
 Fixes: c5477e966728 ("ASoC: Intel: Add KeemBay platform driver")
 ---

@@ -22,6 +22,7 @@ where the change came from — not something anyone can add on your behalf.
   every fix confirmed to make that link succeed
   ([../results/v7.3/fix-verification.json](../results/v7.3/fix-verification.json))
 - authored as `InstructorZer0 <jude.gyimah87@gmail.com>`
+- each message credits the checker that found the bug
 
 ## Sending one group
 
@@ -62,16 +63,16 @@ Leave **`fsl/0001`** (`fsl_aud2htx`) last. It is the only patch adding two
 selects, because its configuration fails on a second symbol as well, and it
 is the one most likely to draw questions.
 
-## One thing to decide
+## Provenance
 
-None of these messages says a tool found the bug. That is not unusual — most
-kernel patches describe the bug rather than the hunt — but kernel practice
-does run toward crediting the finder, and `kismet` findings routinely land
-with the tool named. If you want that, add a line such as
+Every message credits the checker, above the `Fixes:` tag:
 
 ```
-Found with a static reachability check over Kconfig and the linked objects.
+Found with kreach, a static check that compares what Kconfig allows
+against the symbols the compiled objects actually reference.
 ```
 
-above the `Fixes:` tag. It is your call, and worth making deliberately rather
-than by omission.
+This follows kernel practice rather than hiding from it — `kismet` findings
+and `kernel test robot` reports both name the tool that found them, and a
+maintainer who can see how a bug was found can judge the reproducer on its
+merits.

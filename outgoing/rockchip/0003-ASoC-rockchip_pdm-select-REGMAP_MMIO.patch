@@ -1,6 +1,6 @@
-From ba10cede4cef4812b08ff9ddf7ffdb11a56e1e14 Mon Sep 17 00:00:00 2001
+From 3021b868addada3c0217261933376fd11f188c97 Mon Sep 17 00:00:00 2001
 From: InstructorZer0 <jude.gyimah87@gmail.com>
-Date: Tue, 3 Nov 2026 13:27:39 +0100
+Date: Tue, 3 Nov 2026 13:30:58 +0100
 Subject: [PATCH 3/5] ASoC: rockchip_pdm: select REGMAP_MMIO
 
 rockchip_pdm calls __devm_regmap_init_mmio_clk, which
@@ -18,6 +18,9 @@ SND_SOC_ROCKCHIP_PDM unselectable.
 
 Reproduced on v7.3, x86_64, with CONFIG_SND_SOC_ROCKCHIP_PDM=y and
 CONFIG_REGMAP_MMIO=m.
+
+Found with kreach, a static check that compares what Kconfig allows
+against the symbols the compiled objects actually reference.
 
 Fixes: fc05a5b22253 ("ASoC: rockchip: add support for pdm controller")
 ---

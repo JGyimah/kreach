@@ -38,6 +38,11 @@ SERIES = [
     ("sound/soc/sunxi/Kconfig", "sunxi", "ASoC: sunxi"),
 ]
 
+# Kernel practice credits the finder -- kismet findings and kernel test robot
+# reports both name the tool -- so the patches say where they came from.
+CREDIT = ("Found with kreach, a static check that compares what Kconfig allows "
+          "against the symbols the compiled objects actually reference.")
+
 RE_STANZA = re.compile(r"^\s*config\s+([A-Z0-9_]+)\s*$")
 RE_TYPE = re.compile(r"^(\s+)(bool|tristate)\b")
 
@@ -137,9 +142,20 @@ def message(prefix, finding, pairs, provider_option):
     body += wrap("Select rather than depend on: %s has no prompt of its own and "
                  "is only ever enabled by a select, so a depends on would leave "
                  "%s unselectable." % (selects[0], short))
+    prov = provider_option.removeprefix("CONFIG_")
+    if selects[0] != prov:
+        # BITREVERSE is what a driver selects; GENERIC_BITREVERSE is what
+        # gates bitrev.o.  A reviewer will ask why they differ, so say.
+        body.append("")
+        body += wrap("%s is the symbol to select rather than %s: it selects %s "
+                     "only where the architecture has no native implementation, "
+                     "so this stays correct on the architectures that do."
+                     % (selects[0], prov, prov))
     body.append("")
     body += wrap("Reproduced on v7.3, x86_64, with CONFIG_%s=y and %s=m." % (
         short, provider_option))
+    body.append("")
+    body += wrap(CREDIT)
     body.append("")
     body.append(finding["fixes"]["tag"])
     return "\n".join(body) + "\n"
@@ -168,6 +184,8 @@ def write_cover(out, prefix, group):
         "",
         "Each was reproduced on v7.3, x86_64, by a vmlinux link that failed on",
         "the named symbol, and each links once the select is added.",
+        "",
+        "\n".join(wrap(CREDIT)),
     ])
     text = text.replace("*** SUBJECT HERE ***", subject)
     text = text.replace("*** BLURB HERE ***", blurb)

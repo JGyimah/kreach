@@ -1,6 +1,6 @@
-From 2af0cc62d9ba9d18eb29a4fe57343e666169a850 Mon Sep 17 00:00:00 2001
+From 5b1f8267667e40a03b9a7efb441049ca5f809c84 Mon Sep 17 00:00:00 2001
 From: InstructorZer0 <jude.gyimah87@gmail.com>
-Date: Tue, 3 Nov 2026 13:27:41 +0100
+Date: Tue, 3 Nov 2026 13:31:00 +0100
 Subject: [PATCH 2/3] ASoC: fsl: lpc3xxx-i2s: select REGMAP_MMIO
 
 lpc3xxx-i2s calls __devm_regmap_init_mmio_clk, which
@@ -18,6 +18,9 @@ SND_SOC_FSL_LPC3XXX unselectable.
 
 Reproduced on v7.3, x86_64, with CONFIG_SND_SOC_FSL_LPC3XXX=y and
 CONFIG_REGMAP_MMIO=m.
+
+Found with kreach, a static check that compares what Kconfig allows
+against the symbols the compiled objects actually reference.
 
 Fixes: 0959de657a10 ("ASoC: fsl: Add i2s and pcm drivers for LPC32xx CPUs")
 ---

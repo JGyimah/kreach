@@ -1,6 +1,6 @@
-From 8d3d6cf036c2f0dbe58fb4acc138d533cf219bae Mon Sep 17 00:00:00 2001
+From ceea40c93f6b1ba80208554407d8eee63c5dc8b8 Mon Sep 17 00:00:00 2001
 From: InstructorZer0 <jude.gyimah87@gmail.com>
-Date: Tue, 3 Nov 2026 13:27:41 +0100
+Date: Tue, 3 Nov 2026 13:31:01 +0100
 Subject: [PATCH 3/3] ASoC: fsl_xcvr: select BITREVERSE
 
 fsl_xcvr calls byte_rev_table, which lib/bitrev.c provides under
@@ -15,8 +15,15 @@ Select rather than depend on: BITREVERSE has no prompt of its own and is
 only ever enabled by a select, so a depends on would leave
 SND_SOC_FSL_XCVR unselectable.
 
+BITREVERSE is the symbol to select rather than GENERIC_BITREVERSE: it
+selects GENERIC_BITREVERSE only where the architecture has no native
+implementation, so this stays correct on the architectures that do.
+
 Reproduced on v7.3, x86_64, with CONFIG_SND_SOC_FSL_XCVR=y and
 CONFIG_GENERIC_BITREVERSE=m.
+
+Found with kreach, a static check that compares what Kconfig allows
+against the symbols the compiled objects actually reference.
 
 Fixes: 28564486866f ("ASoC: fsl_xcvr: Add XCVR ASoC CPU DAI driver")
 ---

@@ -1,6 +1,6 @@
-From b4da6d401b29366c719ec6abd0752ebfd5e8ff48 Mon Sep 17 00:00:00 2001
+From 308614793ac50f5bbb91cadbc24aea6fcdba893a Mon Sep 17 00:00:00 2001
 From: InstructorZer0 <jude.gyimah87@gmail.com>
-Date: Tue, 3 Nov 2026 13:27:39 +0100
+Date: Tue, 3 Nov 2026 13:30:59 +0100
 Subject: [PATCH 4/5] ASoC: rockchip_sai: select REGMAP_MMIO
 
 rockchip_sai calls __devm_regmap_init_mmio_clk, which
@@ -18,6 +18,9 @@ SND_SOC_ROCKCHIP_SAI unselectable.
 
 Reproduced on v7.3, x86_64, with CONFIG_SND_SOC_ROCKCHIP_SAI=y and
 CONFIG_REGMAP_MMIO=m.
+
+Found with kreach, a static check that compares what Kconfig allows
+against the symbols the compiled objects actually reference.
 
 Fixes: cc78d1eaabad ("ASoC: rockchip: add Serial Audio Interface (SAI) driver")
 ---

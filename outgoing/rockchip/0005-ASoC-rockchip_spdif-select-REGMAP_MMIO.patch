@@ -1,6 +1,6 @@
-From 85fa000005ecbaf5bdf9359907cd963a56bea4a7 Mon Sep 17 00:00:00 2001
+From 25e02429b327d3a99a236667f8a2610e359d0eed Mon Sep 17 00:00:00 2001
 From: InstructorZer0 <jude.gyimah87@gmail.com>
-Date: Tue, 3 Nov 2026 13:27:40 +0100
+Date: Tue, 3 Nov 2026 13:30:59 +0100
 Subject: [PATCH 5/5] ASoC: rockchip_spdif: select REGMAP_MMIO
 
 rockchip_spdif calls __devm_regmap_init_mmio_clk, which
@@ -18,6 +18,9 @@ SND_SOC_ROCKCHIP_SPDIF unselectable.
 
 Reproduced on v7.3, x86_64, with CONFIG_SND_SOC_ROCKCHIP_SPDIF=y and
 CONFIG_REGMAP_MMIO=m.
+
+Found with kreach, a static check that compares what Kconfig allows
+against the symbols the compiled objects actually reference.
 
 Fixes: f874b80e1571 ("ASoC: rockchip: Add rockchip SPDIF transceiver driver")
 ---

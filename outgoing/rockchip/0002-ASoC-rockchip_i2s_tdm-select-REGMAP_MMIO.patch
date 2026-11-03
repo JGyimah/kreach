@@ -1,6 +1,6 @@
-From c03c2706df8aaaa7ab4d32342786b891509cf611 Mon Sep 17 00:00:00 2001
+From 0b97eeee1a6b562f338beab17d78b353e62fe884 Mon Sep 17 00:00:00 2001
 From: InstructorZer0 <jude.gyimah87@gmail.com>
-Date: Tue, 3 Nov 2026 13:27:39 +0100
+Date: Tue, 3 Nov 2026 13:30:58 +0100
 Subject: [PATCH 2/5] ASoC: rockchip_i2s_tdm: select REGMAP_MMIO
 
 rockchip_i2s_tdm calls __devm_regmap_init_mmio_clk, which
@@ -18,6 +18,9 @@ SND_SOC_ROCKCHIP_I2S_TDM unselectable.
 
 Reproduced on v7.3, x86_64, with CONFIG_SND_SOC_ROCKCHIP_I2S_TDM=y and
 CONFIG_REGMAP_MMIO=m.
+
+Found with kreach, a static check that compares what Kconfig allows
+against the symbols the compiled objects actually reference.
 
 Fixes: 081068fd6414 ("ASoC: rockchip: add support for i2s-tdm controller")
 ---

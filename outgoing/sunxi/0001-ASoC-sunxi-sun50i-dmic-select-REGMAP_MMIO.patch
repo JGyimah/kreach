@@ -1,6 +1,6 @@
-From 17377cd2ee66164774ef12d386d4d6f4f79f7e7b Mon Sep 17 00:00:00 2001
+From e1e69ea8f9ba4efa3a857a5561994f2b4399ca9a Mon Sep 17 00:00:00 2001
 From: InstructorZer0 <jude.gyimah87@gmail.com>
-Date: Tue, 3 Nov 2026 13:27:43 +0100
+Date: Tue, 3 Nov 2026 13:31:02 +0100
 Subject: [PATCH] ASoC: sunxi: sun50i-dmic: select REGMAP_MMIO
 
 sun50i-dmic calls __devm_regmap_init_mmio_clk, which
@@ -18,6 +18,9 @@ unselectable.
 
 Reproduced on v7.3, x86_64, with CONFIG_SND_SUN50I_DMIC=y and
 CONFIG_REGMAP_MMIO=m.
+
+Found with kreach, a static check that compares what Kconfig allows
+against the symbols the compiled objects actually reference.
 
 Fixes: 9fc2c8ed923d ("ASoC: sunxi: Add Allwinner H6 Digital MIC driver")
 ---
