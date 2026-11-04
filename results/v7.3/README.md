@@ -29,6 +29,29 @@ caller no longer emits the reference and the link cannot fail on it. Reading a
 declaration tells you whether anyone fixed the rule; only compiling the caller
 tells you whether the call is still there.
 
+## Upstream
+
+The five Rockchip patches are **applied** to `broonie/sound.git for-7.4`
+(2026-11-04), without objection, on the first posting:
+
+| patch | commit |
+|---|---|
+| `ASoC: rockchip_i2s: select REGMAP_MMIO` | [`1c57404bf9ba`](https://git.kernel.org/broonie/sound/c/1c57404bf9ba) |
+| `ASoC: rockchip_i2s_tdm: select REGMAP_MMIO` | [`b8284f2b73f8`](https://git.kernel.org/broonie/sound/c/b8284f2b73f8) |
+| `ASoC: rockchip_pdm: select REGMAP_MMIO` | [`420c7918a61b`](https://git.kernel.org/broonie/sound/c/420c7918a61b) |
+| `ASoC: rockchip_sai: select REGMAP_MMIO` | [`829904994e7a`](https://git.kernel.org/broonie/sound/c/829904994e7a) |
+| `ASoC: rockchip_spdif: select REGMAP_MMIO` | [`67a7e2073909`](https://git.kernel.org/broonie/sound/c/67a7e2073909) |
+
+They go to Linus in the next merge window unless a problem is found first.
+
+Three things the acceptance settles, all of which were open questions when the
+patches were written. `select` rather than `depends on` drew no comment, so the
+caveat every record carries — that the specification's preferred fix cannot be
+applied to a promptless provider — is the right call in practice as well as in
+principle. The commit message shape was taken as-is. And the `Found with
+kreach` credit line cost nothing, which is worth knowing for anyone weighing
+whether to name a tool.
+
 ## The fix to send
 
 `select <PROVIDER>` in the caller's Kconfig stanza. Each finding's `fix` field

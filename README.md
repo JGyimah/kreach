@@ -180,7 +180,9 @@ Kconfig-clean with all ten applied
 ([results/v7.3/fix-verification.json](results/v7.3/fix-verification.json)).
 
 [outgoing/](outgoing/) holds the eleven resulting patches, signed and
-`checkpatch` clean, with the recipients and sending order for each.
+`checkpatch` clean, with the recipients and sending order for each. **Five are
+applied upstream** in `broonie/sound.git for-7.4` — the Rockchip series, taken
+without objection on its first posting.
 
 ## Related work
 

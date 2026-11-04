@@ -75,6 +75,20 @@ Leave **`fsl/0001`** (`fsl_aud2htx`) last. It is the only patch adding two
 selects, because its configuration fails on a second symbol as well, and it
 is the one most likely to draw questions.
 
+## Status
+
+| group | state |
+|---|---|
+| `rockchip/` | **applied** to `broonie/sound.git for-7.4`, 2026-11-04 |
+| `fsl/`, `intel/`, `sunxi/` | signed, ready — same maintainer, same fix pattern |
+| `.` (drm/xe) | signed, ready — different subsystem, independently unvalidated |
+
+The Rockchip series went in without objection on its first posting, which
+settles the `select`-versus-`depends on` question and the tool-credit question
+for the other three `sound/` groups. Mark Brown's reply also notes that
+applied patches are not replaced: anything further goes as an incremental
+patch against current git, never a v2 of these.
+
 ## Signed
 
 All eleven are applied, signed and checkpatch clean:
