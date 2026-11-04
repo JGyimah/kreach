@@ -543,6 +543,21 @@ reference at all. That is an inconclusive result rather than a failure, and
 the tool now says so and skips rather than attempting it — the same
 distinction between a verdict and a non-verdict that S6 was taught to make.
 
+### Upstream acceptance
+
+The spec calls this "the measure maintainers care about and the strongest
+argument for the method", and it is no longer zero. The five Rockchip patches
+were **applied to `broonie/sound.git for-7.4` on 2026-11-04**, without
+objection, on their first posting; they reach Linus in the next merge window
+unless a problem turns up in linux-next. Commit ids are in
+[results/v7.3/README.md](../results/v7.3/README.md).
+
+Two of the method's open questions were settled by that, rather than by
+argument. The fix kreach is forbidden to suggest — `select` — is the one a
+maintainer applies, which is what every record's caveat predicted. And naming
+the checker in the commit message drew no comment, so crediting the tool costs
+a submitter nothing.
+
 ### An incidental finding
 
 Running the benchmark turned up a bug nobody asked for, at the parent of a
