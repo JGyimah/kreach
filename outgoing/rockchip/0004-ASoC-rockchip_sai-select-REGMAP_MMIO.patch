@@ -1,6 +1,6 @@
-From b322b4ddf717df3901ad5bba601acad05b39c66e Mon Sep 17 00:00:00 2001
+From a48e6f51e12e1b78c5fb2547d37b9bc57b6b3a1e Mon Sep 17 00:00:00 2001
 From: Jude Gyimah <jude.gyimah87@gmail.com>
-Date: Tue, 3 Nov 2026 14:01:14 +0100
+Date: Wed, 4 Nov 2026 14:31:52 +0100
 Subject: [PATCH 4/5] ASoC: rockchip_sai: select REGMAP_MMIO
 
 rockchip_sai calls __devm_regmap_init_mmio_clk, which
@@ -23,7 +23,6 @@ Found with kreach, a static check that compares what Kconfig allows
 against the symbols the compiled objects actually reference.
 
 Fixes: cc78d1eaabad ("ASoC: rockchip: add Serial Audio Interface (SAI) driver")
-Signed-off-by: Jude Gyimah <jude.gyimah87@gmail.com>
 ---
  sound/soc/rockchip/Kconfig | 1 +
  1 file changed, 1 insertion(+)

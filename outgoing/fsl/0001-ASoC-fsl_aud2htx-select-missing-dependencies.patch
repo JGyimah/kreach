@@ -1,7 +1,10 @@
-From 98717179d0b33a57d7954f35d39b0e8f82902127 Mon Sep 17 00:00:00 2001
+From 7b4ac247ee6a3d22616dd7ddafa464aac10bbe00 Mon Sep 17 00:00:00 2001
 From: Jude Gyimah <jude.gyimah87@gmail.com>
-Date: Tue, 3 Nov 2026 14:01:15 +0100
+Date: Wed, 4 Nov 2026 14:31:53 +0100
 Subject: [PATCH 1/3] ASoC: fsl_aud2htx: select missing dependencies
+
+This driver is short two selects, not one: its configuration fails to
+link on a symbol from each.
 
 fsl_aud2htx calls __devm_regmap_init_mmio_clk, which
 drivers/base/regmap/regmap-mmio.c provides under REGMAP_MMIO.

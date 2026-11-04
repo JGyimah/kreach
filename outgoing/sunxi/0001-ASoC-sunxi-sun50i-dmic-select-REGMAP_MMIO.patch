@@ -1,6 +1,6 @@
-From 838a1620251b5ce943a8414379dd3339b1b56ef2 Mon Sep 17 00:00:00 2001
+From b172a108cad7f88e033c7b08490774da926c1e4f Mon Sep 17 00:00:00 2001
 From: Jude Gyimah <jude.gyimah87@gmail.com>
-Date: Tue, 3 Nov 2026 14:01:18 +0100
+Date: Wed, 4 Nov 2026 14:31:56 +0100
 Subject: [PATCH] ASoC: sunxi: sun50i-dmic: select REGMAP_MMIO
 
 sun50i-dmic calls __devm_regmap_init_mmio_clk, which

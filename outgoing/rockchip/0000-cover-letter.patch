@@ -1,6 +1,6 @@
-From ff495e115942850a97679dcddb4751a23aed9d3d Mon Sep 17 00:00:00 2001
+From 85317c16006d514c114c2bd88c365844136a80b3 Mon Sep 17 00:00:00 2001
 From: Jude Gyimah <jude.gyimah87@gmail.com>
-Date: Tue, 3 Nov 2026 14:01:21 +0100
+Date: Wed, 4 Nov 2026 14:31:53 +0100
 Subject: [PATCH 0/5] ASoC: rockchip: fix missing REGMAP_MMIO dependencies
 
 Each of these drivers can be built into vmlinux while the code

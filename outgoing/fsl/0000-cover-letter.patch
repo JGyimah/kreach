@@ -1,6 +1,6 @@
-From 26952d263655e0b6e390c351a693719baddbb6ad Mon Sep 17 00:00:00 2001
+From 2cac4691711418601fef4c0352a751c7d483eabb Mon Sep 17 00:00:00 2001
 From: Jude Gyimah <jude.gyimah87@gmail.com>
-Date: Tue, 3 Nov 2026 14:01:24 +0100
+Date: Wed, 4 Nov 2026 14:31:59 +0100
 Subject: [PATCH 0/3] ASoC: fsl: fix missing GENERIC_BITREVERSE and REGMAP_MMIO dependencies
 
 Each of these drivers can be built into vmlinux while the code

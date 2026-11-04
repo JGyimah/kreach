@@ -1,6 +1,6 @@
-From 57d0f992cd039721083eeaa033555fddee157d21 Mon Sep 17 00:00:00 2001
+From 495b657f26ab867809c88255d16603aae48fcea4 Mon Sep 17 00:00:00 2001
 From: Jude Gyimah <jude.gyimah87@gmail.com>
-Date: Tue, 3 Nov 2026 14:01:16 +0100
+Date: Wed, 4 Nov 2026 14:31:54 +0100
 Subject: [PATCH 2/3] ASoC: fsl: lpc3xxx-i2s: select REGMAP_MMIO
 
 lpc3xxx-i2s calls __devm_regmap_init_mmio_clk, which
