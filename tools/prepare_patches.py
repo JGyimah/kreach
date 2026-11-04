@@ -43,6 +43,22 @@ SERIES = [
 CREDIT = ("Found with kreach, a static check that compares what Kconfig allows "
           "against the symbols the compiled objects actually reference.")
 
+# A patch-specific opening, where one patch has something to say that the
+# others do not.  Not here to make the set read as independently written --
+# five Rockchip patches with identical openings were applied without comment
+# -- but because leading with the strongest fact about a patch is better than
+# leading with the same sentence every time.  Verified at v7.3.
+LEAD = {
+    "CONFIG_SND_SOC_FSL_XCVR": [
+        "SND_SOC_FSL_SPDIF, a few stanzas up in the same file, already selects",
+        "BITREVERSE for the same reason.  SND_SOC_FSL_XCVR is missing it.",
+    ],
+    "CONFIG_SND_SOC_FSL_AUD2HTX": [
+        "This driver is short two selects, not one: its configuration fails to",
+        "link on a symbol from each.",
+    ],
+}
+
 RE_STANZA = re.compile(r"^\s*config\s+([A-Z0-9_]+)\s*$")
 RE_TYPE = re.compile(r"^(\s+)(bool|tristate)\b")
 
@@ -114,6 +130,9 @@ def message(prefix, finding, pairs, provider_option):
         selects[0] if len(selects) == 1 else "missing dependencies")
 
     body = [subject, ""]
+    if opt in LEAD:
+        body += LEAD[opt]
+        body.append("")
     for sym, sel, src in pairs:
         body += wrap("%s calls %s, which %s provides under %s." % (
             drv, sym, src, sel))
