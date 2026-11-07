@@ -49,15 +49,16 @@ kreach 0.1.0 has been exercised against:
 
 | | |
 |---|---|
-| Linux | **v6.17** (`e5f0a698b34e`) and **v7.3** (`c03c1a14507d`), `ARCH=x86_64` |
+| Linux | **v6.17** (`e5f0a698b34e`) and **v7.3** (`c03c1a14507d`) |
+| architectures | `x86_64`, and `arm64` cross-compiled with gcc 13.3 |
 | ceiling | **v7.3** -- the newest release kmax 4.10 can parse; master uses `def_string`, which its parser rejects |
 | kmax | 4.10 |
 | z3 | 5.3.3 (via `z3-solver`) |
 | Python | 3.10, 3.11, 3.12 (the CI matrix) |
 | toolchain | gcc 13.3.0, GNU ld 2.42, 4 cores, 3.9 GB |
 
-Other architectures are a matter of a cross toolchain rather than of code;
-`arm64` is untried. Every run records its own kernel commit, compiler and
+`arm64` needs only `gcc-aarch64-linux-gnu`; `make_env()` sets `CROSS_COMPILE`
+itself. Other architectures are the same shape of work. Every run records its own kernel commit, compiler and
 linker in `meta.json`, so a result set says what produced it without relying
 on this table. [docs/design.md](docs/design.md) has the detail on the parser
 ceiling and what it would take to lift it.
@@ -165,6 +166,13 @@ the minimised `.config` that reproduces it.
 [results/v7.3/README.md](results/v7.3/README.md) lists them with their
 `Fixes:` commits and how to reproduce one. The `vmlinux` link log for each is
 published alongside, so the failure can be read rather than taken on trust.
+
+[results/arm64/](results/arm64/) holds a second architecture at the same
+revision: **thirteen findings**, five of them unreachable from x86_64 —
+three Amlogic drivers gated on `ARCH_MESON`, which x86_64 cannot compile at
+all. Eight reproduce on both architectures, including every Rockchip driver
+already applied upstream, which answers the obvious objection that an x86_64
+`COMPILE_TEST` build is an artificial configuration.
 
 [results/](results/) holds the earlier v6.17 run of the same set — eleven
 findings, one of which no longer reproduces at v7.3.
