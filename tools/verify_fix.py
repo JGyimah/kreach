@@ -35,11 +35,13 @@ import sys
 import time
 
 # symbol -> what the caller must select to provide it
-SELECT_FOR = {
-    "byte_rev_table": "BITREVERSE",
-    "__devm_regmap_init_mmio_clk": "REGMAP_MMIO",
-    "devm_snd_dmaengine_pcm_register": "SND_SOC_GENERIC_DMAENGINE_PCM",
-}
+# One source of truth with prepare_patches.py.  Two copies drifted: this one
+# was missing snd_pcm_new, so the SND_AW2 fix was reported as having no known
+# select instead of being verified.
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from prepare_patches import SELECT_FOR as _SELECT_FOR  # noqa: E402
+
+SELECT_FOR = {sym: select for sym, (select, _where) in _SELECT_FOR.items()}
 
 RE_STANZA = re.compile(r"^\s*(?:menu)?config\s+([A-Z0-9_]+)\s*$")
 RE_TYPE = re.compile(r"^(\s+)(bool|tristate)\b")
@@ -197,6 +199,21 @@ def main() -> int:
     findings = [json.loads(l) for l in
                 open(os.path.join(args.results, "findings.jsonl")) if l.strip()]
     os.makedirs(args.build, exist_ok=True)
+
+    # make is called with the inherited environment, so without this it builds
+    # for the host whatever the records say.  That was right for the x86_64
+    # sets by luck, and would have verified the arm64 fixes on the wrong
+    # architecture -- the ARCH_MESON drivers cannot even be built on x86_64.
+    arches = sorted({f["arch"] for f in findings})
+    if len(arches) != 1:
+        raise SystemExit("findings span %s; run one architecture at a time"
+                         % ", ".join(arches))
+    from kreach.config import Context
+    env = Context(ksrc=args.ksrc, work=args.build, arch=arches[0]).make_env()
+    os.environ.update({k: v for k, v in env.items() if v})
+    print("== building for %s%s" % (
+        arches[0], " with CROSS_COMPILE=%s" % env["CROSS_COMPILE"]
+        if env.get("CROSS_COMPILE") else ""), flush=True)
 
     if args.regression_only:
         prev = json.load(open(args.output)) if args.output and \

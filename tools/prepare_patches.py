@@ -9,9 +9,10 @@ takes.  Each patch adds `select <PROVIDER>` -- not the `depends on` the
 records carry: both providers are promptless, so `depends on` would leave the
 driver unselectable, which is what the caveat in every record says.
 
-Nothing here is sent, and nothing is signed off: a Signed-off-by certifies
-under the Developer's Certificate of Origin where the change came from, which
-is the author's own attestation.
+Nothing here is sent.  Signing off is opt-in via --signoff, because a
+Signed-off-by certifies under the Developer's Certificate of Origin where the
+change came from: it is the author's own attestation, made deliberately, not
+a formatting detail the tool should add on its behalf.
 """
 
 import argparse
@@ -63,6 +64,14 @@ LEAD = {
     "CONFIG_SND_MESON_AXG_PDM": [
         "Several stanzas in the same file already select REGMAP_MMIO,",
         "SND_MESON_G12A_TOACODEC among them.  These three do not.",
+    ],
+    "CONFIG_SND_MESON_AIU": [
+        "gx-formatter.o is part of snd-soc-meson-aiu:",
+        "",
+        "  sound/soc/meson/Makefile:7: snd-soc-meson-aiu-y += gx-formatter.o",
+        "",
+        "so SND_MESON_AIU is the option that decides where its call lands,",
+        "and the error below names gx-formatter.c rather than aiu.c.",
     ],
     "CONFIG_SND_SOC_FSL_AUD2HTX": [
         "This driver is short two selects, not one: its configuration fails to",
@@ -186,8 +195,12 @@ def message(prefix, finding, pairs, provider_option):
                      "so this stays correct on the architectures that do."
                      % (selects[0], prov, prov))
     body.append("")
-    body += wrap("Reproduced on v7.3, x86_64, with CONFIG_%s=y and %s=m." % (
-        short, provider_option))
+    # The kernel and architecture come from the record, not from a constant.
+    # Hardcoding x86_64 made the ARCH_MESON patches claim a reproduction on an
+    # architecture that cannot build those drivers at all.
+    body += wrap("Reproduced on %s, %s, with CONFIG_%s=y and %s=m." % (
+        finding.get("kernel") or "v7.3", finding["arch"], short,
+        provider_option))
     body.append("")
     body += wrap(CREDIT)
     body.append("")
@@ -247,6 +260,12 @@ def write_cover(out, prefix, group):
     drivers = sorted(f["caller"]["source"].rsplit("/", 1)[-1].removesuffix(".c")
                      for f in group)
     provs = sorted({f["provider"]["option"].removeprefix("CONFIG_") for f in group})
+    # From the records, for the same reason as in message(): a hardcoded
+    # x86_64 claimed reproductions on an architecture that cannot build the
+    # ARCH_MESON drivers.
+    kernels = sorted({f.get("kernel") or "v7.3" for f in group})
+    arches = sorted({f["arch"] for f in group})
+    where = "%s, %s" % (" and ".join(kernels), " and ".join(arches))
     subject = "%s: fix missing %s dependencies" % (prefix, " and ".join(provs))
     blurb = "\n".join([
         "Each of these drivers can be built into vmlinux while the code",
@@ -259,8 +278,9 @@ def write_cover(out, prefix, group):
         "prompt of their own and are only ever enabled by a select, so a",
         "depends on would leave these drivers unselectable.",
         "",
-        "Each was reproduced on v7.3, x86_64, by a vmlinux link that failed on",
-        "the named symbol, and each links once the select is added.",
+        "\n".join(wrap("Each was reproduced on %s by a vmlinux link that "
+                        "failed on the named symbol, and each links once the "
+                        "select is added." % where)),
         "",
         "\n".join(wrap(CREDIT)),
         "",
@@ -286,6 +306,10 @@ def main():
     ap.add_argument("--note-only", action="store_true",
                     help="only add the reviewer note below the --- line, to "
                          "the cover letter of each series or to a lone patch")
+    ap.add_argument("--signoff", action="store_true",
+                    help="add Signed-off-by from the tree's git identity.  "
+                         "This is the author certifying the Developer's "
+                         "Certificate of Origin, so it is never the default.")
     ap.add_argument("--cover-only", action="store_true",
                     help="only refill the cover letters in place.  Signing a "
                          "series off means re-running format-patch, which "
@@ -386,6 +410,8 @@ def main():
             os.remove(os.path.join(out, old))
         n = len(mine)
         cmd = ["git", "format-patch", "-%d" % n, "-o", out]
+        if args.signoff:
+            cmd += ["--signoff"]
         if n > 1:
             cmd += ["--cover-letter"]
         subprocess.run(cmd, cwd=args.ksrc, capture_output=True, text=True,
