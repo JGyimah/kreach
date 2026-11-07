@@ -6,6 +6,9 @@ where a wrong answer costs precision, so both are pinned down against text the
 kernel really produces.
 """
 
+import os
+import types
+
 import z3
 
 from kreach import formula as F
@@ -360,6 +363,85 @@ def test_reference_check_is_skipped_when_there_is_nothing_to_check(tmp_path):
     ok, why = reference_still_emitted(
         ctx, {"caller": "a.o", "symbols": ["s"], "witness": "gone.config"})
     assert ok and "no witness" in why
+
+
+def test_reference_check_covers_every_object_the_option_gates(tmp_path,
+                                                             monkeypatch):
+    """CONFIG_SND_MESON_AIU gates aiu.o and gx-formatter.o.  Under one arm64
+    witness the compiler proved aiu_probe() unreachable past a device_reset()
+    stub and dropped the regmap call, while gx-formatter.o kept it -- so
+    checking only the named object called the finding a non-finding."""
+    from kreach.config import Context
+    from kreach import s6_confirm
+
+    work = tmp_path / "w"
+    (work).mkdir()
+    (work / "witness.config").write_text("CONFIG_SND_MESON_AIU=y\n")
+    ctx = Context(ksrc=str(tmp_path), work=str(work), arch="arm64")
+
+    rec = {"caller": "sound/soc/meson/aiu.o",
+           "caller_objects": ["sound/soc/meson/aiu.o",
+                              "sound/soc/meson/gx-formatter.o"],
+           "symbols": ["__devm_regmap_init_mmio_clk"],
+           "witness": "witness.config", "id": "f1", "query_id": "q1"}
+
+    built = []
+
+    def fake_make(ctx, bdir, args, **kw):
+        if args == ["olddefconfig"]:
+            return types.SimpleNamespace(returncode=0)
+        for target in args:
+            path = os.path.join(bdir, target)
+            os.makedirs(os.path.dirname(path), exist_ok=True)
+            open(path, "w").close()
+            built.append(target)
+        return types.SimpleNamespace(returncode=0)
+
+    # Only the second part of the composite carries the reference.
+    def fake_nm(paths):
+        for path in paths:
+            if path.endswith("gx-formatter.o"):
+                yield path, "U", "__devm_regmap_init_mmio_clk"
+
+    monkeypatch.setattr("kreach.s3_symbols.make", fake_make)
+    monkeypatch.setattr("kreach.s3_symbols._nm_batch", fake_nm)
+
+    ok, why = s6_confirm.reference_still_emitted(ctx, rec)
+    assert ok, why
+    assert "gx-formatter.o" in why
+    assert sorted(built) == sorted(rec["caller_objects"])
+
+
+def test_reference_check_is_inconclusive_when_part_of_a_composite_fails(
+        tmp_path, monkeypatch):
+    """If one part never compiled, the absence of the reference in the rest is
+    not an answer about the whole, so the finding survives to the full build."""
+    from kreach.config import Context
+    from kreach import s6_confirm
+
+    work = tmp_path / "w"
+    work.mkdir()
+    (work / "witness.config").write_text("CONFIG_X=y\n")
+    ctx = Context(ksrc=str(tmp_path), work=str(work), arch="arm64")
+
+    rec = {"caller": "d/a.o", "caller_objects": ["d/a.o", "d/b.o"],
+           "symbols": ["sym"], "witness": "witness.config", "id": "f1"}
+
+    def fake_make(ctx, bdir, args, **kw):
+        for target in args:
+            if target == "olddefconfig" or target == "d/b.o":
+                continue
+            path = os.path.join(bdir, target)
+            os.makedirs(os.path.dirname(path), exist_ok=True)
+            open(path, "w").close()
+        return types.SimpleNamespace(returncode=1)
+
+    monkeypatch.setattr("kreach.s3_symbols.make", fake_make)
+    monkeypatch.setattr("kreach.s3_symbols._nm_batch", lambda paths: iter(()))
+
+    ok, why = s6_confirm.reference_still_emitted(ctx, rec)
+    assert ok
+    assert "d/b.o" in why and "inconclusive" in why
 
 
 def test_nm_undefined_keeps_only_the_undefined_entries(monkeypatch):

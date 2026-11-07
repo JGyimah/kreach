@@ -165,15 +165,24 @@ def reference_still_emitted(ctx: Context, rec: dict,
     compiled out.  Building the single object and reading its undefined
     symbols settles it for the price of one compile.
 
+    One option can gate several objects: the parts of a composite module are
+    listed together in `caller_objects`, and the link fails if *any* of them
+    carries the reference.  Checking only the object the caller is named after
+    loses findings -- CONFIG_SND_MESON_AIU gates both aiu.o and gx-formatter.o,
+    and under one witness the compiler proved aiu_probe() unreachable past a
+    device_reset() stub and dropped the call, while gx-formatter.o kept it.
+
     Returns (ok, reason).  `ok` is True when at least one predicted symbol is
-    still undefined in the object, and also when the check cannot be made --
-    an inconclusive check must not drop a finding.
+    still undefined in at least one of those objects, and also when the check
+    cannot be made -- an inconclusive check must not drop a finding.
     """
     from kreach.s3_symbols import make
 
     caller = rec.get("caller")
     wanted = set(rec.get("symbols") or ())
-    if not caller or not caller.endswith(".o") or not wanted:
+    targets = [o for o in (rec.get("caller_objects") or [caller])
+               if o and o.endswith(".o")]
+    if not caller or not caller.endswith(".o") or not wanted or not targets:
         return True, "nothing to check"
     witness = os.path.join(ctx.work, rec["witness"])
     if not os.path.exists(witness):
@@ -185,17 +194,28 @@ def reference_still_emitted(ctx: Context, rec: dict,
         os.makedirs(bdir, exist_ok=True)
         shutil.copyfile(witness, os.path.join(bdir, ".config"))
         make(ctx, bdir, ["olddefconfig"], jobs=1, check=False)
-        proc = make(ctx, bdir, [caller], jobs=jobs, check=False,
-                    timeout=timeout, make_vars=make_vars)
-        obj = os.path.join(bdir, caller)
-        if proc.returncode != 0 or not os.path.exists(obj):
-            return True, "could not build %s on its own; building in full" % caller
-        undefined = {name for _p, symtype, name in _nm_undefined([obj])}
-        hit = wanted & undefined
-        if hit:
-            return True, "emits %s" % ", ".join(sorted(hit))
+        make(ctx, bdir, targets, jobs=jobs, check=False,
+             timeout=timeout, make_vars=make_vars)
+        built = [t for t in targets if os.path.exists(os.path.join(bdir, t))]
+        if not built:
+            return True, ("could not build %s on its own; building in full"
+                          % ", ".join(targets))
+        for obj in built:
+            path = os.path.join(bdir, obj)
+            undefined = {name for _p, symtype, name in _nm_undefined([path])}
+            hit = wanted & undefined
+            if hit:
+                return True, "%s emits %s" % (obj, ", ".join(sorted(hit)))
+        missing = [t for t in targets if t not in built]
+        if missing:
+            # Some part of the composite never compiled, so the absence of the
+            # reference in the rest is not an answer about the whole.
+            return True, ("%s did not build, so the reference check is "
+                          "inconclusive; building in full"
+                          % ", ".join(missing))
         return False, ("%s does not reference %s in this configuration, so the "
-                       "link cannot fail on it" % (caller, ", ".join(sorted(wanted))))
+                       "link cannot fail on it"
+                       % (", ".join(built), ", ".join(sorted(wanted))))
     except Exception as exc:
         return True, "check failed (%s); building in full" % exc
     finally:
