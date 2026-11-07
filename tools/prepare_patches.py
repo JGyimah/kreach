@@ -27,6 +27,7 @@ SELECT_FOR = {
     "__devm_regmap_init_mmio_clk": ("REGMAP_MMIO", "drivers/base/regmap/regmap-mmio.c"),
     "devm_snd_dmaengine_pcm_register": ("SND_SOC_GENERIC_DMAENGINE_PCM",
                                         "sound/soc/soc-generic-dmaengine-pcm.c"),
+    "snd_pcm_new": ("SND_PCM", "sound/core/pcm.c"),
 }
 
 # Each series: the Kconfig file, a short name, and the subject prefix the
@@ -36,6 +37,8 @@ SERIES = [
     ("sound/soc/fsl/Kconfig", "fsl", "ASoC: fsl"),
     ("sound/soc/intel/Kconfig", "intel", "ASoC: Intel"),
     ("sound/soc/sunxi/Kconfig", "sunxi", "ASoC: sunxi"),
+    ("sound/soc/meson/Kconfig", "meson", "ASoC: meson"),
+    ("sound/pci/Kconfig", "pci", "ALSA"),
 ]
 
 # Kernel practice credits the finder -- kismet findings and kernel test robot
@@ -52,6 +55,14 @@ LEAD = {
     "CONFIG_SND_SOC_FSL_XCVR": [
         "SND_SOC_FSL_SPDIF, a few stanzas up in the same file, already selects",
         "BITREVERSE for the same reason.  SND_SOC_FSL_XCVR is missing it.",
+    ],
+    "CONFIG_SND_AW2": [
+        "Thirty-six other stanzas in sound/pci/Kconfig select SND_PCM.",
+        "SND_AW2 selects nothing at all.",
+    ],
+    "CONFIG_SND_MESON_AXG_PDM": [
+        "Several stanzas in the same file already select REGMAP_MMIO,",
+        "SND_MESON_G12A_TOACODEC among them.  These three do not.",
     ],
     "CONFIG_SND_SOC_FSL_AUD2HTX": [
         "This driver is short two selects, not one: its configuration fails to",
@@ -137,8 +148,12 @@ def message(prefix, finding, pairs, provider_option):
         body += wrap("%s calls %s, which %s provides under %s." % (
             drv, sym, src, sel))
     body.append("")
-    err = next((l for l in finding.get("build_log") or []
-                if "undefined reference" in l), "")
+    # Prefer an error line naming this driver's own source.  A witness often
+    # exposes several drivers at once, and quoting another file's error in
+    # this patch invites the reasonable question of what the patch fixes.
+    lines = [l for l in finding.get("build_log") or [] if "undefined reference" in l]
+    base = drv + ".c"
+    err = next((l for l in lines if base in l), lines[0] if lines else "")
     err = re.sub(r"^.*?([A-Za-z0-9_.\-]+\.c)", r"\1", err.strip())
     # Never truncate quoted output -- a half-written symbol name is worse
     # than a wrapped line.  Break before the symbol if it will not fit.

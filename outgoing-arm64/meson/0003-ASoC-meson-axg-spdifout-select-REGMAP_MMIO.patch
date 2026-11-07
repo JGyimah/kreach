@@ -1,0 +1,45 @@
+From f2d5b736d34632524dd040bda3391be7ab0ae192 Mon Sep 17 00:00:00 2001
+From: Jude Gyimah <jude.gyimah87@gmail.com>
+Date: Sat, 7 Nov 2026 04:05:38 +0100
+Subject: [PATCH 3/3] ASoC: meson: axg-spdifout: select REGMAP_MMIO
+
+axg-spdifout calls __devm_regmap_init_mmio_clk, which
+drivers/base/regmap/regmap-mmio.c provides under REGMAP_MMIO.
+
+  axg-spdifout.c:(.text+0x9c): undefined reference to
+    `__devm_regmap_init_mmio_clk'
+
+The driver can be built into vmlinux while REGMAP_MMIO is a module, in
+which case the symbol is not there at link time.
+
+Select rather than depend on: REGMAP_MMIO has no prompt of its own and is
+only ever enabled by a select, so a depends on would leave
+SND_MESON_AXG_SPDIFOUT unselectable.
+
+Reproduced on v7.3, x86_64, with CONFIG_SND_MESON_AXG_SPDIFOUT=y and
+CONFIG_REGMAP_MMIO=m.
+
+Found with kreach, a static check that compares what Kconfig allows
+against the symbols the compiled objects actually reference.
+
+Fixes: 53eb4b7aaa04 ("ASoC: meson: add axg spdif output")
+Signed-off-by: Jude Gyimah <jude.gyimah87@gmail.com>
+---
+ sound/soc/meson/Kconfig | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/sound/soc/meson/Kconfig b/sound/soc/meson/Kconfig
+index c25eadd3ddfb..16fb96b7860e 100644
+--- a/sound/soc/meson/Kconfig
++++ b/sound/soc/meson/Kconfig
+@@ -75,6 +75,7 @@ config SND_MESON_AXG_SOUND_CARD
+ 
+ config SND_MESON_AXG_SPDIFOUT
+ 	tristate "Amlogic AXG SPDIF Output Support"
++	select REGMAP_MMIO
+ 	select SND_PCM_IEC958
+ 	imply SND_SOC_SPDIF
+ 	imply COMMON_CLK_AXG_AUDIO
+-- 
+2.43.0
+

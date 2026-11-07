@@ -1,0 +1,48 @@
+From 0ab7c0a31b555147243bf3b37ec4c9874c950323 Mon Sep 17 00:00:00 2001
+From: Jude Gyimah <jude.gyimah87@gmail.com>
+Date: Sat, 7 Nov 2026 04:05:38 +0100
+Subject: [PATCH 1/3] ASoC: meson: axg-pdm: select REGMAP_MMIO
+
+Several stanzas in the same file already select REGMAP_MMIO,
+SND_MESON_G12A_TOACODEC among them.  These three do not.
+
+axg-pdm calls __devm_regmap_init_mmio_clk, which
+drivers/base/regmap/regmap-mmio.c provides under REGMAP_MMIO.
+
+  axg-pdm.c:(.text+0xc4): undefined reference to
+    `__devm_regmap_init_mmio_clk'
+
+The driver can be built into vmlinux while REGMAP_MMIO is a module, in
+which case the symbol is not there at link time.
+
+Select rather than depend on: REGMAP_MMIO has no prompt of its own and is
+only ever enabled by a select, so a depends on would leave
+SND_MESON_AXG_PDM unselectable.
+
+Reproduced on v7.3, x86_64, with CONFIG_SND_MESON_AXG_PDM=y and
+CONFIG_REGMAP_MMIO=m.
+
+Found with kreach, a static check that compares what Kconfig allows
+against the symbols the compiled objects actually reference.
+
+Fixes: 2cfc123eea74 ("ASoC: meson: add axg pdm input")
+Signed-off-by: Jude Gyimah <jude.gyimah87@gmail.com>
+---
+ sound/soc/meson/Kconfig | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/sound/soc/meson/Kconfig b/sound/soc/meson/Kconfig
+index d9a730994a2a..32ecb6bb816f 100644
+--- a/sound/soc/meson/Kconfig
++++ b/sound/soc/meson/Kconfig
+@@ -91,6 +91,7 @@ config SND_MESON_AXG_SPDIFIN
+ 
+ config SND_MESON_AXG_PDM
+ 	tristate "Amlogic AXG PDM Input Support"
++	select REGMAP_MMIO
+ 	imply SND_SOC_DMIC
+ 	imply COMMON_CLK_AXG_AUDIO
+ 	help
+-- 
+2.43.0
+
