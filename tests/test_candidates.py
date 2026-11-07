@@ -365,6 +365,42 @@ def test_reference_check_is_skipped_when_there_is_nothing_to_check(tmp_path):
     assert ok and "no witness" in why
 
 
+def test_a_filtered_rebuild_keeps_the_results_it_is_not_revisiting(tmp_path,
+                                                                   monkeypatch):
+    """--caller narrows what the run reconsiders.  Rebuilding one pair used to
+    rewrite results.jsonl with that pair alone, losing every other verdict --
+    which is how 37 arm64 records went missing."""
+    from kreach.config import Context
+    from kreach import s6_confirm
+
+    ctx = Context(ksrc=str(tmp_path), work=str(tmp_path / "w"), arch="arm64")
+    os.makedirs(os.path.dirname(ctx.confirm_file), exist_ok=True)
+
+    def q(qid, caller):
+        return {"id": qid, "query_id": qid, "case": "y/m", "status": "sat",
+                "witness": "w.config", "caller_option": caller,
+                "provider_option": "CONFIG_P", "caller": "d/%s.o" % qid}
+
+    queries = [q("a", "CONFIG_A"), q("b", "CONFIG_B"), q("c", "CONFIG_C")]
+    # b and c already have verdicts on disk; only a is being rebuilt.
+    s6_confirm.write_jsonl(ctx.confirm_file, [
+        dict(q("b", "CONFIG_B"), status="confirmed"),
+        dict(q("c", "CONFIG_C"), status="skipped_reference_not_emitted"),
+    ])
+
+    monkeypatch.setattr(s6_confirm, "witness_still_exercises",
+                        lambda *a, **k: (True, "ok"))
+    monkeypatch.setattr(s6_confirm, "confirm_one",
+                        lambda ctx, rec, **k: dict(rec, status="confirmed"))
+
+    s6_confirm.run_s6(ctx, queries, callers=["CONFIG_A"], rebuild=True,
+                      check_reference=False)
+
+    got = {r["id"]: r["status"] for r in s6_confirm.load_results(ctx)}
+    assert got == {"a": "confirmed", "b": "confirmed",
+                   "c": "skipped_reference_not_emitted"}
+
+
 def test_reference_check_covers_every_object_the_option_gates(tmp_path,
                                                              monkeypatch):
     """CONFIG_SND_MESON_AIU gates aiu.o and gx-formatter.o.  Under one arm64

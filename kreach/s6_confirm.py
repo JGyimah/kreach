@@ -389,16 +389,27 @@ def run_s6(ctx: Context, queries: list[dict], limit: int | None = None,
     # already built.  Pass --rebuild to ignore what is on disk.
     # Only terminal verdicts count as done.  A build that was interrupted or
     # errored out before it could say anything is retried.
-    previous = {} if rebuild else {
-        _key(r): r for r in load_results(ctx) if r.get("status") in TERMINAL}
-    if previous:
-        log.info("S6: %d witnesses already built in a previous run", len(previous))
+    existing = {_key(r): r for r in load_results(ctx)}
+    in_scope = {_key(q) for q in unique}
+    # A --provider or --caller filter narrows what this run revisits, so
+    # records outside it are not being reconsidered and must survive the run.
+    # Rebuilding one pair used to rewrite the file with that pair alone.
+    kept = {k: r for k, r in existing.items() if k not in in_scope}
+    previous = dict(kept)
+    if not rebuild:
+        previous.update({k: r for k, r in existing.items()
+                         if k in in_scope and r.get("status") in TERMINAL})
+    done = len(previous) - len(kept)
+    if done:
+        log.info("S6: %d witnesses already built in a previous run", done)
+    if kept:
+        log.info("S6: keeping %d result(s) outside this run's filter", len(kept))
     pending = [q for q in unique if _key(q) not in previous]
     if limit:
         pending = pending[:limit]
     log.info("S6: %d witnesses to build now (%d satisfiable queries, %d distinct, "
              "%d already done), parallel=%d, -j%d each",
-             len(pending), len(todo), len(unique), len(previous), parallel,
+             len(pending), len(todo), len(unique), done, parallel,
              jobs or ctx.jobs)
 
     results: list[dict] = list(previous.values())
