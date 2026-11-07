@@ -52,6 +52,13 @@ CREDIT = ("Found with kreach, a static check that compares what Kconfig allows "
 # five Rockchip patches with identical openings were applied without comment
 # -- but because leading with the strongest fact about a patch is better than
 # leading with the same sentence every time.  Verified at v7.3.
+#
+# Each lead must stand alone.  git am drops the cover letter, so a commit
+# message is read on its own and must not refer to the rest of the series:
+# the axg-pdm lead said "These three do not", whose referent lived in the
+# cover letter and whose count went stale when the series grew to four.  A
+# review bot caught it on the list.  {short} interpolates the bare option
+# name so a lead can name its own subject instead of counting siblings.
 LEAD = {
     "CONFIG_SND_SOC_FSL_XCVR": [
         "SND_SOC_FSL_SPDIF, a few stanzas up in the same file, already selects",
@@ -63,7 +70,7 @@ LEAD = {
     ],
     "CONFIG_SND_MESON_AXG_PDM": [
         "Several stanzas in the same file already select REGMAP_MMIO,",
-        "SND_MESON_G12A_TOACODEC among them.  These three do not.",
+        "SND_MESON_G12A_TOACODEC among them.  {short} does not.",
     ],
     "CONFIG_SND_MESON_AIU": [
         "gx-formatter.o is part of snd-soc-meson-aiu:",
@@ -151,7 +158,7 @@ def message(prefix, finding, pairs, provider_option):
 
     body = [subject, ""]
     if opt in LEAD:
-        body += LEAD[opt]
+        body += [l.format(short=short) for l in LEAD[opt]]
         body.append("")
     for sym, sel, src in pairs:
         body += wrap("%s calls %s, which %s provides under %s." % (
