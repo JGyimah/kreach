@@ -1,0 +1,613 @@
+kreach findings -- v7.3, arch arm64
+========================================================================
+
+## CONFIG_SND_AW2  (1 finding)
+
+  id          8f7d58641a8b
+  arch        arm64
+  case        y/m   (caller built-in, provider a module: vmlinux link error)
+  caller      sound/pci/aw2/aw2-alsa.o  [CONFIG_SND_AW2]
+  provider    sound/core/pcm.o  [CONFIG_SND_PCM]  module snd-pcm.ko
+  symbols     snd_pcm_new, snd_pcm_period_elapsed, snd_pcm_set_managed_buffer_all, snd_pcm_set_ops
+  witness     witness/f16b1c47f49b.config   (878 settings enabled)
+  levels      CONFIG_SND_AW2=y, CONFIG_SND_PCM=m
+  build_log   build/f16b1c47f49b.log
+      aw2-alsa.c:(.text+0x554): undefined reference to `snd_pcm_new'
+      aw2-alsa.c:(.text+0x554): relocation truncated to fit: R_AARCH64_CALL26 against undefined symbol `snd_pcm_new'
+      aarch64-linux-gnu-ld: aw2-alsa.c:(.text+0x594): undefined reference to `snd_pcm_set_ops'
+      aw2-alsa.c:(.text+0x594): relocation truncated to fit: R_AARCH64_CALL26 against undefined symbol `snd_pcm_set_ops'
+      aarch64-linux-gnu-ld: aw2-alsa.c:(.text+0x5bc): undefined reference to `snd_pcm_set_managed_buffer_all'
+      aw2-alsa.c:(.text+0x5bc): relocation truncated to fit: R_AARCH64_CALL26 against undefined symbol `snd_pcm_set_managed_buffer_all'
+  Fixes: 98f2a97f207a ("[ALSA] Emagic Audiowerk 2 ALSA driver.")
+              (git log -Ssnd_pcm_new on sound/pci/aw2/aw2-alsa.c)
+  send to     Jaroslav Kysela <perex@perex.cz>
+              Takashi Iwai <tiwai@suse.com>
+              linux-sound@vger.kernel.org
+              linux-kernel@vger.kernel.org
+  fix         depends on SND_PCM
+              in config SND_AW2
+              SND_AW2 has no stub for SND_PCM=n (no static inline stub found), so every caller path needs SND_PCM present.
+  caveat      SND_PCM has no prompt, so it is only ever enabled by a select; 'depends on SND_PCM' would leave SND_AW2 unselectable.  This one needs a maintainer decision, not the standard fix.
+
+  --- commit message reproduction section ---
+  |
+  | With the attached configuration (arm64, v7.3):
+  |
+  |   aw2-alsa.c:(.text+0x554): undefined reference to `snd_pcm_new'
+  |   aw2-alsa.c:(.text+0x554): relocation truncated to fit: R_AARCH64_CALL26 against undefined symbol `snd_pcm_new'
+  |   aarch64-linux-gnu-ld: aw2-alsa.c:(.text+0x594): undefined reference to `snd_pcm_set_ops'
+  |
+  | CONFIG_SND_AW2 is built into vmlinux while CONFIG_SND_PCM is a module, so snd_pcm_new, snd_pcm_period_elapsed, snd_pcm_set_managed_buffer_all and 1 more are
+  | not available at link time.
+  |
+  | Fix: depends on SND_PCM in config SND_AW2.
+  | Note: SND_PCM has no prompt, so it is only ever enabled by a select; 'depends on SND_PCM' would leave SND_AW2 unselectable.  This one needs a maintainer decision, not the standard fix.
+  | Found with a static reachability check and confirmed by a build.
+  |
+  | Fixes: 98f2a97f207a ("[ALSA] Emagic Audiowerk 2 ALSA driver.")
+  ---
+
+## CONFIG_SND_MESON_AXG_PDM  (1 finding)
+
+  id          2ce6cc6741ad
+  arch        arm64
+  case        y/m   (caller built-in, provider a module: vmlinux link error)
+  caller      sound/soc/meson/axg-pdm.o  [CONFIG_SND_MESON_AXG_PDM]
+  provider    drivers/base/regmap/regmap-mmio.o  [CONFIG_REGMAP_MMIO]  module regmap-mmio.ko
+  symbols     __devm_regmap_init_mmio_clk
+  witness     witness/9d1397e593a5.config   (711 settings enabled)
+  levels      CONFIG_REGMAP_MMIO=m, CONFIG_SND_MESON_AXG_PDM=y
+  build_log   build/9d1397e593a5.log
+      gx-formatter.c:(.text+0x74): undefined reference to `__devm_regmap_init_mmio_clk'
+      axg-pdm.c:(.text+0xc4): undefined reference to `__devm_regmap_init_mmio_clk'
+  Fixes: 2cfc123eea74 ("ASoC: meson: add axg pdm input")
+              (commit that added sound/soc/meson/axg-pdm.c; the symbol does not appear in the source, so check this one)
+  send to     Jerome Brunet <jbrunet@baylibre.com>
+              Liam Girdwood <lgirdwood@gmail.com>
+              Mark Brown <broonie@kernel.org>
+              Jaroslav Kysela <perex@perex.cz>
+              Takashi Iwai <tiwai@suse.com>
+              Neil Armstrong <neil.armstrong@linaro.org>
+  fix         depends on REGMAP_MMIO
+              in config SND_MESON_AXG_PDM
+              SND_MESON_AXG_PDM has no stub for REGMAP_MMIO=n (no static inline stub found), so every caller path needs REGMAP_MMIO present.
+  caveat      REGMAP_MMIO has no prompt, so it is only ever enabled by a select; 'depends on REGMAP_MMIO' would leave SND_MESON_AXG_PDM unselectable.  This one needs a maintainer decision, not the standard fix.
+
+  --- commit message reproduction section ---
+  |
+  | With the attached configuration (arm64, v7.3):
+  |
+  |   gx-formatter.c:(.text+0x74): undefined reference to `__devm_regmap_init_mmio_clk'
+  |   axg-pdm.c:(.text+0xc4): undefined reference to `__devm_regmap_init_mmio_clk'
+  |
+  | CONFIG_SND_MESON_AXG_PDM is built into vmlinux while CONFIG_REGMAP_MMIO is a module, so __devm_regmap_init_mmio_clk is
+  | not available at link time.
+  |
+  | Fix: depends on REGMAP_MMIO in config SND_MESON_AXG_PDM.
+  | Note: REGMAP_MMIO has no prompt, so it is only ever enabled by a select; 'depends on REGMAP_MMIO' would leave SND_MESON_AXG_PDM unselectable.  This one needs a maintainer decision, not the standard fix.
+  | Found with a static reachability check and confirmed by a build.
+  |
+  | Fixes: 2cfc123eea74 ("ASoC: meson: add axg pdm input")
+  ---
+
+## CONFIG_SND_MESON_AXG_SPDIFIN  (1 finding)
+
+  id          0f2b12ad4e23
+  arch        arm64
+  case        y/m   (caller built-in, provider a module: vmlinux link error)
+  caller      sound/soc/meson/axg-spdifin.o  [CONFIG_SND_MESON_AXG_SPDIFIN]
+  provider    drivers/base/regmap/regmap-mmio.o  [CONFIG_REGMAP_MMIO]  module regmap-mmio.ko
+  symbols     __devm_regmap_init_mmio_clk
+  witness     witness/715c22955712.config   (709 settings enabled)
+  levels      CONFIG_REGMAP_MMIO=m, CONFIG_SND_MESON_AXG_SPDIFIN=y
+  build_log   build/715c22955712.log
+      gx-formatter.c:(.text+0x74): undefined reference to `__devm_regmap_init_mmio_clk'
+      axg-spdifin.c:(.text+0x154): undefined reference to `__devm_regmap_init_mmio_clk'
+      axg-pdm.c:(.text+0xc4): undefined reference to `__devm_regmap_init_mmio_clk'
+  Fixes: 5ce5658375e6 ("ASoC: meson: add axg spdif input")
+              (commit that added sound/soc/meson/axg-spdifin.c; the symbol does not appear in the source, so check this one)
+  send to     Jerome Brunet <jbrunet@baylibre.com>
+              Liam Girdwood <lgirdwood@gmail.com>
+              Mark Brown <broonie@kernel.org>
+              Jaroslav Kysela <perex@perex.cz>
+              Takashi Iwai <tiwai@suse.com>
+              Neil Armstrong <neil.armstrong@linaro.org>
+  fix         depends on REGMAP_MMIO
+              in config SND_MESON_AXG_SPDIFIN
+              SND_MESON_AXG_SPDIFIN has no stub for REGMAP_MMIO=n (no static inline stub found), so every caller path needs REGMAP_MMIO present.
+  caveat      REGMAP_MMIO has no prompt, so it is only ever enabled by a select; 'depends on REGMAP_MMIO' would leave SND_MESON_AXG_SPDIFIN unselectable.  This one needs a maintainer decision, not the standard fix.
+
+  --- commit message reproduction section ---
+  |
+  | With the attached configuration (arm64, v7.3):
+  |
+  |   gx-formatter.c:(.text+0x74): undefined reference to `__devm_regmap_init_mmio_clk'
+  |   axg-spdifin.c:(.text+0x154): undefined reference to `__devm_regmap_init_mmio_clk'
+  |   axg-pdm.c:(.text+0xc4): undefined reference to `__devm_regmap_init_mmio_clk'
+  |
+  | CONFIG_SND_MESON_AXG_SPDIFIN is built into vmlinux while CONFIG_REGMAP_MMIO is a module, so __devm_regmap_init_mmio_clk is
+  | not available at link time.
+  |
+  | Fix: depends on REGMAP_MMIO in config SND_MESON_AXG_SPDIFIN.
+  | Note: REGMAP_MMIO has no prompt, so it is only ever enabled by a select; 'depends on REGMAP_MMIO' would leave SND_MESON_AXG_SPDIFIN unselectable.  This one needs a maintainer decision, not the standard fix.
+  | Found with a static reachability check and confirmed by a build.
+  |
+  | Fixes: 5ce5658375e6 ("ASoC: meson: add axg spdif input")
+  ---
+
+## CONFIG_SND_MESON_AXG_SPDIFOUT  (1 finding)
+
+  id          7e68562013ed
+  arch        arm64
+  case        y/m   (caller built-in, provider a module: vmlinux link error)
+  caller      sound/soc/meson/axg-spdifout.o  [CONFIG_SND_MESON_AXG_SPDIFOUT]
+  provider    drivers/base/regmap/regmap-mmio.o  [CONFIG_REGMAP_MMIO]  module regmap-mmio.ko
+  symbols     __devm_regmap_init_mmio_clk
+  witness     witness/3b3d1b2365dc.config   (722 settings enabled)
+  levels      CONFIG_REGMAP_MMIO=m, CONFIG_SND_MESON_AXG_SPDIFOUT=y
+  build_log   build/3b3d1b2365dc.log
+      gx-formatter.c:(.text+0x74): undefined reference to `__devm_regmap_init_mmio_clk'
+      axg-spdifin.c:(.text+0x154): undefined reference to `__devm_regmap_init_mmio_clk'
+      axg-spdifout.c:(.text+0x9c): undefined reference to `__devm_regmap_init_mmio_clk'
+      axg-pdm.c:(.text+0xc4): undefined reference to `__devm_regmap_init_mmio_clk'
+  Fixes: 53eb4b7aaa04 ("ASoC: meson: add axg spdif output")
+              (commit that added sound/soc/meson/axg-spdifout.c; the symbol does not appear in the source, so check this one)
+  send to     Jerome Brunet <jbrunet@baylibre.com>
+              Liam Girdwood <lgirdwood@gmail.com>
+              Mark Brown <broonie@kernel.org>
+              Jaroslav Kysela <perex@perex.cz>
+              Takashi Iwai <tiwai@suse.com>
+              Neil Armstrong <neil.armstrong@linaro.org>
+  fix         depends on REGMAP_MMIO
+              in config SND_MESON_AXG_SPDIFOUT
+              SND_MESON_AXG_SPDIFOUT has no stub for REGMAP_MMIO=n (no static inline stub found), so every caller path needs REGMAP_MMIO present.
+  caveat      REGMAP_MMIO has no prompt, so it is only ever enabled by a select; 'depends on REGMAP_MMIO' would leave SND_MESON_AXG_SPDIFOUT unselectable.  This one needs a maintainer decision, not the standard fix.
+
+  --- commit message reproduction section ---
+  |
+  | With the attached configuration (arm64, v7.3):
+  |
+  |   gx-formatter.c:(.text+0x74): undefined reference to `__devm_regmap_init_mmio_clk'
+  |   axg-spdifin.c:(.text+0x154): undefined reference to `__devm_regmap_init_mmio_clk'
+  |   axg-spdifout.c:(.text+0x9c): undefined reference to `__devm_regmap_init_mmio_clk'
+  |
+  | CONFIG_SND_MESON_AXG_SPDIFOUT is built into vmlinux while CONFIG_REGMAP_MMIO is a module, so __devm_regmap_init_mmio_clk is
+  | not available at link time.
+  |
+  | Fix: depends on REGMAP_MMIO in config SND_MESON_AXG_SPDIFOUT.
+  | Note: REGMAP_MMIO has no prompt, so it is only ever enabled by a select; 'depends on REGMAP_MMIO' would leave SND_MESON_AXG_SPDIFOUT unselectable.  This one needs a maintainer decision, not the standard fix.
+  | Found with a static reachability check and confirmed by a build.
+  |
+  | Fixes: 53eb4b7aaa04 ("ASoC: meson: add axg spdif output")
+  ---
+
+## CONFIG_SND_SOC_FSL_AUD2HTX  (1 finding)
+
+  id          dd5e74249347
+  arch        arm64
+  case        y/m   (caller built-in, provider a module: vmlinux link error)
+  caller      sound/soc/fsl/fsl_aud2htx.o  [CONFIG_SND_SOC_FSL_AUD2HTX]
+  provider    drivers/base/regmap/regmap-mmio.o  [CONFIG_REGMAP_MMIO]  module regmap-mmio.ko
+  symbols     __devm_regmap_init_mmio_clk
+  witness     witness/6d3bbbf14c84.config   (724 settings enabled)
+  levels      CONFIG_REGMAP_MMIO=m, CONFIG_SND_SOC_FSL_AUD2HTX=y
+  build_log   build/6d3bbbf14c84.log
+      fsl_aud2htx.c:(.text+0x1c4): undefined reference to `__devm_regmap_init_mmio_clk'
+      gx-formatter.c:(.text+0x74): undefined reference to `__devm_regmap_init_mmio_clk'
+      axg-spdifin.c:(.text+0x154): undefined reference to `__devm_regmap_init_mmio_clk'
+      axg-spdifout.c:(.text+0x9c): undefined reference to `__devm_regmap_init_mmio_clk'
+      axg-pdm.c:(.text+0xc4): undefined reference to `__devm_regmap_init_mmio_clk'
+  Fixes: 8a24c834c053 ("ASoC: fsl_aud2htx: Add aud2htx module driver")
+              (commit that added sound/soc/fsl/fsl_aud2htx.c; the symbol does not appear in the source, so check this one)
+  send to     Shengjiu Wang <shengjiu.wang@gmail.com>
+              Xiubo Li <Xiubo.Lee@gmail.com>
+              Fabio Estevam <festevam@gmail.com>
+              Nicolin Chen <nicoleotsuka@gmail.com>
+              Liam Girdwood <lgirdwood@gmail.com>
+              Mark Brown <broonie@kernel.org>
+  fix         depends on REGMAP_MMIO
+              in config SND_SOC_FSL_AUD2HTX
+              SND_SOC_FSL_AUD2HTX has no stub for REGMAP_MMIO=n (no static inline stub found), so every caller path needs REGMAP_MMIO present.
+  caveat      REGMAP_MMIO has no prompt, so it is only ever enabled by a select; 'depends on REGMAP_MMIO' would leave SND_SOC_FSL_AUD2HTX unselectable.  This one needs a maintainer decision, not the standard fix.
+
+  --- commit message reproduction section ---
+  |
+  | With the attached configuration (arm64, v7.3):
+  |
+  |   fsl_aud2htx.c:(.text+0x1c4): undefined reference to `__devm_regmap_init_mmio_clk'
+  |   gx-formatter.c:(.text+0x74): undefined reference to `__devm_regmap_init_mmio_clk'
+  |   axg-spdifin.c:(.text+0x154): undefined reference to `__devm_regmap_init_mmio_clk'
+  |
+  | CONFIG_SND_SOC_FSL_AUD2HTX is built into vmlinux while CONFIG_REGMAP_MMIO is a module, so __devm_regmap_init_mmio_clk is
+  | not available at link time.
+  |
+  | Fix: depends on REGMAP_MMIO in config SND_SOC_FSL_AUD2HTX.
+  | Note: REGMAP_MMIO has no prompt, so it is only ever enabled by a select; 'depends on REGMAP_MMIO' would leave SND_SOC_FSL_AUD2HTX unselectable.  This one needs a maintainer decision, not the standard fix.
+  | Found with a static reachability check and confirmed by a build.
+  |
+  | Fixes: 8a24c834c053 ("ASoC: fsl_aud2htx: Add aud2htx module driver")
+  ---
+
+## CONFIG_SND_SOC_FSL_LPC3XXX  (1 finding)
+
+  id          8aea9e5cee6d
+  arch        arm64
+  case        y/m   (caller built-in, provider a module: vmlinux link error)
+  caller      sound/soc/fsl/lpc3xxx-i2s.o  [CONFIG_SND_SOC_FSL_LPC3XXX]
+  provider    drivers/base/regmap/regmap-mmio.o  [CONFIG_REGMAP_MMIO]  module regmap-mmio.ko
+  symbols     __devm_regmap_init_mmio_clk
+  witness     witness/277a3340a839.config   (709 settings enabled)
+  levels      CONFIG_REGMAP_MMIO=m, CONFIG_SND_SOC_FSL_LPC3XXX=y
+  build_log   build/277a3340a839.log
+      lpc3xxx-i2s.c:(.text+0x3c8): undefined reference to `__devm_regmap_init_mmio_clk'
+      fsl_aud2htx.c:(.text+0x1c4): undefined reference to `__devm_regmap_init_mmio_clk'
+      gx-formatter.c:(.text+0x74): undefined reference to `__devm_regmap_init_mmio_clk'
+      axg-spdifin.c:(.text+0x154): undefined reference to `__devm_regmap_init_mmio_clk'
+      axg-spdifout.c:(.text+0x9c): undefined reference to `__devm_regmap_init_mmio_clk'
+      aarch64-linux-gnu-ld: sound/soc/meson/axg-pdm.o:axg-pdm.c:(.text+0xc4): more undefined references to `__devm_regmap_init_mmio_clk' follow
+  Fixes: 0959de657a10 ("ASoC: fsl: Add i2s and pcm drivers for LPC32xx CPUs")
+              (commit that added sound/soc/fsl/lpc3xxx-i2s.c; the symbol does not appear in the source, so check this one)
+  send to     "J.M.B. Downing" <jonathan.downing@nautel.com>
+              Piotr Wojtaszczyk <piotr.wojtaszczyk@timesys.com>
+              Vladimir Zapolskiy <vz@mleia.com>
+              Liam Girdwood <lgirdwood@gmail.com>
+              Mark Brown <broonie@kernel.org>
+              Jaroslav Kysela <perex@perex.cz>
+  fix         depends on REGMAP_MMIO
+              in config SND_SOC_FSL_LPC3XXX
+              SND_SOC_FSL_LPC3XXX has no stub for REGMAP_MMIO=n (no static inline stub found), so every caller path needs REGMAP_MMIO present.
+  caveat      REGMAP_MMIO has no prompt, so it is only ever enabled by a select; 'depends on REGMAP_MMIO' would leave SND_SOC_FSL_LPC3XXX unselectable.  This one needs a maintainer decision, not the standard fix.
+
+  --- commit message reproduction section ---
+  |
+  | With the attached configuration (arm64, v7.3):
+  |
+  |   lpc3xxx-i2s.c:(.text+0x3c8): undefined reference to `__devm_regmap_init_mmio_clk'
+  |   fsl_aud2htx.c:(.text+0x1c4): undefined reference to `__devm_regmap_init_mmio_clk'
+  |   gx-formatter.c:(.text+0x74): undefined reference to `__devm_regmap_init_mmio_clk'
+  |
+  | CONFIG_SND_SOC_FSL_LPC3XXX is built into vmlinux while CONFIG_REGMAP_MMIO is a module, so __devm_regmap_init_mmio_clk is
+  | not available at link time.
+  |
+  | Fix: depends on REGMAP_MMIO in config SND_SOC_FSL_LPC3XXX.
+  | Note: REGMAP_MMIO has no prompt, so it is only ever enabled by a select; 'depends on REGMAP_MMIO' would leave SND_SOC_FSL_LPC3XXX unselectable.  This one needs a maintainer decision, not the standard fix.
+  | Found with a static reachability check and confirmed by a build.
+  |
+  | Fixes: 0959de657a10 ("ASoC: fsl: Add i2s and pcm drivers for LPC32xx CPUs")
+  ---
+
+## CONFIG_SND_SOC_ROCKCHIP_I2S  (1 finding)
+
+  id          a45981c5c0d5
+  arch        arm64
+  case        y/m   (caller built-in, provider a module: vmlinux link error)
+  caller      sound/soc/rockchip/rockchip_i2s.o  [CONFIG_SND_SOC_ROCKCHIP_I2S]
+  provider    drivers/base/regmap/regmap-mmio.o  [CONFIG_REGMAP_MMIO]  module regmap-mmio.ko
+  symbols     __devm_regmap_init_mmio_clk
+  witness     witness/3c5ec3ae665b.config   (729 settings enabled)
+  levels      CONFIG_REGMAP_MMIO=m, CONFIG_SND_SOC_ROCKCHIP_I2S=y
+  build_log   build/3c5ec3ae665b.log
+      gx-formatter.c:(.text+0x194): undefined reference to `__devm_regmap_init_mmio_clk'
+      gx-formatter.c:(.text+0x194): relocation truncated to fit: R_AARCH64_CALL26 against undefined symbol `__devm_regmap_init_mmio_clk'
+      axg-spdifin.c:(.text+0x17c): undefined reference to `__devm_regmap_init_mmio_clk'
+      axg-spdifin.c:(.text+0x17c): relocation truncated to fit: R_AARCH64_CALL26 against undefined symbol `__devm_regmap_init_mmio_clk'
+      axg-spdifout.c:(.text+0x9c): undefined reference to `__devm_regmap_init_mmio_clk'
+      axg-spdifout.c:(.text+0x9c): relocation truncated to fit: R_AARCH64_CALL26 against undefined symbol `__devm_regmap_init_mmio_clk'
+  Fixes: 4495c89fcf26 ("ASoC: add driver for Rockchip RK3xxx I2S controller")
+              (commit that added sound/soc/rockchip/rockchip_i2s.c; the symbol does not appear in the source, so check this one)
+  send to     Liam Girdwood <lgirdwood@gmail.com>
+              Mark Brown <broonie@kernel.org>
+              Jaroslav Kysela <perex@perex.cz>
+              Takashi Iwai <tiwai@suse.com>
+              Heiko Stuebner <heiko@sntech.de>
+              linux-sound@vger.kernel.org
+  fix         depends on REGMAP_MMIO
+              in config SND_SOC_ROCKCHIP_I2S
+              SND_SOC_ROCKCHIP_I2S has no stub for REGMAP_MMIO=n (no static inline stub found), so every caller path needs REGMAP_MMIO present.
+  caveat      REGMAP_MMIO has no prompt, so it is only ever enabled by a select; 'depends on REGMAP_MMIO' would leave SND_SOC_ROCKCHIP_I2S unselectable.  This one needs a maintainer decision, not the standard fix.
+
+  --- commit message reproduction section ---
+  |
+  | With the attached configuration (arm64, v7.3):
+  |
+  |   gx-formatter.c:(.text+0x194): undefined reference to `__devm_regmap_init_mmio_clk'
+  |   gx-formatter.c:(.text+0x194): relocation truncated to fit: R_AARCH64_CALL26 against undefined symbol `__devm_regmap_init_mmio_clk'
+  |   axg-spdifin.c:(.text+0x17c): undefined reference to `__devm_regmap_init_mmio_clk'
+  |
+  | CONFIG_SND_SOC_ROCKCHIP_I2S is built into vmlinux while CONFIG_REGMAP_MMIO is a module, so __devm_regmap_init_mmio_clk is
+  | not available at link time.
+  |
+  | Fix: depends on REGMAP_MMIO in config SND_SOC_ROCKCHIP_I2S.
+  | Note: REGMAP_MMIO has no prompt, so it is only ever enabled by a select; 'depends on REGMAP_MMIO' would leave SND_SOC_ROCKCHIP_I2S unselectable.  This one needs a maintainer decision, not the standard fix.
+  | Found with a static reachability check and confirmed by a build.
+  |
+  | Fixes: 4495c89fcf26 ("ASoC: add driver for Rockchip RK3xxx I2S controller")
+  ---
+
+## CONFIG_SND_SOC_ROCKCHIP_I2S_TDM  (1 finding)
+
+  id          4fca484f72e5
+  arch        arm64
+  case        y/m   (caller built-in, provider a module: vmlinux link error)
+  caller      sound/soc/rockchip/rockchip_i2s_tdm.o  [CONFIG_SND_SOC_ROCKCHIP_I2S_TDM]
+  provider    drivers/base/regmap/regmap-mmio.o  [CONFIG_REGMAP_MMIO]  module regmap-mmio.ko
+  symbols     __devm_regmap_init_mmio_clk
+  witness     witness/2b48cf8a3dbd.config   (745 settings enabled)
+  levels      CONFIG_REGMAP_MMIO=m, CONFIG_SND_SOC_ROCKCHIP_I2S_TDM=y
+  build_log   build/2b48cf8a3dbd.log
+      gx-formatter.c:(.text+0x74): undefined reference to `__devm_regmap_init_mmio_clk'
+      axg-spdifin.c:(.text+0x154): undefined reference to `__devm_regmap_init_mmio_clk'
+      axg-spdifout.c:(.text+0x9c): undefined reference to `__devm_regmap_init_mmio_clk'
+      axg-pdm.c:(.text+0xc4): undefined reference to `__devm_regmap_init_mmio_clk'
+      rockchip_i2s.c:(.text+0x320): undefined reference to `__devm_regmap_init_mmio_clk'
+      aarch64-linux-gnu-ld: sound/soc/rockchip/rockchip_i2s_tdm.o:rockchip_i2s_tdm.c:(.text+0x1378): more undefined references to `__devm_regmap_init_mmio_clk' follow
+  Fixes: 081068fd6414 ("ASoC: rockchip: add support for i2s-tdm controller")
+              (commit that added sound/soc/rockchip/rockchip_i2s_tdm.c; the symbol does not appear in the source, so check this one)
+  send to     Nicolas Frattaroli <frattaroli.nicolas@gmail.com>
+              Liam Girdwood <lgirdwood@gmail.com>
+              Mark Brown <broonie@kernel.org>
+              Jaroslav Kysela <perex@perex.cz>
+              Takashi Iwai <tiwai@suse.com>
+              Heiko Stuebner <heiko@sntech.de>
+  fix         depends on REGMAP_MMIO
+              in config SND_SOC_ROCKCHIP_I2S_TDM
+              SND_SOC_ROCKCHIP_I2S_TDM has no stub for REGMAP_MMIO=n (no static inline stub found), so every caller path needs REGMAP_MMIO present.
+  caveat      REGMAP_MMIO has no prompt, so it is only ever enabled by a select; 'depends on REGMAP_MMIO' would leave SND_SOC_ROCKCHIP_I2S_TDM unselectable.  This one needs a maintainer decision, not the standard fix.
+
+  --- commit message reproduction section ---
+  |
+  | With the attached configuration (arm64, v7.3):
+  |
+  |   gx-formatter.c:(.text+0x74): undefined reference to `__devm_regmap_init_mmio_clk'
+  |   axg-spdifin.c:(.text+0x154): undefined reference to `__devm_regmap_init_mmio_clk'
+  |   axg-spdifout.c:(.text+0x9c): undefined reference to `__devm_regmap_init_mmio_clk'
+  |
+  | CONFIG_SND_SOC_ROCKCHIP_I2S_TDM is built into vmlinux while CONFIG_REGMAP_MMIO is a module, so __devm_regmap_init_mmio_clk is
+  | not available at link time.
+  |
+  | Fix: depends on REGMAP_MMIO in config SND_SOC_ROCKCHIP_I2S_TDM.
+  | Note: REGMAP_MMIO has no prompt, so it is only ever enabled by a select; 'depends on REGMAP_MMIO' would leave SND_SOC_ROCKCHIP_I2S_TDM unselectable.  This one needs a maintainer decision, not the standard fix.
+  | Found with a static reachability check and confirmed by a build.
+  |
+  | Fixes: 081068fd6414 ("ASoC: rockchip: add support for i2s-tdm controller")
+  ---
+
+## CONFIG_SND_SOC_ROCKCHIP_PDM  (1 finding)
+
+  id          c0f6bd94878b
+  arch        arm64
+  case        y/m   (caller built-in, provider a module: vmlinux link error)
+  caller      sound/soc/rockchip/rockchip_pdm.o  [CONFIG_SND_SOC_ROCKCHIP_PDM]
+  provider    drivers/base/regmap/regmap-mmio.o  [CONFIG_REGMAP_MMIO]  module regmap-mmio.ko
+  symbols     __devm_regmap_init_mmio_clk
+  witness     witness/ad2f3dd9f157.config   (747 settings enabled)
+  levels      CONFIG_REGMAP_MMIO=m, CONFIG_SND_SOC_ROCKCHIP_PDM=y
+  build_log   build/ad2f3dd9f157.log
+      gx-formatter.c:(.text+0x74): undefined reference to `__devm_regmap_init_mmio_clk'
+      axg-spdifin.c:(.text+0x154): undefined reference to `__devm_regmap_init_mmio_clk'
+      axg-spdifout.c:(.text+0x9c): undefined reference to `__devm_regmap_init_mmio_clk'
+      axg-pdm.c:(.text+0xc4): undefined reference to `__devm_regmap_init_mmio_clk'
+      rockchip_i2s.c:(.text+0x320): undefined reference to `__devm_regmap_init_mmio_clk'
+      aarch64-linux-gnu-ld: sound/soc/rockchip/rockchip_pdm.o:rockchip_pdm.c:(.text+0xa24): more undefined references to `__devm_regmap_init_mmio_clk' follow
+  Fixes: fc05a5b22253 ("ASoC: rockchip: add support for pdm controller")
+              (commit that added sound/soc/rockchip/rockchip_pdm.c; the symbol does not appear in the source, so check this one)
+  send to     Liam Girdwood <lgirdwood@gmail.com>
+              Mark Brown <broonie@kernel.org>
+              Jaroslav Kysela <perex@perex.cz>
+              Takashi Iwai <tiwai@suse.com>
+              Heiko Stuebner <heiko@sntech.de>
+              linux-sound@vger.kernel.org
+  fix         depends on REGMAP_MMIO
+              in config SND_SOC_ROCKCHIP_PDM
+              SND_SOC_ROCKCHIP_PDM has no stub for REGMAP_MMIO=n (no static inline stub found), so every caller path needs REGMAP_MMIO present.
+  caveat      REGMAP_MMIO has no prompt, so it is only ever enabled by a select; 'depends on REGMAP_MMIO' would leave SND_SOC_ROCKCHIP_PDM unselectable.  This one needs a maintainer decision, not the standard fix.
+
+  --- commit message reproduction section ---
+  |
+  | With the attached configuration (arm64, v7.3):
+  |
+  |   gx-formatter.c:(.text+0x74): undefined reference to `__devm_regmap_init_mmio_clk'
+  |   axg-spdifin.c:(.text+0x154): undefined reference to `__devm_regmap_init_mmio_clk'
+  |   axg-spdifout.c:(.text+0x9c): undefined reference to `__devm_regmap_init_mmio_clk'
+  |
+  | CONFIG_SND_SOC_ROCKCHIP_PDM is built into vmlinux while CONFIG_REGMAP_MMIO is a module, so __devm_regmap_init_mmio_clk is
+  | not available at link time.
+  |
+  | Fix: depends on REGMAP_MMIO in config SND_SOC_ROCKCHIP_PDM.
+  | Note: REGMAP_MMIO has no prompt, so it is only ever enabled by a select; 'depends on REGMAP_MMIO' would leave SND_SOC_ROCKCHIP_PDM unselectable.  This one needs a maintainer decision, not the standard fix.
+  | Found with a static reachability check and confirmed by a build.
+  |
+  | Fixes: fc05a5b22253 ("ASoC: rockchip: add support for pdm controller")
+  ---
+
+## CONFIG_SND_SOC_ROCKCHIP_SAI  (1 finding)
+
+  id          c9339f325476
+  arch        arm64
+  case        y/m   (caller built-in, provider a module: vmlinux link error)
+  caller      sound/soc/rockchip/rockchip_sai.o  [CONFIG_SND_SOC_ROCKCHIP_SAI]
+  provider    drivers/base/regmap/regmap-mmio.o  [CONFIG_REGMAP_MMIO]  module regmap-mmio.ko
+  symbols     __devm_regmap_init_mmio_clk
+  witness     witness/69d816711f7b.config   (749 settings enabled)
+  levels      CONFIG_REGMAP_MMIO=m, CONFIG_SND_SOC_ROCKCHIP_SAI=y
+  build_log   build/69d816711f7b.log
+      gx-formatter.c:(.text+0x74): undefined reference to `__devm_regmap_init_mmio_clk'
+      axg-spdifin.c:(.text+0x154): undefined reference to `__devm_regmap_init_mmio_clk'
+      axg-spdifout.c:(.text+0x9c): undefined reference to `__devm_regmap_init_mmio_clk'
+      axg-pdm.c:(.text+0xc4): undefined reference to `__devm_regmap_init_mmio_clk'
+      rockchip_i2s.c:(.text+0x320): undefined reference to `__devm_regmap_init_mmio_clk'
+      aarch64-linux-gnu-ld: sound/soc/rockchip/rockchip_pdm.o:rockchip_pdm.c:(.text+0xa24): more undefined references to `__devm_regmap_init_mmio_clk' follow
+  Fixes: cc78d1eaabad ("ASoC: rockchip: add Serial Audio Interface (SAI) driver")
+              (commit that added sound/soc/rockchip/rockchip_sai.c; the symbol does not appear in the source, so check this one)
+  send to     Nicolas Frattaroli <nicolas.frattaroli@collabora.com>
+              Liam Girdwood <lgirdwood@gmail.com>
+              Mark Brown <broonie@kernel.org>
+              Jaroslav Kysela <perex@perex.cz>
+              Takashi Iwai <tiwai@suse.com>
+              Heiko Stuebner <heiko@sntech.de>
+  fix         depends on REGMAP_MMIO
+              in config SND_SOC_ROCKCHIP_SAI
+              SND_SOC_ROCKCHIP_SAI has no stub for REGMAP_MMIO=n (no static inline stub found), so every caller path needs REGMAP_MMIO present.
+  caveat      REGMAP_MMIO has no prompt, so it is only ever enabled by a select; 'depends on REGMAP_MMIO' would leave SND_SOC_ROCKCHIP_SAI unselectable.  This one needs a maintainer decision, not the standard fix.
+
+  --- commit message reproduction section ---
+  |
+  | With the attached configuration (arm64, v7.3):
+  |
+  |   gx-formatter.c:(.text+0x74): undefined reference to `__devm_regmap_init_mmio_clk'
+  |   axg-spdifin.c:(.text+0x154): undefined reference to `__devm_regmap_init_mmio_clk'
+  |   axg-spdifout.c:(.text+0x9c): undefined reference to `__devm_regmap_init_mmio_clk'
+  |
+  | CONFIG_SND_SOC_ROCKCHIP_SAI is built into vmlinux while CONFIG_REGMAP_MMIO is a module, so __devm_regmap_init_mmio_clk is
+  | not available at link time.
+  |
+  | Fix: depends on REGMAP_MMIO in config SND_SOC_ROCKCHIP_SAI.
+  | Note: REGMAP_MMIO has no prompt, so it is only ever enabled by a select; 'depends on REGMAP_MMIO' would leave SND_SOC_ROCKCHIP_SAI unselectable.  This one needs a maintainer decision, not the standard fix.
+  | Found with a static reachability check and confirmed by a build.
+  |
+  | Fixes: cc78d1eaabad ("ASoC: rockchip: add Serial Audio Interface (SAI) driver")
+  ---
+
+## CONFIG_SND_SOC_ROCKCHIP_SPDIF  (1 finding)
+
+  id          299f7e337d3b
+  arch        arm64
+  case        y/m   (caller built-in, provider a module: vmlinux link error)
+  caller      sound/soc/rockchip/rockchip_spdif.o  [CONFIG_SND_SOC_ROCKCHIP_SPDIF]
+  provider    drivers/base/regmap/regmap-mmio.o  [CONFIG_REGMAP_MMIO]  module regmap-mmio.ko
+  symbols     __devm_regmap_init_mmio_clk
+  witness     witness/ab3a8b918f35.config   (751 settings enabled)
+  levels      CONFIG_REGMAP_MMIO=m, CONFIG_SND_SOC_ROCKCHIP_SPDIF=y
+  build_log   build/ab3a8b918f35.log
+      gx-formatter.c:(.text+0x74): undefined reference to `__devm_regmap_init_mmio_clk'
+      axg-spdifin.c:(.text+0x154): undefined reference to `__devm_regmap_init_mmio_clk'
+      axg-spdifout.c:(.text+0x9c): undefined reference to `__devm_regmap_init_mmio_clk'
+      axg-pdm.c:(.text+0xc4): undefined reference to `__devm_regmap_init_mmio_clk'
+      rockchip_i2s.c:(.text+0x320): undefined reference to `__devm_regmap_init_mmio_clk'
+      aarch64-linux-gnu-ld: sound/soc/rockchip/rockchip_pdm.o:rockchip_pdm.c:(.text+0xa24): more undefined references to `__devm_regmap_init_mmio_clk' follow
+  Fixes: f874b80e1571 ("ASoC: rockchip: Add rockchip SPDIF transceiver driver")
+              (commit that added sound/soc/rockchip/rockchip_spdif.c; the symbol does not appear in the source, so check this one)
+  send to     Liam Girdwood <lgirdwood@gmail.com>
+              Mark Brown <broonie@kernel.org>
+              Jaroslav Kysela <perex@perex.cz>
+              Takashi Iwai <tiwai@suse.com>
+              Heiko Stuebner <heiko@sntech.de>
+              linux-sound@vger.kernel.org
+  fix         depends on REGMAP_MMIO
+              in config SND_SOC_ROCKCHIP_SPDIF
+              SND_SOC_ROCKCHIP_SPDIF has no stub for REGMAP_MMIO=n (no static inline stub found), so every caller path needs REGMAP_MMIO present.
+  caveat      REGMAP_MMIO has no prompt, so it is only ever enabled by a select; 'depends on REGMAP_MMIO' would leave SND_SOC_ROCKCHIP_SPDIF unselectable.  This one needs a maintainer decision, not the standard fix.
+
+  --- commit message reproduction section ---
+  |
+  | With the attached configuration (arm64, v7.3):
+  |
+  |   gx-formatter.c:(.text+0x74): undefined reference to `__devm_regmap_init_mmio_clk'
+  |   axg-spdifin.c:(.text+0x154): undefined reference to `__devm_regmap_init_mmio_clk'
+  |   axg-spdifout.c:(.text+0x9c): undefined reference to `__devm_regmap_init_mmio_clk'
+  |
+  | CONFIG_SND_SOC_ROCKCHIP_SPDIF is built into vmlinux while CONFIG_REGMAP_MMIO is a module, so __devm_regmap_init_mmio_clk is
+  | not available at link time.
+  |
+  | Fix: depends on REGMAP_MMIO in config SND_SOC_ROCKCHIP_SPDIF.
+  | Note: REGMAP_MMIO has no prompt, so it is only ever enabled by a select; 'depends on REGMAP_MMIO' would leave SND_SOC_ROCKCHIP_SPDIF unselectable.  This one needs a maintainer decision, not the standard fix.
+  | Found with a static reachability check and confirmed by a build.
+  |
+  | Fixes: f874b80e1571 ("ASoC: rockchip: Add rockchip SPDIF transceiver driver")
+  ---
+
+## CONFIG_SND_SOC_SOF  (1 finding)
+
+  id          ddfcbe68d02d
+  arch        arm64
+  case        y/m   (caller built-in, provider a module: vmlinux link error)
+  caller      sound/soc/sof/ipc4-topology.o  [CONFIG_SND_SOC_SOF]
+  provider    sound/hda/core/intel-nhlt.o  [CONFIG_SND_INTEL_DSP_CONFIG]  module snd-intel-dspcfg.ko
+  symbols     intel_nhlt_get_endpoint_blob, intel_nhlt_ssp_device_type
+  witness     witness/031032ef6141.config   (862 settings enabled)
+  levels      CONFIG_SND_INTEL_DSP_CONFIG=m, CONFIG_SND_SOC_SOF=y
+  build_log   build/031032ef6141.log
+      ipc4-topology.c:(.text+0x22bc): undefined reference to `intel_nhlt_get_endpoint_blob'
+      aarch64-linux-gnu-ld: ipc4-topology.c:(.text+0x22f4): undefined reference to `intel_nhlt_get_endpoint_blob'
+      aarch64-linux-gnu-ld: ipc4-topology.c:(.text+0x2424): undefined reference to `intel_nhlt_ssp_device_type'
+      aarch64-linux-gnu-ld: ipc4-topology.c:(.text+0x2458): undefined reference to `intel_nhlt_get_endpoint_blob'
+      aarch64-linux-gnu-ld: ipc4-topology.c:(.text+0x24f4): undefined reference to `intel_nhlt_get_endpoint_blob'
+      aarch64-linux-gnu-ld: ipc4-topology.c:(.text+0x2584): undefined reference to `intel_nhlt_get_endpoint_blob'
+  Fixes: aa84ffb72158 ("ASoC: SOF: ipc4-topology: Add support for SSP/DMIC DAI's")
+              (git log -Sintel_nhlt_get_endpoint_blob on sound/soc/sof/ipc4-topology.c)
+  send to     Liam Girdwood <lgirdwood@gmail.com>
+              Peter Ujfalusi <peter.ujfalusi@linux.intel.com>
+              Bard Liao <yung-chuan.liao@linux.intel.com>
+              Daniel Baluta <daniel.baluta@nxp.com>
+              Kai Vehmanen <kai.vehmanen@linux.intel.com>
+              Pierre-Louis Bossart <pierre-louis.bossart@linux.dev>
+  fix         depends on SND_INTEL_DSP_CONFIG || !SND_INTEL_DSP_CONFIG
+              in config SND_SOC_SOF
+              SND_SOC_SOF already has a stub for SND_INTEL_DSP_CONFIG=n (static inline stub under CONFIG_ACPI, CONFIG_SND_INTEL_NHLT), so it only needs to be kept out of vmlinux when SND_INTEL_DSP_CONFIG is a module.
+  caveat      SND_INTEL_DSP_CONFIG has no prompt, so it is only ever enabled by a select; 'depends on SND_INTEL_DSP_CONFIG' would leave SND_SOC_SOF unselectable.  This one needs a maintainer decision, not the standard fix.
+
+  --- commit message reproduction section ---
+  |
+  | With the attached configuration (arm64, v7.3):
+  |
+  |   ipc4-topology.c:(.text+0x22bc): undefined reference to `intel_nhlt_get_endpoint_blob'
+  |   aarch64-linux-gnu-ld: ipc4-topology.c:(.text+0x22f4): undefined reference to `intel_nhlt_get_endpoint_blob'
+  |   aarch64-linux-gnu-ld: ipc4-topology.c:(.text+0x2424): undefined reference to `intel_nhlt_ssp_device_type'
+  |
+  | CONFIG_SND_SOC_SOF is built into vmlinux while CONFIG_SND_INTEL_DSP_CONFIG is a module, so intel_nhlt_get_endpoint_blob, intel_nhlt_ssp_device_type are
+  | not available at link time.
+  |
+  | Fix: depends on SND_INTEL_DSP_CONFIG || !SND_INTEL_DSP_CONFIG in config SND_SOC_SOF.
+  | Note: SND_INTEL_DSP_CONFIG has no prompt, so it is only ever enabled by a select; 'depends on SND_INTEL_DSP_CONFIG' would leave SND_SOC_SOF unselectable.  This one needs a maintainer decision, not the standard fix.
+  | Found with a static reachability check and confirmed by a build.
+  |
+  | Fixes: aa84ffb72158 ("ASoC: SOF: ipc4-topology: Add support for SSP/DMIC DAI's")
+  ---
+
+## CONFIG_SND_SUN50I_DMIC  (1 finding)
+
+  id          a6eb8844cb14
+  arch        arm64
+  case        y/m   (caller built-in, provider a module: vmlinux link error)
+  caller      sound/soc/sunxi/sun50i-dmic.o  [CONFIG_SND_SUN50I_DMIC]
+  provider    drivers/base/regmap/regmap-mmio.o  [CONFIG_REGMAP_MMIO]  module regmap-mmio.ko
+  symbols     __devm_regmap_init_mmio_clk
+  witness     witness/706acba2ec1c.config   (732 settings enabled)
+  levels      CONFIG_REGMAP_MMIO=m, CONFIG_SND_SUN50I_DMIC=y
+  build_log   build/706acba2ec1c.log
+      aiu.c:(.text+0x14c): undefined reference to `__devm_regmap_init_mmio_clk'
+      gx-formatter.c:(.text+0x74): undefined reference to `__devm_regmap_init_mmio_clk'
+      axg-spdifin.c:(.text+0x154): undefined reference to `__devm_regmap_init_mmio_clk'
+      axg-spdifout.c:(.text+0x9c): undefined reference to `__devm_regmap_init_mmio_clk'
+      axg-pdm.c:(.text+0xc4): undefined reference to `__devm_regmap_init_mmio_clk'
+      aarch64-linux-gnu-ld: sound/soc/rockchip/rockchip_i2s.o:rockchip_i2s.c:(.text+0x320): more undefined references to `__devm_regmap_init_mmio_clk' follow
+  Fixes: 9fc2c8ed923d ("ASoC: sunxi: Add Allwinner H6 Digital MIC driver")
+              (commit that added sound/soc/sunxi/sun50i-dmic.c; the symbol does not appear in the source, so check this one)
+  send to     Ban Tao <fengzheng923@gmail.com>
+              Liam Girdwood <lgirdwood@gmail.com>
+              Mark Brown <broonie@kernel.org>
+              Jaroslav Kysela <perex@perex.cz>
+              Takashi Iwai <tiwai@suse.com>
+              Chen-Yu Tsai <wens@kernel.org>
+  fix         depends on REGMAP_MMIO
+              in config SND_SUN50I_DMIC
+              SND_SUN50I_DMIC has no stub for REGMAP_MMIO=n (no static inline stub found), so every caller path needs REGMAP_MMIO present.
+  caveat      REGMAP_MMIO has no prompt, so it is only ever enabled by a select; 'depends on REGMAP_MMIO' would leave SND_SUN50I_DMIC unselectable.  This one needs a maintainer decision, not the standard fix.
+
+  --- commit message reproduction section ---
+  |
+  | With the attached configuration (arm64, v7.3):
+  |
+  |   aiu.c:(.text+0x14c): undefined reference to `__devm_regmap_init_mmio_clk'
+  |   gx-formatter.c:(.text+0x74): undefined reference to `__devm_regmap_init_mmio_clk'
+  |   axg-spdifin.c:(.text+0x154): undefined reference to `__devm_regmap_init_mmio_clk'
+  |
+  | CONFIG_SND_SUN50I_DMIC is built into vmlinux while CONFIG_REGMAP_MMIO is a module, so __devm_regmap_init_mmio_clk is
+  | not available at link time.
+  |
+  | Fix: depends on REGMAP_MMIO in config SND_SUN50I_DMIC.
+  | Note: REGMAP_MMIO has no prompt, so it is only ever enabled by a select; 'depends on REGMAP_MMIO' would leave SND_SUN50I_DMIC unselectable.  This one needs a maintainer decision, not the standard fix.
+  | Found with a static reachability check and confirmed by a build.
+  |
+  | Fixes: 9fc2c8ed923d ("ASoC: sunxi: Add Allwinner H6 Digital MIC driver")
+  ---
