@@ -1,30 +1,62 @@
 # Findings at v7.3, arm64
 
 A kreach run on Linux **v7.3**, `ARCH=arm64` (cross-compiled, gcc 13.3), with
-`sound/` as the caller subsystem. **Thirteen findings**, each confirmed by a
+`sound/` as the caller subsystem. **Fourteen findings**, each confirmed by a
 `vmlinux` link that failed on the predicted symbol.
 
-The point of a second architecture was to reach code x86_64 cannot compile,
-and it did: **five of the thirteen are new**, three of them Amlogic drivers
-gated on `ARCH_MESON` with no `COMPILE_TEST` escape.
+**Six of the fourteen the x86_64 sweep did not confirm** — but not because
+x86_64 cannot reach them. See [New on arm64](#new-on-arm64) for what actually
+separates the two runs; the short version is that x86_64 can only reach these
+drivers through `COMPILE_TEST`, and those configurations are too degenerate to
+trigger the bug.
 
 | | |
 |---|---|
 | satisfiable queries | 38 of 8,062 |
-| settled by the reference pre-check, no build spent | 15 |
-| builds spent | 23 |
-| **confirmed** | **13** |
+| settled by the reference pre-check, no build spent | 14 |
+| builds spent | 24 |
+| **confirmed** | **14** |
 | rejected: the build linked cleanly | 10 |
-| precision over builds spent | 13/23 = 0.57 |
+| precision over builds spent | 14/24 = 0.58 |
 
 ## New on arm64
 
-These five could not be found on x86_64. The three Amlogic drivers are the
-reason the architecture limitation in [docs/design.md](../../docs/design.md)
-mattered rather than being a formality.
+These six are the ones the x86_64 sweep did not confirm. The earlier wording
+here said they were unreachable from x86_64; that was wrong, and what is
+actually going on is more interesting.
+
+The Amlogic menu reads
+
+```
+menu "Amlogic"
+	depends on ARCH_MESON || (COMPILE_TEST && COMMON_CLK)
+```
+
+so there *is* a `COMPILE_TEST` escape, and the x86_64 run used it: all four
+meson pairs were raised and satisfiable there, and it built all four. None
+confirmed — one linked cleanly, two were stopped by the reference pre-check,
+and one died on a missing `autoconf.h`.
+
+The reason is in the witnesses. x86_64 reaches these drivers only through
+`COMPILE_TEST`, and its witnesses carry `CONFIG_OF=n` and
+`CONFIG_RESET_CONTROLLER=n`. In that configuration the probe bodies are dead
+code before they ever reach the register map: `axg-pdm.c:597` returns early
+because `of_device_get_match_data()` is an `OF=n` stub that always yields
+`NULL`, and `aiu.c` returns early at `device_reset()`, a stub that always
+fails. The call to `devm_regmap_init_mmio()` is never compiled, so no link can
+fail on it. The native arm64 witnesses have `OF=y` and emit the reference.
+
+`SND_AW2` and `SND_SOC_SOF` are a plainer story: both were satisfiable on
+x86_64 and simply never built. That sweep spent 17 builds on 55 satisfiable
+queries.
+
+So what the second architecture bought here is not access to unreachable
+code. It is that a `COMPILE_TEST` configuration is a poor witness for a driver
+whose probe is guarded by platform stubs, while a native one is not.
 
 | caller | provider | symbol |
 |---|---|---|
+| `SND_MESON_AIU` | `REGMAP_MMIO` | `__devm_regmap_init_mmio_clk` |
 | `SND_MESON_AXG_PDM` | `REGMAP_MMIO` | `__devm_regmap_init_mmio_clk` |
 | `SND_MESON_AXG_SPDIFIN` | `REGMAP_MMIO` | `__devm_regmap_init_mmio_clk` |
 | `SND_MESON_AXG_SPDIFOUT` | `REGMAP_MMIO` | `__devm_regmap_init_mmio_clk` |

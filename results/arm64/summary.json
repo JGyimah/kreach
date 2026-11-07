@@ -1,14 +1,14 @@
 {
  "arch": "arm64",
  "by_case": {
-  "y/m": 13
+  "y/m": 14
  },
  "by_fix_pattern": {
-  "depends on": 12,
+  "depends on": 13,
   "depends on ... || !...": 1
  },
- "caller_options": 13,
- "findings": 13,
+ "caller_options": 14,
+ "findings": 14,
  "kernel": "v7.3",
  "kernel_commit": "c03c1a14507dfaf8b856c2608f9ac216021fc222",
  "stages": {
@@ -197,19 +197,19 @@
    "seconds": 4184.5
   },
   "s6": {
-   "built": 23,
-   "built_this_run": 38,
+   "built": 24,
+   "built_this_run": 37,
    "by_status": {
-    "confirmed": 13,
+    "confirmed": 14,
     "rejected_build_ok": 10,
-    "skipped_reference_not_emitted": 15
+    "skipped_reference_not_emitted": 14
    },
-   "candidate_precision": 0.565,
-   "confirmed": 13,
+   "candidate_precision": 0.583,
+   "confirmed": 14,
    "records": 38,
    "satisfiable_queries": 38,
-   "seconds": 9221.6,
-   "skipped_reference_not_emitted": 15,
+   "seconds": 680.8,
+   "skipped_reference_not_emitted": 14,
    "skipped_witness_defanged": 0,
    "unresolved": 0
   }

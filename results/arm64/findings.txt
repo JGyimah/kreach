@@ -47,6 +47,47 @@ kreach findings -- v7.3, arch arm64
   | Fixes: 98f2a97f207a ("[ALSA] Emagic Audiowerk 2 ALSA driver.")
   ---
 
+## CONFIG_SND_MESON_AIU  (1 finding)
+
+  id          dd0bba54db1d
+  arch        arm64
+  case        y/m   (caller built-in, provider a module: vmlinux link error)
+  caller      sound/soc/meson/aiu.o  [CONFIG_SND_MESON_AIU]
+  provider    drivers/base/regmap/regmap-mmio.o  [CONFIG_REGMAP_MMIO]  module regmap-mmio.ko
+  symbols     __devm_regmap_init_mmio_clk
+  witness     witness/aab7c5b9ae09.config   (713 settings enabled)
+  levels      CONFIG_REGMAP_MMIO=m, CONFIG_SND_MESON_AIU=y
+  build_log   build/aab7c5b9ae09.log
+      gx-formatter.c:(.text+0x74): undefined reference to `__devm_regmap_init_mmio_clk'
+  Fixes: 6ae9ca9ce986 ("ASoC: meson: aiu: add i2s and spdif support")
+              (commit that added sound/soc/meson/aiu.c; the symbol does not appear in the source, so check this one)
+  send to     Jerome Brunet <jbrunet@baylibre.com>
+              Liam Girdwood <lgirdwood@gmail.com>
+              Mark Brown <broonie@kernel.org>
+              Jaroslav Kysela <perex@perex.cz>
+              Takashi Iwai <tiwai@suse.com>
+              Neil Armstrong <neil.armstrong@linaro.org>
+  fix         depends on REGMAP_MMIO
+              in config SND_MESON_AIU
+              SND_MESON_AIU has no stub for REGMAP_MMIO=n (no static inline stub found), so every caller path needs REGMAP_MMIO present.
+  caveat      REGMAP_MMIO has no prompt, so it is only ever enabled by a select; 'depends on REGMAP_MMIO' would leave SND_MESON_AIU unselectable.  This one needs a maintainer decision, not the standard fix.
+
+  --- commit message reproduction section ---
+  |
+  | With the attached configuration (arm64, v7.3):
+  |
+  |   gx-formatter.c:(.text+0x74): undefined reference to `__devm_regmap_init_mmio_clk'
+  |
+  | CONFIG_SND_MESON_AIU is built into vmlinux while CONFIG_REGMAP_MMIO is a module, so __devm_regmap_init_mmio_clk is
+  | not available at link time.
+  |
+  | Fix: depends on REGMAP_MMIO in config SND_MESON_AIU.
+  | Note: REGMAP_MMIO has no prompt, so it is only ever enabled by a select; 'depends on REGMAP_MMIO' would leave SND_MESON_AIU unselectable.  This one needs a maintainer decision, not the standard fix.
+  | Found with a static reachability check and confirmed by a build.
+  |
+  | Fixes: 6ae9ca9ce986 ("ASoC: meson: aiu: add i2s and spdif support")
+  ---
+
 ## CONFIG_SND_MESON_AXG_PDM  (1 finding)
 
   id          2ce6cc6741ad
