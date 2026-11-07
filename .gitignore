@@ -16,10 +16,15 @@ work/
 
 # Kernel configurations in general are build artefacts ...
 *.config
-# ... except the witnesses published with the findings, which are the
-# reproducers and the whole point of a finding.
+# ... except the reproducers published with the findings.  A finding's whole
+# claim is that the configuration is there to check rather than take on
+# trust, so every published .config has to survive this rule.  The narrower
+# earlier version missed three of the four places they live, leaving 17
+# dangling links in a repo cited from upstream patches.
 !results/witness/*.config
-!results/*/witness/*.config
+!results/**/witness/*.config
+!results/incidental/*.config
+!outgoing-arm64/sof/reproducer.config
 
 # coverage, printed in CI rather than uploaded anywhere
 .coverage
