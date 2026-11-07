@@ -68,8 +68,9 @@ by [tools/verify_fix.py](../../tools/verify_fix.py). The one check still
 outstanding is an `allmodconfig` `vmlinux` link, which needs about 20 GB of
 object tree and does not fit on the machine these were found on.
 
-All eleven patches, signed and `checkpatch` clean, are in
-[outgoing/](../../outgoing/).
+All eleven patches were sent; they are archived on
+[lore.kernel.org](https://lore.kernel.org/all/?q=f%3Ajude.gyimah87%40gmail.com)
+rather than kept in this repository.
 
 For the two `byte_rev_table` findings, send **`select BITREVERSE`**, not
 `select GENERIC_BITREVERSE`. v7.3 gates `bitrev.o` on the latter, which is why

@@ -190,10 +190,13 @@ link once `select <PROVIDER>` is added, and the four stock configurations stay
 Kconfig-clean with all ten applied
 ([results/v7.3/fix-verification.json](results/v7.3/fix-verification.json)).
 
-[outgoing/](outgoing/) holds the eleven resulting patches, signed and
-`checkpatch` clean, with the recipients and sending order for each. **Five are
-applied upstream** in `broonie/sound.git for-7.4` — the Rockchip series, taken
-without objection on its first posting.
+The resulting patches are not kept here. What was sent is archived on
+[lore.kernel.org](https://lore.kernel.org/all/?q=f%3Ajude.gyimah87%40gmail.com),
+which is the canonical record, and a second copy in this repository would only
+invite someone to apply a series that is already upstream. **Five are applied
+upstream** in `broonie/sound.git for-7.4` — the Rockchip series, taken without
+objection on its first posting; the commits are listed in
+[results/v7.3/README.md](results/v7.3/README.md).
 
 ## Related work
 
