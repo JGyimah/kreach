@@ -188,6 +188,10 @@ def main() -> int:
     ap.add_argument("build")
     ap.add_argument("-o", "--output")
     ap.add_argument("--jobs", type=int, default=3)
+    ap.add_argument("--only", action="append", metavar="CONFIG_X",
+                    help="redo just these caller options, merging the result "
+                         "into an existing report instead of rebuilding all "
+                         "of them")
     ap.add_argument("--regression", action="store_true",
                     help="also apply every fix at once and check the stock "
                          "configurations plus an allmodconfig vmlinux link")
@@ -226,6 +230,13 @@ def main() -> int:
         return 0
 
     report = []
+    if args.only:
+        wanted = set(args.only)
+        missing = wanted - {f["caller"]["option"] for f in findings}
+        if missing:
+            raise SystemExit("no finding for %s" % ", ".join(sorted(missing)))
+        findings = [f for f in findings if f["caller"]["option"] in wanted]
+        print("== redoing %d of the set" % len(findings), flush=True)
 
     for f in findings:
         opt = f["caller"]["option"]
@@ -276,8 +287,20 @@ def main() -> int:
             subprocess.run(["git", "checkout", "--", path], cwd=args.ksrc, check=False)
         report.append(rec)
 
+    if args.only:
+        # Replace just these cases in the existing report; rebuilding the
+        # whole set to correct one record would cost an hour of builds.
+        prev = json.load(open(args.output)) if args.output and \
+            os.path.exists(args.output) else {}
+        redone = {r["caller_option"] for r in report}
+        report = [r for r in (prev.get("cases") or [])
+                  if r["caller_option"] not in redone] + report
+        report.sort(key=lambda r: r["caller_option"])
     links = sum(1 for r in report if r.get("result") == "links")
     summary = {"findings": len(report), "links": links, "cases": report}
+    if args.only and not args.regression:
+        summary["regression"] = (prev.get("regression") if args.only else None) \
+            or summary.get("regression")
     print("\n== %d of %d witnesses link once the fix is applied" % (links, len(report)))
     if args.regression:
         summary["regression"] = regression(args.ksrc, findings, args.build, args.jobs)
@@ -285,7 +308,10 @@ def main() -> int:
         with open(args.output, "w") as fh:
             json.dump(summary, fh, indent=1, sort_keys=True)
         print("   wrote %s" % args.output)
-    return 0 if links == len(report) else 1
+    # A case with no known select was never attempted, so it is not a
+    # failure; only a witness that still fails after the fix is one.
+    failed = [r for r in report if r.get("result") == "still fails"]
+    return 1 if failed else 0
 
 
 if __name__ == "__main__":

@@ -104,11 +104,26 @@ symbols against the host and found **100 unavailable** here against 14 on
 x86_64. Those are pinned off, so some arm64 code is not considered reachable.
 That costs recall, not precision.
 
+## The fix is verified, not just reasoned
+
+With the `select` added, **thirteen of the fourteen witnesses link** — 111 s
+to 269 s each — and with all thirteen applied at once `allnoconfig`,
+`defconfig`, `allmodconfig` and `allyesconfig` come back Kconfig-clean. The
+fourteenth, `SND_SOC_SOF`, was not attempted: it has no mechanical `select`
+to add, which is why it goes out as a bug report rather than a patch. See
+[`fix-verification.json`](fix-verification.json), produced by
+[tools/verify_fix.py](../../tools/verify_fix.py).
+
+The one check still outstanding is the same one as on x86_64: an
+`allmodconfig` `vmlinux` link, which wants about 20 GB of object tree
+against the 4.8 GB free here.
+
 ## Files
 
 | | |
 |---|---|
 | `findings.txt` | the report, one section per caller option |
+| `fix-verification.json` | each fix applied and rebuilt, plus the stock-config regression |
 | `findings.jsonl` | one record per finding, for scripts |
 | `summary.json` | counts by case and fix pattern, plus per-stage timings |
 | `table.md` | the findings as a table, regenerable |

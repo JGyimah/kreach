@@ -1,0 +1,355 @@
+{
+ "cases": [
+  {
+   "added": [
+    "SND_PCM"
+   ],
+   "caller_option": "CONFIG_SND_AW2",
+   "kconfig": "sound/pci/Kconfig",
+   "provider_level_after_fix": {
+    "SND_PCM": "y"
+   },
+   "rc": 0,
+   "result": "links",
+   "seconds": 203.7,
+   "selects": [
+    "SND_PCM"
+   ],
+   "symbols": [
+    "snd_pcm_new",
+    "snd_pcm_period_elapsed",
+    "snd_pcm_set_managed_buffer_all",
+    "snd_pcm_set_ops"
+   ],
+   "undefined_after_fix": []
+  },
+  {
+   "added": [
+    "REGMAP_MMIO"
+   ],
+   "caller_option": "CONFIG_SND_MESON_AIU",
+   "kconfig": "sound/soc/meson/Kconfig",
+   "provider_level_after_fix": {
+    "REGMAP_MMIO": "y"
+   },
+   "rc": 0,
+   "result": "links",
+   "seconds": 263.8,
+   "selects": [
+    "REGMAP_MMIO"
+   ],
+   "symbols": [
+    "__devm_regmap_init_mmio_clk"
+   ],
+   "undefined_after_fix": []
+  },
+  {
+   "added": [
+    "REGMAP_MMIO"
+   ],
+   "caller_option": "CONFIG_SND_MESON_AXG_PDM",
+   "kconfig": "sound/soc/meson/Kconfig",
+   "provider_level_after_fix": {
+    "REGMAP_MMIO": "y"
+   },
+   "rc": 0,
+   "result": "links",
+   "seconds": 110.7,
+   "selects": [
+    "REGMAP_MMIO"
+   ],
+   "symbols": [
+    "__devm_regmap_init_mmio_clk"
+   ],
+   "undefined_after_fix": []
+  },
+  {
+   "added": [
+    "REGMAP_MMIO"
+   ],
+   "caller_option": "CONFIG_SND_MESON_AXG_SPDIFIN",
+   "kconfig": "sound/soc/meson/Kconfig",
+   "provider_level_after_fix": {
+    "REGMAP_MMIO": "y"
+   },
+   "rc": 0,
+   "result": "links",
+   "seconds": 228.3,
+   "selects": [
+    "REGMAP_MMIO"
+   ],
+   "symbols": [
+    "__devm_regmap_init_mmio_clk"
+   ],
+   "undefined_after_fix": []
+  },
+  {
+   "added": [
+    "REGMAP_MMIO"
+   ],
+   "caller_option": "CONFIG_SND_MESON_AXG_SPDIFOUT",
+   "kconfig": "sound/soc/meson/Kconfig",
+   "provider_level_after_fix": {
+    "REGMAP_MMIO": "y"
+   },
+   "rc": 0,
+   "result": "links",
+   "seconds": 238.8,
+   "selects": [
+    "REGMAP_MMIO"
+   ],
+   "symbols": [
+    "__devm_regmap_init_mmio_clk"
+   ],
+   "undefined_after_fix": []
+  },
+  {
+   "added": [
+    "REGMAP_MMIO",
+    "SND_SOC_GENERIC_DMAENGINE_PCM"
+   ],
+   "caller_option": "CONFIG_SND_SOC_FSL_AUD2HTX",
+   "kconfig": "sound/soc/fsl/Kconfig",
+   "provider_level_after_fix": {
+    "REGMAP_MMIO": "y",
+    "SND_SOC_GENERIC_DMAENGINE_PCM": "y"
+   },
+   "rc": 0,
+   "result": "links",
+   "seconds": 246.0,
+   "selects": [
+    "REGMAP_MMIO",
+    "SND_SOC_GENERIC_DMAENGINE_PCM"
+   ],
+   "symbols": [
+    "__devm_regmap_init_mmio_clk"
+   ],
+   "undefined_after_fix": []
+  },
+  {
+   "added": [
+    "REGMAP_MMIO"
+   ],
+   "caller_option": "CONFIG_SND_SOC_FSL_LPC3XXX",
+   "kconfig": "sound/soc/fsl/Kconfig",
+   "provider_level_after_fix": {
+    "REGMAP_MMIO": "y"
+   },
+   "rc": 0,
+   "result": "links",
+   "seconds": 259.7,
+   "selects": [
+    "REGMAP_MMIO"
+   ],
+   "symbols": [
+    "__devm_regmap_init_mmio_clk"
+   ],
+   "undefined_after_fix": []
+  },
+  {
+   "added": [
+    "REGMAP_MMIO"
+   ],
+   "caller_option": "CONFIG_SND_SOC_ROCKCHIP_I2S",
+   "kconfig": "sound/soc/rockchip/Kconfig",
+   "provider_level_after_fix": {
+    "REGMAP_MMIO": "y"
+   },
+   "rc": 0,
+   "result": "links",
+   "seconds": 179.8,
+   "selects": [
+    "REGMAP_MMIO"
+   ],
+   "symbols": [
+    "__devm_regmap_init_mmio_clk"
+   ],
+   "undefined_after_fix": []
+  },
+  {
+   "added": [
+    "REGMAP_MMIO"
+   ],
+   "caller_option": "CONFIG_SND_SOC_ROCKCHIP_I2S_TDM",
+   "kconfig": "sound/soc/rockchip/Kconfig",
+   "provider_level_after_fix": {
+    "REGMAP_MMIO": "y"
+   },
+   "rc": 0,
+   "result": "links",
+   "seconds": 267.1,
+   "selects": [
+    "REGMAP_MMIO"
+   ],
+   "symbols": [
+    "__devm_regmap_init_mmio_clk"
+   ],
+   "undefined_after_fix": []
+  },
+  {
+   "added": [
+    "REGMAP_MMIO"
+   ],
+   "caller_option": "CONFIG_SND_SOC_ROCKCHIP_PDM",
+   "kconfig": "sound/soc/rockchip/Kconfig",
+   "provider_level_after_fix": {
+    "REGMAP_MMIO": "y"
+   },
+   "rc": 0,
+   "result": "links",
+   "seconds": 268.6,
+   "selects": [
+    "REGMAP_MMIO"
+   ],
+   "symbols": [
+    "__devm_regmap_init_mmio_clk"
+   ],
+   "undefined_after_fix": []
+  },
+  {
+   "added": [
+    "REGMAP_MMIO"
+   ],
+   "caller_option": "CONFIG_SND_SOC_ROCKCHIP_SAI",
+   "kconfig": "sound/soc/rockchip/Kconfig",
+   "provider_level_after_fix": {
+    "REGMAP_MMIO": "y"
+   },
+   "rc": 0,
+   "result": "links",
+   "seconds": 190.8,
+   "selects": [
+    "REGMAP_MMIO"
+   ],
+   "symbols": [
+    "__devm_regmap_init_mmio_clk"
+   ],
+   "undefined_after_fix": []
+  },
+  {
+   "added": [
+    "REGMAP_MMIO"
+   ],
+   "caller_option": "CONFIG_SND_SOC_ROCKCHIP_SPDIF",
+   "kconfig": "sound/soc/rockchip/Kconfig",
+   "provider_level_after_fix": {
+    "REGMAP_MMIO": "y"
+   },
+   "rc": 0,
+   "result": "links",
+   "seconds": 191.6,
+   "selects": [
+    "REGMAP_MMIO"
+   ],
+   "symbols": [
+    "__devm_regmap_init_mmio_clk"
+   ],
+   "undefined_after_fix": []
+  },
+  {
+   "caller_option": "CONFIG_SND_SOC_SOF",
+   "kconfig": "sound/soc/sof/Kconfig",
+   "result": "skipped: no stanza or no known select",
+   "selects": [],
+   "symbols": [
+    "intel_nhlt_get_endpoint_blob",
+    "intel_nhlt_ssp_device_type"
+   ]
+  },
+  {
+   "added": [
+    "REGMAP_MMIO"
+   ],
+   "caller_option": "CONFIG_SND_SUN50I_DMIC",
+   "kconfig": "sound/soc/sunxi/Kconfig",
+   "provider_level_after_fix": {
+    "REGMAP_MMIO": "y"
+   },
+   "rc": 0,
+   "result": "links",
+   "seconds": 258.2,
+   "selects": [
+    "REGMAP_MMIO"
+   ],
+   "symbols": [
+    "__devm_regmap_init_mmio_clk"
+   ],
+   "undefined_after_fix": []
+  }
+ ],
+ "findings": 14,
+ "links": 13,
+ "regression": {
+  "allmodconfig_vmlinux": {
+   "reason": "needs about 20000 MB for the object tree, 4808 MB free",
+   "result": "skipped"
+  },
+  "configs": {
+   "allmodconfig": {
+    "rc": 0,
+    "warnings": []
+   },
+   "allnoconfig": {
+    "rc": 0,
+    "warnings": []
+   },
+   "allyesconfig": {
+    "rc": 0,
+    "warnings": []
+   },
+   "defconfig": {
+    "rc": 0,
+    "warnings": []
+   }
+  },
+  "files_touched": [
+   "sound/pci/Kconfig",
+   "sound/soc/fsl/Kconfig",
+   "sound/soc/meson/Kconfig",
+   "sound/soc/rockchip/Kconfig",
+   "sound/soc/sunxi/Kconfig"
+  ],
+  "selects_applied": {
+   "CONFIG_SND_AW2": [
+    "SND_PCM"
+   ],
+   "CONFIG_SND_MESON_AIU": [
+    "REGMAP_MMIO"
+   ],
+   "CONFIG_SND_MESON_AXG_PDM": [
+    "REGMAP_MMIO"
+   ],
+   "CONFIG_SND_MESON_AXG_SPDIFIN": [
+    "REGMAP_MMIO"
+   ],
+   "CONFIG_SND_MESON_AXG_SPDIFOUT": [
+    "REGMAP_MMIO"
+   ],
+   "CONFIG_SND_SOC_FSL_AUD2HTX": [
+    "REGMAP_MMIO",
+    "SND_SOC_GENERIC_DMAENGINE_PCM"
+   ],
+   "CONFIG_SND_SOC_FSL_LPC3XXX": [
+    "REGMAP_MMIO"
+   ],
+   "CONFIG_SND_SOC_ROCKCHIP_I2S": [
+    "REGMAP_MMIO"
+   ],
+   "CONFIG_SND_SOC_ROCKCHIP_I2S_TDM": [
+    "REGMAP_MMIO"
+   ],
+   "CONFIG_SND_SOC_ROCKCHIP_PDM": [
+    "REGMAP_MMIO"
+   ],
+   "CONFIG_SND_SOC_ROCKCHIP_SAI": [
+    "REGMAP_MMIO"
+   ],
+   "CONFIG_SND_SOC_ROCKCHIP_SPDIF": [
+    "REGMAP_MMIO"
+   ],
+   "CONFIG_SND_SUN50I_DMIC": [
+    "REGMAP_MMIO"
+   ]
+  }
+ }
+}
