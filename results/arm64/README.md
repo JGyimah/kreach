@@ -63,6 +63,64 @@ whose probe is guarded by platform stubs, while a native one is not.
 | `SND_AW2` | `SND_PCM` | `snd_pcm_new` |
 | `SND_SOC_SOF` | `SND_INTEL_DSP_CONFIG` | `intel_nhlt_get_endpoint_blob` |
 
+## The one finding of a different shape
+
+Thirteen of the fourteen are a missing `select`. `SND_SOC_SOF` →
+`SND_INTEL_DSP_CONFIG` on `intel_nhlt_get_endpoint_blob` is not, and the
+guard involved is worth looking at: it exists, and it cannot work.
+
+Both `include/sound/intel-nhlt.h:127` and the call site at
+`sound/soc/sof/ipc4-topology.c:1793` are guarded by
+
+```c
+#if IS_ENABLED(CONFIG_ACPI) && IS_ENABLED(CONFIG_SND_INTEL_NHLT)
+```
+
+which tests a *different option* from the one that ships the code:
+
+- `intel-nhlt.o` is a part of the composite `snd-intel-dspcfg`, whose
+  tristate is `SND_INTEL_DSP_CONFIG` — `sound/hda/core/Makefile:18` reads
+  `snd-intel-dspcfg-$(CONFIG_SND_INTEL_NHLT) += intel-nhlt.o`.
+- `SND_INTEL_NHLT` is a `bool`, and `SND_INTEL_DSP_CONFIG` does
+  `select SND_INTEL_NHLT if ACPI`. A bool selected from an `m`-valued symbol
+  becomes `y`.
+
+So `SND_INTEL_NHLT=y` whenever the provider is `y` *or* `m`. The condition
+separates "NHLT support is present somewhere" from "absent" and nothing
+else — it is structurally incapable of catching the `y/m` case, and the
+`static inline` fallbacks behind it are unreachable for the same reason. The
+witness has `CONFIG_SND_INTEL_DSP_CONFIG=m` with `CONFIG_SND_INTEL_NHLT=y`,
+which is exactly that.
+
+The configuration arrives there through two vendors disagreeing.
+`SND_SOC_SOF_IMX_COMMON=y` selects `SND_SOC_SOF`, putting the generic core in
+vmlinux, while `SND_SOC_SOF_INTEL_COMMON=m` makes `SND_INTEL_DSP_CONFIG` a
+module. The Kconfig help on `SND_SOC_SOF` says the built-in or module type
+"is decided at the top level [so] it doesn't matter"; here there are two top
+levels. Intel SOF selects the provider itself, so the bug requires a
+*non-Intel* SOF built in — the odd-looking witness is forced by the bug, not
+an artefact of minimisation.
+
+**This pattern has been fixed in this subsystem before.** `8a3fea95fab1`
+("ASoC: SOF: SND_INTEL_DSP_CONFIG dependency") hit it on
+`snd_intel_dsp_driver_probe` in the generic `sof-pci-dev.c` and wrapped the
+call in `IS_REACHABLE(CONFIG_SND_INTEL_DSP_CONFIG)`, describing that as a
+temporary fix pending a restructure. `194fe0fc3422` ("ASoC: SOF: pci: move
+DSP_CONFIG use to platform-specific drivers") then did the restructure,
+moving the call into `sound/soc/sof/intel/hda.c`. The NHLT calls in
+`ipc4-topology.c` are what that move left behind.
+
+There is therefore no `select` to add, which is why this one was reported to
+the SOF maintainers on 2026-11-07 rather than patched. The report offers two
+remedies: the one-line `IS_REACHABLE` change at `ipc4-topology.c:1793`,
+which needs no header change because the file already stubs
+`snd_sof_get_nhlt_endpoint_data()` in its own `#else` at line 1972; or
+completing the move, for which the evidence is that `ipc4_data->nhlt` is a
+`void *` in the generic `ipc4-priv.h` and is filled only by
+`intel/hda-dai.c:764`. Reproducer:
+[`witness/031032ef6141.config`](witness/031032ef6141.config); link log:
+[`build/031032ef6141.log`](build/031032ef6141.log).
+
 ## Confirmed on both architectures
 
 Eight findings reproduce here as well as on x86_64, including all five
@@ -110,7 +168,9 @@ With the `select` added, **thirteen of the fourteen witnesses link** — 111 s
 to 269 s each — and with all thirteen applied at once `allnoconfig`,
 `defconfig`, `allmodconfig` and `allyesconfig` come back Kconfig-clean. The
 fourteenth, `SND_SOC_SOF`, was not attempted: it has no mechanical `select`
-to add, which is why it goes out as a bug report rather than a patch. See
+to add, for the reason set out in
+[The one finding of a different shape](#the-one-finding-of-a-different-shape).
+See
 [`fix-verification.json`](fix-verification.json), produced by
 [tools/verify_fix.py](../../tools/verify_fix.py).
 
