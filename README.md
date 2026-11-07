@@ -168,11 +168,14 @@ the minimised `.config` that reproduces it.
 published alongside, so the failure can be read rather than taken on trust.
 
 [results/arm64/](results/arm64/) holds a second architecture at the same
-revision: **thirteen findings**, five of them unreachable from x86_64 —
-three Amlogic drivers gated on `ARCH_MESON`, which x86_64 cannot compile at
-all. Eight reproduce on both architectures, including every Rockchip driver
-already applied upstream, which answers the obvious objection that an x86_64
-`COMPILE_TEST` build is an artificial configuration.
+revision: **fourteen findings**, six of which the x86_64 sweep did not
+confirm. Not because x86_64 cannot reach them — it raised all six — but
+because it can only reach the Amlogic drivers through `COMPILE_TEST`, where
+`OF=n` and `RESET_CONTROLLER=n` turn the probe bodies into dead code before
+the register-map call, so no link can fail on it. Eight reproduce on both
+architectures, including every Rockchip driver already applied upstream,
+which answers the obvious objection that an x86_64 `COMPILE_TEST` build is an
+artificial configuration.
 
 [results/](results/) holds the earlier v6.17 run of the same set — eleven
 findings, one of which no longer reproduces at v7.3.
