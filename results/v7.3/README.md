@@ -31,18 +31,33 @@ tells you whether the call is still there.
 
 ## Upstream
 
-The five Rockchip patches are **applied** to `broonie/sound.git for-7.4`
-(2026-11-04), without objection, on the first posting:
+**Nine of the eleven are applied**, each on its first posting and without
+objection. Five went to `broonie/sound.git for-7.4` on 2026-11-04 and four to
+`for-7.5` on 2026-11-08:
 
-| patch | commit |
-|---|---|
-| `ASoC: rockchip_i2s: select REGMAP_MMIO` | [`1c57404bf9ba`](https://git.kernel.org/broonie/sound/c/1c57404bf9ba) |
-| `ASoC: rockchip_i2s_tdm: select REGMAP_MMIO` | [`b8284f2b73f8`](https://git.kernel.org/broonie/sound/c/b8284f2b73f8) |
-| `ASoC: rockchip_pdm: select REGMAP_MMIO` | [`420c7918a61b`](https://git.kernel.org/broonie/sound/c/420c7918a61b) |
-| `ASoC: rockchip_sai: select REGMAP_MMIO` | [`829904994e7a`](https://git.kernel.org/broonie/sound/c/829904994e7a) |
-| `ASoC: rockchip_spdif: select REGMAP_MMIO` | [`67a7e2073909`](https://git.kernel.org/broonie/sound/c/67a7e2073909) |
+| patch | branch | commit |
+|---|---|---|
+| `ASoC: rockchip_i2s: select REGMAP_MMIO` | for-7.4 | [`1c57404bf9ba`](https://git.kernel.org/broonie/sound/c/1c57404bf9ba) |
+| `ASoC: rockchip_i2s_tdm: select REGMAP_MMIO` | for-7.4 | [`b8284f2b73f8`](https://git.kernel.org/broonie/sound/c/b8284f2b73f8) |
+| `ASoC: rockchip_pdm: select REGMAP_MMIO` | for-7.4 | [`420c7918a61b`](https://git.kernel.org/broonie/sound/c/420c7918a61b) |
+| `ASoC: rockchip_sai: select REGMAP_MMIO` | for-7.4 | [`829904994e7a`](https://git.kernel.org/broonie/sound/c/829904994e7a) |
+| `ASoC: rockchip_spdif: select REGMAP_MMIO` | for-7.4 | [`67a7e2073909`](https://git.kernel.org/broonie/sound/c/67a7e2073909) |
+| `ASoC: sunxi: sun50i-dmic: select REGMAP_MMIO` | for-7.5 | [`4267121a564e`](https://git.kernel.org/broonie/sound/c/4267121a564e) |
+| `ASoC: fsl_aud2htx: select missing dependencies` | for-7.5 | [`c29a99ab4b11`](https://git.kernel.org/broonie/sound/c/c29a99ab4b11) |
+| `ASoC: fsl: lpc3xxx-i2s: select REGMAP_MMIO` | for-7.5 | [`b5c35242c515`](https://git.kernel.org/broonie/sound/c/b5c35242c515) |
+| `ASoC: fsl_xcvr: select BITREVERSE` | for-7.5 | [`99c9016f6bbd`](https://git.kernel.org/broonie/sound/c/99c9016f6bbd) |
 
-They go to Linus in the next merge window unless a problem is found first.
+The fsl three were taken as a series through the merge
+[`dc20f3ab498d`](https://git.kernel.org/broonie/sound/c/dc20f3ab498d), whose
+message quotes the cover letter — so the sentence promising that "the
+reproducer configuration for each finding is published with it under
+results/" is now in the kernel's own history, not just in list mail. That
+directory has to stay where it is.
+
+Every message was applied verbatim, with only a `Link:` trailer and the
+maintainer's `Signed-off-by:` added. The two still outstanding are
+`SND_SOC_INTEL_KEEMBAY` and the drm/xe patch, which goes through a different
+tree. They go to Linus in the next merge window unless a problem is found.
 
 Three things the acceptance settles, all of which were open questions when the
 patches were written. `select` rather than `depends on` drew no comment, so the
