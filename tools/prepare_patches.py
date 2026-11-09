@@ -16,6 +16,7 @@ a formatting detail the tool should add on its behalf.
 """
 
 import argparse
+import glob
 import json
 import os
 import re
@@ -142,8 +143,14 @@ def wrap(text, width=74):
     return out
 
 
-def message(prefix, finding, pairs, provider_option):
-    """pairs: [(symbol, select, provider source file)] in the order added."""
+def message(prefix, finding, pairs, provider_option, trailers=()):
+    """pairs: [(symbol, select, provider source file)] in the order added.
+
+    trailers go at the end, in the order given.  They are written here rather
+    than left to format-patch --signoff because order matters: the author's
+    Signed-off-by comes first, then the tags a patch collects as it travels,
+    and --signoff can only append.
+    """
     opt = finding["caller"]["option"]
     short = opt.removeprefix("CONFIG_")
     drv = finding["caller"]["source"].rsplit("/", 1)[-1].removesuffix(".c")
@@ -212,6 +219,7 @@ def message(prefix, finding, pairs, provider_option):
     body += wrap(CREDIT)
     body.append("")
     body.append(finding["fixes"]["tag"])
+    body += list(trailers)
     return "\n".join(body) + "\n"
 
 
@@ -241,12 +249,18 @@ def add_note(path):
     return True
 
 
+def find_cover(out):
+    """The cover letter, whatever reroll prefix format-patch gave it."""
+    found = glob.glob(os.path.join(out, "*0000-cover-letter.patch"))
+    return found[0] if found else None
+
+
 def note_group(out):
     """One note per posting: the cover letter if there is one, else the
     single patch.  Six copies of the same URL in a five-patch series is
     noise."""
-    cover = os.path.join(out, "0000-cover-letter.patch")
-    if os.path.exists(cover):
+    cover = find_cover(out)
+    if cover:
         # The cover letter carries it in the blurb, which write_cover
         # fills: there is no --- line to put it below, and nothing in a
         # cover letter becomes a commit message anyway.
@@ -258,10 +272,13 @@ def note_group(out):
     return done
 
 
-def write_cover(out, prefix, group):
+def write_cover(out, prefix, group, changelog=()):
     """Fill in format-patch's placeholders rather than shipping them."""
-    path = os.path.join(out, "0000-cover-letter.patch")
-    if not os.path.exists(path):
+    # format-patch -v2 names it v2-0000-cover-letter.patch, so find it rather
+    # than assume: the unprefixed name silently left *** SUBJECT HERE *** in a
+    # reroll, which git send-email then refuses to send.
+    path = find_cover(out)
+    if not path:
         return
     text = open(path).read()
     drivers = sorted(f["caller"]["source"].rsplit("/", 1)[-1].removesuffix(".c")
@@ -292,7 +309,7 @@ def write_cover(out, prefix, group):
         "\n".join(wrap(CREDIT)),
         "",
         NOTE.rstrip("\n"),
-    ])
+    ] + (["", "\n".join(changelog)] if changelog else []))
     text = text.replace("*** SUBJECT HERE ***", subject)
     if "*** BLURB HERE ***" in text:
         text = text.replace("*** BLURB HERE ***", blurb)
@@ -313,6 +330,17 @@ def main():
     ap.add_argument("--note-only", action="store_true",
                     help="only add the reviewer note below the --- line, to "
                          "the cover letter of each series or to a lone patch")
+    ap.add_argument("--reroll", type=int, metavar="N",
+                    help="this is version N of the series: [PATCH vN n/m] "
+                         "subjects, and the cover letter carries a changelog")
+    ap.add_argument("--changelog", action="append", metavar="LINE",
+                    help="a changelog line for the cover letter, repeatable. "
+                         "A reviewer reads this before anything else, so a "
+                         "reroll without one wastes their time.")
+    ap.add_argument("--reviewed-by", action="append", metavar="NAME <MAIL>",
+                    help="add a Reviewed-by trailer, repeatable.  Only for a "
+                         "tag a reviewer actually gave: inventing one "
+                         "attributes a review that did not happen.")
     ap.add_argument("--signoff", action="store_true",
                     help="add Signed-off-by from the tree's git identity.  "
                          "This is the author certifying the Developer's "
@@ -345,6 +373,14 @@ def main():
                GIT_AUTHOR_NAME=who, GIT_AUTHOR_EMAIL=mail,
                GIT_COMMITTER_NAME=who, GIT_COMMITTER_EMAIL=mail)
 
+    trailers = []
+    if args.signoff:
+        trailers.append("Signed-off-by: %s <%s>" % (who, mail))
+    for r in args.reviewed_by or ():
+        trailers.append("Reviewed-by: %s" % r)
+    if args.reroll and not args.changelog:
+        raise SystemExit("--reroll needs at least one --changelog line")
+
     if args.note_only:
         groups = [os.path.abspath(args.outgoing)] + \
             [os.path.abspath(os.path.join(args.outgoing, n))
@@ -358,8 +394,8 @@ def main():
     if args.cover_only:
         for path, name, prefix in SERIES:
             out = os.path.abspath(os.path.join(args.outgoing, name))
-            cover = os.path.join(out, "0000-cover-letter.patch")
-            if not os.path.exists(cover):
+            cover = find_cover(out)
+            if not cover:
                 continue
             group = [f for o, f in findings.items()
                      if subprocess.run(["git", "grep", "-l",
@@ -407,7 +443,7 @@ def main():
                 continue
             git(args.ksrc, "add", path)
             msg = message(prefix, f, [p for p in pairs if p[1] in added],
-                          f["provider"]["option"])
+                          f["provider"]["option"], trailers=trailers)
             subprocess.run(["git", "commit", "-q", "-F", "-"], cwd=args.ksrc,
                            input=msg, text=True, env=env, check=True)
             made += 1
@@ -417,14 +453,15 @@ def main():
             os.remove(os.path.join(out, old))
         n = len(mine)
         cmd = ["git", "format-patch", "-%d" % n, "-o", out]
-        if args.signoff:
-            cmd += ["--signoff"]
+        if args.reroll:
+            cmd += ["-v", str(args.reroll)]
         if n > 1:
             cmd += ["--cover-letter"]
         subprocess.run(cmd, cwd=args.ksrc, capture_output=True, text=True,
                        env=env, check=True)
         if n > 1:
-            write_cover(out, prefix, [findings[o] for o in mine])
+            write_cover(out, prefix, [findings[o] for o in mine],
+                        changelog=args.changelog or ())
         print("  %-10s %d patch(es) -> %s" % (name, n, out))
     git(args.ksrc, "reset", "-q", "--hard", "v7.3")
     print("prepared %d patches; tree reset to v7.3" % made)
