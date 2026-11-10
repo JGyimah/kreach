@@ -121,6 +121,37 @@ completing the move, for which the evidence is that `ipc4_data->nhlt` is a
 [`witness/031032ef6141.config`](witness/031032ef6141.config); link log:
 [`build/031032ef6141.log`](build/031032ef6141.log).
 
+## Upstream
+
+**Twelve of the fourteen are fixed upstream.** The four Amlogic drivers went
+in from this run, on the second posting — the first was respun because patch
+2/4's description referred to "these three" with nothing naming three, a
+sentence that predated the `aiu` finding and whose antecedent was only in the
+cover letter, which `git am` drops:
+
+| patch | commit |
+|---|---|
+| `ASoC: meson: aiu: select REGMAP_MMIO` | [`cc2f13940cee`](https://git.kernel.org/broonie/sound/c/cc2f13940cee) |
+| `ASoC: meson: axg-pdm: select REGMAP_MMIO` | [`12d753e6ca1d`](https://git.kernel.org/broonie/sound/c/12d753e6ca1d) |
+| `ASoC: meson: axg-spdifin: select REGMAP_MMIO` | [`4603b51f1dad`](https://git.kernel.org/broonie/sound/c/4603b51f1dad) |
+| `ASoC: meson: axg-spdifout: select REGMAP_MMIO` | [`10ac156211d2`](https://git.kernel.org/broonie/sound/c/10ac156211d2) |
+
+All four carry `Reviewed-by:` from Jerome Brunet and Valerio Setti. The `aiu`
+one is the finding S6 had discarded as `skipped_reference_not_emitted`,
+recovered only when the reference check was taught to look at every object an
+option gates — see
+[The gx-formatter case](#the-one-finding-of-a-different-shape) below for the
+mechanism and `kreach/s6_confirm.py` for the fix.
+
+The other eight are the ones that reproduce on x86_64 too, and their fixes
+landed from that run: five Rockchip drivers in `for-7.4` and
+`fsl_aud2htx`, `fsl: lpc3xxx-i2s` and `sunxi: sun50i-dmic` in `for-7.5`.
+They are listed with their commits in
+[../v7.3/README.md](../v7.3/README.md).
+
+Still outstanding: `SND_AW2`, which has not been sent, and `SND_SOC_SOF`,
+which was reported rather than patched for the reason below.
+
 ## Confirmed on both architectures
 
 Eight findings reproduce here as well as on x86_64, including all five
