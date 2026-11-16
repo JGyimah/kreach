@@ -193,12 +193,14 @@ Kconfig-clean with all ten applied
 The resulting patches are not kept here. What was sent is archived on
 [lore.kernel.org](https://lore.kernel.org/all/?q=f%3Ajude.gyimah87%40gmail.com),
 which is the canonical record, and a second copy in this repository would only
-invite someone to apply a series that is already upstream. **Thirteen are applied
-upstream** in `broonie/sound.git`, five in `for-7.4` and eight in `for-7.5`;
-the commits are listed in
+invite someone to apply a series that is already upstream. **Fifteen are applied
+upstream**: fourteen in `broonie/sound.git`, five in `for-7.4` and nine in
+`for-7.5`, and one in `tiwai/sound.git`. The commits are listed in
 [results/v7.3/README.md](results/v7.3/README.md) and
-[results/arm64/README.md](results/arm64/README.md). All but one went in on
-the first posting.
+[results/arm64/README.md](results/arm64/README.md). Every `sound/` finding
+from both runs is fixed upstream except one, which was reported rather than
+patched because it has no mechanical fix. All but one series went in on the
+first posting.
 
 ## Related work
 

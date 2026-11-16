@@ -123,7 +123,7 @@ completing the move, for which the evidence is that `ipc4_data->nhlt` is a
 
 ## Upstream
 
-**Twelve of the fourteen are fixed upstream.** The four Amlogic drivers went
+**Thirteen of the fourteen are fixed upstream.** The four Amlogic drivers went
 in from this run, on the second posting — the first was respun because patch
 2/4's description referred to "these three" with nothing naming three, a
 sentence that predated the `aiu` finding and whose antecedent was only in the
@@ -149,8 +149,18 @@ landed from that run: five Rockchip drivers in `for-7.4` and
 They are listed with their commits in
 [../v7.3/README.md](../v7.3/README.md).
 
-Still outstanding: `SND_AW2`, which has not been sent, and `SND_SOC_SOF`,
-which was reported rather than patched for the reason below.
+`SND_AW2` went in separately, through `tiwai/sound.git` rather than ASoC,
+as [`bca568589ad1`](https://git.kernel.org/pub/scm/linux/kernel/git/tiwai/sound.git/commit/?id=bca568589ad118a9b0bac086760baee2a41976a5).
+Takashi Iwai asked on applying it why build tests had not caught it for so
+long, which the four stock configurations answer between them: `defconfig`
+leaves the driver out, `allmodconfig` makes it a module as well, and
+`allyesconfig` builds the provider in. Only `randconfig` can express the
+pair, and 110 stanzas in 44 Kconfig files select `SND_PCM` — any one of them
+at `y` pins the provider and hides every caller that does not select it. The
+provider being selected by almost everything is what protected the bug.
+
+Still outstanding: `SND_SOC_SOF`, reported rather than patched for the
+reason below.
 
 ## Confirmed on both architectures
 

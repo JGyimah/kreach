@@ -31,9 +31,10 @@ tells you whether the call is still there.
 
 ## Upstream
 
-**Nine of the eleven are applied**, each on its first posting and without
-objection. Five went to `broonie/sound.git for-7.4` on 2026-11-04 and four to
-`for-7.5` on 2026-11-08:
+**Ten of the eleven are applied**, each on its first posting and without
+objection. Five went to `broonie/sound.git for-7.4` on 2026-11-04, four to
+`for-7.5` on 2026-11-08, and `kmb_platform` on 2026-11-16 after sitting nine
+days while the rest of its batch landed:
 
 | patch | branch | commit |
 |---|---|---|
@@ -46,6 +47,7 @@ objection. Five went to `broonie/sound.git for-7.4` on 2026-11-04 and four to
 | `ASoC: fsl_aud2htx: select missing dependencies` | for-7.5 | [`c29a99ab4b11`](https://git.kernel.org/broonie/sound/c/c29a99ab4b11) |
 | `ASoC: fsl: lpc3xxx-i2s: select REGMAP_MMIO` | for-7.5 | [`b5c35242c515`](https://git.kernel.org/broonie/sound/c/b5c35242c515) |
 | `ASoC: fsl_xcvr: select BITREVERSE` | for-7.5 | [`99c9016f6bbd`](https://git.kernel.org/broonie/sound/c/99c9016f6bbd) |
+| `ASoC: Intel: kmb_platform: select BITREVERSE` | for-7.5 | [`098ca46ed476`](https://git.kernel.org/broonie/sound/c/098ca46ed476) |
 
 The fsl three were taken as a series through the merge
 [`dc20f3ab498d`](https://git.kernel.org/broonie/sound/c/dc20f3ab498d), whose
@@ -55,9 +57,10 @@ results/" is now in the kernel's own history, not just in list mail. That
 directory has to stay where it is.
 
 Every message was applied verbatim, with only a `Link:` trailer and the
-maintainer's `Signed-off-by:` added. The two still outstanding are
-`SND_SOC_INTEL_KEEMBAY` and the drm/xe patch, which goes through a different
-tree. They go to Linus in the next merge window unless a problem is found.
+maintainer's `Signed-off-by:` added. **Every `sound/` finding in this set is
+now fixed upstream.** The one patch still outstanding is the drm/xe one,
+which goes through a different tree. They go to Linus in the next merge
+window unless a problem is found.
 
 Three things the acceptance settles, all of which were open questions when the
 patches were written. `select` rather than `depends on` drew no comment, so the
