@@ -149,8 +149,9 @@ landed from that run: five Rockchip drivers in `for-7.4` and
 They are listed with their commits in
 [../v7.3/README.md](../v7.3/README.md).
 
-`SND_AW2` went in separately, through `tiwai/sound.git` rather than ASoC,
-as [`bca568589ad1`](https://git.kernel.org/pub/scm/linux/kernel/git/tiwai/sound.git/commit/?id=bca568589ad118a9b0bac086760baee2a41976a5).
+`SND_AW2` was applied by Takashi Iwai through `tiwai/sound.git` rather than
+ASoC, as [`bca568589ad1`](https://git.kernel.org/broonie/sound/c/bca568589ad1),
+and has since merged forward into `for-7.5` with the rest.
 Takashi Iwai asked on applying it why build tests had not caught it for so
 long, which the four stock configurations answer between them: `defconfig`
 leaves the driver out, `allmodconfig` makes it a module as well, and

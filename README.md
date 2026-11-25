@@ -194,8 +194,10 @@ The resulting patches are not kept here. What was sent is archived on
 [lore.kernel.org](https://lore.kernel.org/all/?q=f%3Ajude.gyimah87%40gmail.com),
 which is the canonical record, and a second copy in this repository would only
 invite someone to apply a series that is already upstream. **Fifteen are applied
-upstream**: fourteen in `broonie/sound.git`, five in `for-7.4` and nine in
-`for-7.5`, and one in `tiwai/sound.git`. The commits are listed in
+upstream**, all of them reachable from `broonie/sound.git for-7.5` now that
+`for-7.4` has merged forward. Branch membership moves as maintainer trees
+merge, so the record here is the commit, not the branch; the commits are
+listed in
 [results/v7.3/README.md](results/v7.3/README.md) and
 [results/arm64/README.md](results/arm64/README.md). Every `sound/` finding
 from both runs is fixed upstream except one, which was reported rather than
