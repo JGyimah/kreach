@@ -111,15 +111,38 @@ moving the call into `sound/soc/sof/intel/hda.c`. The NHLT calls in
 `ipc4-topology.c` are what that move left behind.
 
 There is therefore no `select` to add, which is why this one was reported to
-the SOF maintainers on 2026-11-07 rather than patched. The report offers two
-remedies: the one-line `IS_REACHABLE` change at `ipc4-topology.c:1793`,
-which needs no header change because the file already stubs
-`snd_sof_get_nhlt_endpoint_data()` in its own `#else` at line 1972; or
-completing the move, for which the evidence is that `ipc4_data->nhlt` is a
-`void *` in the generic `ipc4-priv.h` and is filled only by
-`intel/hda-dai.c:764`. Reproducer:
+the SOF maintainers on 2026-11-07 rather than patched. Reproducer:
 [`witness/031032ef6141.config`](witness/031032ef6141.config); link log:
 [`build/031032ef6141.log`](build/031032ef6141.log).
+
+**The three remedies that report proposed were all wrong, and the reason is
+worth recording.** A patch for the first was sent on 2026-11-25 and Arnd
+Bergmann rejected it: "IS_REACHABLE() is practically always a mistake".  He
+is right, and the precedent cited for it was misread — `8a3fea95fab1` called
+its own use of `IS_REACHABLE` a temporary fix, and `194fe0fc3422` removed it.
+
+Measured afterwards, against v7.3 arm64 with this witness:
+
+| proposed remedy | what actually happens |
+|---|---|
+| `IS_REACHABLE(CONFIG_SND_INTEL_DSP_CONFIG)` at the call site | rejected on review |
+| `depends on SND_INTEL_DSP_CONFIG \|\| !SND_INTEL_DSP_CONFIG` on `SND_SOC_SOF` | **does not avoid it.** The option has no prompt and is only reached by `select`, which ignores `depends on`: `SOF=y` with `DSP_CONFIG=m` survives, plus `WARNING: unmet direct dependencies` |
+| the same on the selector, `SND_SOC_SOF_IMX_COMMON` | warns about that symbol and quietly demotes `SOF` to `m` — avoids the failure by way of a warning, which expresses nothing |
+| moving the calls into `intel/`, as `194fe0fc3422` did | **insufficient.** `ipc4-topology.c:4111` fills `->nhlt` from the topology manifest when the BIOS has none, so generic SOF holds an NHLT table with no Intel code involved and needs the parser in its own right |
+
+The dependency cannot be expressed because the provider is not selectable.
+`intel-nhlt.o` rides inside `snd-intel-dspcfg`
+(`sound/hda/core/Makefile:18`) and `SND_INTEL_NHLT` is a `bool` that only
+decides whether the object joins that module, so a consumer cannot ask for
+the NHLT parser — its level is set by `SND_INTEL_DSP_CONFIG`, which is about
+Intel DSP detection and is selected by `SND_HDA_INTEL` for unrelated
+reasons.
+
+What would express it is to give `SND_INTEL_NHLT` its own tristate and
+module so its users, `SND_SOC_SOF` among them, can `select` it; a `select`
+from a `y` symbol forces `y`, and the `y/m` case stops existing. That is
+proposed upstream, not yet agreed, and deliberately not implemented here
+before the maintainers say whether it is the right shape.
 
 ## Upstream
 
